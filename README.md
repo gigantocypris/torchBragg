@@ -20,8 +20,6 @@ cd $MODULES/exafel_project
 git checkout experimental_high_remote
 ```
 
-
-
 Create a simulated image:
 ```
 mkdir $WORK/output_torchBragg
