@@ -26,10 +26,11 @@ Create a simulated image:
 ```
 mkdir $WORK/output_torchBragg
 cd $WORK/output_torchBragg
-> sbatch $MODULES/exafel_project/kpp-sim/sim_ferredoxin_high_remote.sh
+. $MODULES/torchBragg/single_img_sim.sh
 ```
 
-## Notes
-
-Expanded path to $MODULES: /global/cfs/cdirs/m3562/users/vidyagan/p20231/alcc-recipes2/cctbx/modules
-
+To view the image:
+```
+dials.image_viewer image_rank_00000.h5 
+```
+Change brightness to ~100.

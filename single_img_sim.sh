@@ -17,6 +17,7 @@ export OMP_PLACES=threads
 export SIT_PSDM_DATA=/global/cfs/cdirs/lcls/psdm-sauter
 export CCTBX_GPUS_PER_NODE=1
 export XFEL_CUSTOM_WORKER_PATH=$MODULES/psii_spread/merging/application # User must export $MODULES path
+export CUDA_MANAGED_FORCE_DEVICE_ALLOC=1
 
 echo "
 noise=True
@@ -32,7 +33,7 @@ spectrum {
   channel_width=1.0
 }
 detector {
-  tiles=multipanel
+  tiles=single
   reference=$MODULES/exafel_project/kpp-sim/t000_rg002_chunk000_reintegrated_000000.expt
 }
 output {
