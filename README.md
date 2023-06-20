@@ -2,6 +2,10 @@
 
 Structure factor refinement integrating Careless and nanoBragg
 
+## Installation
+
+Follow the [installation instructions](https://github.com/gigantocypris/SPREAD) for SPREAD.
+
 ## How to run a forward simulation with nanoBragg
 
 Login to Perlmutter, source your environment, and clone this repository.
@@ -32,3 +36,14 @@ To view the image:
 dials.image_viewer image_rank_00000.h5 
 ```
 Change brightness to ~100.
+
+## Port to PyTorch
+
+References:
+
+cctbx_project/simtbx/nanoBragg/nanoBragg.cpp
+cctbx_project/simtbx/nanoBragg/tst_nanoBragg_minimal.py
+
+> cd $WORK/output_torchBragg
+> libtbx.python $MODULES/cctbx_project/simtbx/nanoBragg/tst_nanoBragg_minimal.py
+
