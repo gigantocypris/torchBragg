@@ -52,7 +52,7 @@ SIM.raw_pixels.as_numpy_array()
 Other unit tests:
 ```
 cd $WORK/output_torchBragg
-libtbx.python $MODULES/cctbx_project/simtbx/nanoBragg/tst_nanoBragg_minimal.py
+libtbx.python $MODULES/cctbx_project/simtbx/nanoBragg/tst_nanoBragg_mosaic.py
 ```
 
 ## Port to PyTorch
@@ -61,6 +61,8 @@ References:
 
 cctbx_project/simtbx/nanoBragg/nanoBragg.cpp --> add_nanoBragg_spots
 cctbx_project/simtbx/nanoBragg/tst_nanoBragg_minimal.py
+
+Get this unit test to work:
 
 > cd $WORK/output_torchBragg
 > libtbx.python $MODULES/cctbx_project/simtbx/nanoBragg/tst_nanoBragg_minimal.py
