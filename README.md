@@ -37,11 +37,29 @@ dials.image_viewer image_rank_00000.h5
 ```
 Change brightness to ~100.
 
+## Running nanoBragg unit tests
+
+```
+cd $WORK/output_torchBragg
+libtbx.python $MODULES/cctbx_project/simtbx/nanoBragg/tst_nanoBragg_minimal.py
+```
+
+Can set a breakpoint in the above unit test and look at the raw_pixels attribute:
+```
+SIM.raw_pixels.as_numpy_array()
+```
+
+Other unit tests:
+```
+cd $WORK/output_torchBragg
+libtbx.python $MODULES/cctbx_project/simtbx/nanoBragg/tst_nanoBragg_minimal.py
+```
+
 ## Port to PyTorch
 
 References:
 
-cctbx_project/simtbx/nanoBragg/nanoBragg.cpp
+cctbx_project/simtbx/nanoBragg/nanoBragg.cpp --> add_nanoBragg_spots
 cctbx_project/simtbx/nanoBragg/tst_nanoBragg_minimal.py
 
 > cd $WORK/output_torchBragg
