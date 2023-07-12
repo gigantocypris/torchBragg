@@ -78,11 +78,11 @@ def add_nanoBragg_spots(spixels,
                         Fdet, Sdet = detector_position(subpixel_size, oversample, fpixel, spixel, subF, subS)
                         # loop over detector thickness
                         for thick_tic in range(detector_thicksteps):
-                            I_contribution, polar = find_detector_thickstep_contribution(thick_tic)
-                            I += I_contribution*polar
+                            I_contribution = find_detector_thickstep_contribution(thick_tic)
+                            I += I_contribution
                 # end of sub-pixel loop
 
-                raw_pixels[spixel,fpixel] += r_e_sqr*fluence*spot_scale*I/steps
+                raw_pixels[spixel,fpixel] += r_e_sqr*fluence*spot_scale*polar*I/steps
                 
                 if(raw_pixels[spixel,fpixel] > max_I):
                     max_I = raw_pixels[spixel,fpixel]
@@ -146,11 +146,14 @@ def find_detector_thickstep_contribution(thick_tic,
 
     # loop over sources now
     for source in range(sources):
-        I_contribution_source = find_source_contribution(source)
+        I_contribution_source = find_source_contribution(source, capture_fraction)
         I_contribution += I_contribution_source
+    
+    return I_contribution
 
 
 def find_source_contribution(source, source_X, source_Y, source_Z, source_lambda, diffracted, dmin, phisteps):
+    I_contribution_source = 0
     incident = np.zeros(4)
     # retrieve stuff from cache
     incident[1] = -source_X[source]
@@ -175,14 +178,20 @@ def find_source_contribution(source, source_X, source_Y, source_Z, source_lambda
         pass
     else: # sweep over phi angles
         for phi_tic in range(phisteps):
-            find_phi_contribution()
+            I_contribution_phi = find_phi_contribution()
+            I_contribution_source += I_contribution_phi
+    return I_contribution_source
 
 
 def find_phi_contribution(phi0, phistep, phi_tic, 
                           a0, b0, c0, ap, bp, cp, spindle_vector,
                           mosaic_domains,
+                          mosaic_spread,
+                            mosaic_umats,
                           ): 
     """only 1 angle to loop over in XFEL"""
+
+    I_contribution_phi = 0
     phi = phi0 + phistep*phi_tic
 
     if( phi != 0.0 ):
@@ -194,8 +203,34 @@ def find_phi_contribution(phi0, phistep, phi_tic,
 
     # enumerate mosaic domains
     for mos_tic in range(mosaic_domains):
-        find_mosaic_domain_contribution()
+        I_contribution_mosaic, polar = find_mosaic_domain_contribution(mosaic_spread,
+                                                                       mosaic_umats,
+                                                                       mos_tic,
+                                                                       ap, bp, cp,
+                                                                       scattering,
+                                                                       xtal_shape,
+                                                                       Na, Nb, Nc,
+                                                                       fudge,
+                                                                       integral_form,
+                                                                       phi,
+                                                                       V_cell,
+                                                                       incident, 
+                                                                       lambda_0,
+                                                                       fdet_vector,
+                                                                       sdet_vector,
+                                                                       odet_vector,
+                                                                       distance,
+                                                                       Xbeam, Ybeam,
+                                                                       verbose,
+                                                                       Fdet, Sdet,
+                                                                       interpolate,
+                                                                       h_max, h_min, k_max, k_min, l_max, l_min,
+                                                                       Fhkl, default_F,
+                                                                       nopolar,source_I, source, capture_fraction, omega_pixel,
+                                                                      )
+        I_contribution_phi += I_contribution_mosaic
 
+    return I_contribution_phi
 
 
 def find_mosaic_domain_contribution(mosaic_spread,
@@ -221,14 +256,18 @@ def find_mosaic_domain_contribution(mosaic_spread,
                                     interpolate,
                                     h_max, h_min, k_max, k_min, l_max, l_min,
                                     Fhkl, default_F,
-                                    nopolar,
+                                    nopolar,source_I, source, capture_fraction, omega_pixel,
                                     ):
+
     # apply mosaic rotation after phi rotation
     if(mosaic_spread > 0.0):
         a = rotate_umat(ap,mosaic_umats[mos_tic*9])
         b = rotate_umat(bp,mosaic_umats[mos_tic*9])
         c = rotate_umat(cp,mosaic_umats[mos_tic*9])
     else:
+        a = np.zeros(4)
+        b = np.zeros(4)
+        c = np.zeros(4)
         a[1]=ap[1];a[2]=ap[2];a[3]=ap[3]
         b[1]=bp[1];b[2]=bp[2];b[3]=bp[3]
         c[1]=cp[1];c[2]=cp[2];c[3]=cp[3]
@@ -246,11 +285,6 @@ def find_mosaic_domain_contribution(mosaic_spread,
     h0 = np.ceil(h-0.5)
     k0 = np.ceil(k-0.5)
     l0 = np.ceil(l-0.5)
-
-    """
-    # structure factor of the lattice (paralelpiped crystal)
-    F_latt = sin(M_PI*Na*h)*sin(M_PI*Nb*k)*sin(M_PI*Nc*l)/sin(M_PI*h)/sin(M_PI*k)/sin(M_PI*l)
-    """
 
     # structure factor of the lattice
     F_latt = 1.0
@@ -352,10 +386,8 @@ def find_mosaic_domain_contribution(mosaic_spread,
 
     # structure factor of the unit cell
     if(interpolate):
-        # NOT IMPLEMENTED
-        print("INTERPOLATE NOT IMPLEMENTED")
+        raise NotImplementedError("Interpolation of structure factors not implemented")
         # F_cell = interpolate_unit_cell()
-        sys.exit()
     else:
         if ((h0<=h_max) and (h0>=h_min) and (k0<=k_max) and (k0>=k_min) and (l0<=l_max) and (l0>=l_min)):
             # just take nearest-neighbor
@@ -375,8 +407,8 @@ def find_mosaic_domain_contribution(mosaic_spread,
         polar = 1.0
 
     # convert amplitudes into intensity (photons per steradian)
-    I += F_cell*F_cell*F_latt*F_latt*source_I[source]*capture_fraction*omega_pixel
-    return I, polar
+    I_contribution_mosaic = F_cell*F_cell*F_latt*F_latt*source_I[source]*capture_fraction*omega_pixel
+    return I_contribution_mosaic, polar
 
 def print_pixel_output():
     if printout:
