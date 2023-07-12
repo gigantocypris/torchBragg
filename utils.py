@@ -14,7 +14,7 @@ def rotate_axis(v, axis, phi):
     return newv
 
 
-def unitize(vector, new_unit_vector):
+def unitize(vector):
     """make provided vector a unit vector"""
 
     # measure the magnitude

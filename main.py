@@ -1,162 +1,17 @@
 import torch
 import numpy as np
-
-def add_nanoBragg_spots(spixels, 
-                        fpixels,
-                        phisteps,
-                        mosaic_domains,
-                        oversample,
-                        pixel_size,
-                        verbose=9):
-    max_I = 0.0
-    i = 0
-    raw_pixels = torch.zeros((spixels,fpixels))
-
-    # make sure we are normalizing with the right number of sub-steps
-    steps = phisteps*mosaic_domains*oversample*oversample
-    subpixel_size = pixel_size/oversample
-
-    sum = sumsqr = 0.0
-    i = sumn = 0
-    progress_pixel = 0
-    omega_sum = 0.0
-
-    for spixel in range(spixels):
-        loop_over_spixels(spixel,
-                          fpixels,
-                          raw_pixels,
-                          )
-    
-    if(verbose):
-        print("done with pixel loop\n")
-        print("solid angle subtended by detector = %g steradian ( %g%% sphere)\n",omega_sum/steps,100*omega_sum/steps/4/np.pi)
-        print("max_I= %g sum= %g avg= %g\n",max_I,sum,sum/sumn)
+from utils import rotate_axis, rotate_umat, dot_product, sincg, sinc3, cross_product, vector_scale, magnitude, unitize
 
 
-def loop_over_spixels(spixel,
-                      fpixels,
-                      raw_pixels,
-                      ):
-    for fpixel in range(fpixels):
-        loop_over_fpixels(fpixel)
+def detector_position(subpixel_size, oversample, fpixel, spixel, subF, subS):
+    """absolute mm position on detector (relative to its origin)"""
+    Fdet = subpixel_size*(fpixel*oversample + subF ) + subpixel_size/2.0
+    Sdet = subpixel_size*(spixel*oversample + subS ) + subpixel_size/2.0
+    return Fdet, Sdet
 
-
-def loop_over_fpixels(oversample,
-                      maskimage):
-
-    # allow for just one part of detector to be rendered
-    if(fpixel < roi_xmin or fpixel > roi_xmax or spixel < roi_ymin or spixel > roi_ymax):
-        # out-of-bounds, move on to next pixel
-        i += 1
-    # allow for the use of a mask
-    elif(maskimage != NULL):
-        # skip any flagged pixels in the mask
-        if(maskimage[i] == 0):
-            i+=1
-    else: # render pixel
-        # reset photon count for this pixel
-        I = 0
-
-        # loop over sub-pixels
-        for subS in range(oversample):
-            loop_over_ssubpixels(subS)
-        # end of sub-pixel x loop
-
-        raw_pixels[spixel,fpixel] += r_e_sqr*fluence*spot_scale*polar*I/steps
-        
-        # floatimage[i] += r_e_sqr*fluence*spot_scale*polar*I/steps;
-
-        if(raw_pixels[spixel,fpixel] > max_I):
-            max_I = raw_pixels[spixel,fpixel]
-            max_I_x = Fdet
-            max_I_y = Sdet
-        
-        sum += raw_pixels[spixel,fpixel]
-        sumsqr += raw_pixels[spixel,fpixel]*raw_pixels[spixel,fpixel]
-        sumn += 1
-
-        if printout:
-            if((fpixel==printout_fpixel and spixel==printout_spixel) or printout_fpixel < 0):
-                twotheta = atan2(sqrt(pixel_pos[2]*pixel_pos[2]+pixel_pos[3]*pixel_pos[3]),pixel_pos[1])
-                test = sin(twotheta/2.0)/(lambda0*1e10)
-                print(f"%4d %4d : stol = %g or %g\n", fpixel,spixel,stol,test)
-                print(f"at %g %g %g\n", pixel_pos[1],pixel_pos[2],pixel_pos[3])
-                print(f"hkl= %f %f %f  hkl0= %d %d %d\n", h,k,l,h0,k0,l0)
-                print(f" F_cell=%g  F_latt=%g   I = %g\n", F_cell,F_latt,I)
-                print(f"I/steps %15.10g\n", I/steps)
-                print(f"cap frac   %f\n", capture_fraction)
-                print(f"polar   %15.10g\n", polar)
-                print(f"omega   %15.10g\n", omega_pixel)
-                print(f"pixel   %15.10g\n", raw_pixels[spixel,fpixel])
-                print(f"real-space cell vectors (Angstrom):\n")
-                print(f"     %-10s  %-10s  %-10s\n","a","b","c")
-                print(f"X: %11.8f %11.8f %11.8f\n",a[1]*1e10,b[1]*1e10,c[1]*1e10)
-                print(f"Y: %11.8f %11.8f %11.8f\n",a[2]*1e10,b[2]*1e10,c[2]*1e10)
-                print(f"Z: %11.8f %11.8f %11.8f\n",a[3]*1e10,b[3]*1e10,c[3]*1e10)
-                SCITBX_EXAMINE(fluence)
-                SCITBX_EXAMINE(source_I[0])
-                SCITBX_EXAMINE(spot_scale)
-                SCITBX_EXAMINE(Na)
-                SCITBX_EXAMINE(Nb)
-                SCITBX_EXAMINE(Nc)
-                SCITBX_EXAMINE(airpath)
-                SCITBX_EXAMINE(Fclose)
-                SCITBX_EXAMINE(Sclose)
-                SCITBX_EXAMINE(close_distance)
-                SCITBX_EXAMINE(pix0_vector[0])
-                SCITBX_EXAMINE(pix0_vector[1])
-                SCITBX_EXAMINE(pix0_vector[2])
-                SCITBX_EXAMINE(pix0_vector[3])
-                SCITBX_EXAMINE(odet_vector[0])
-                SCITBX_EXAMINE(odet_vector[1])
-                SCITBX_EXAMINE(odet_vector[2])
-                SCITBX_EXAMINE(odet_vector[3])
-        
-        else:
-            if(progress_meter and verbose and progress_pixels/100 > 0):
-            
-                if(progress_pixel % ( progress_pixels/20 ) == 0 or
-                    ((10*progress_pixel<progress_pixels or
-                        10*progress_pixel>9*progress_pixels) and
-                    (progress_pixel % (progress_pixels/100) == 0))):
-                
-                    print(f"%lu%% done\n",progress_pixel*100/progress_pixels)
-                
-            
-            progress_pixel+=1
-        
-        i+=1
-
-
-def loop_over_ssubpixels(oversample):
-    for subF in range(oversample):
-        loop_over_fsubpixels(subF)
-
-
-def loop_over_fsubpixels(subpixel_size,
-                         fpixel,
-                         spixel,
-                         oversample,
-                         subF,
-                         subS,
-                         detector_thicksteps,
-                         ):
-
-    # absolute mm position on detector (relative to its origin)
-    Fdet = subpixel_size*(fpixel*oversample + subF ) + subpixel_size/2.0;
-    Sdet = subpixel_size*(spixel*oversample + subS ) + subpixel_size/2.0;
-
-
-    for thick_tic in range(detector_thicksteps):
-        loop_over_detector_thicksteps(thick_tic)
-
-
-
-def loop_over_detector_thicksteps():
-    # assume "distance" is to the front of the detector sensor layer
-    Odet = thick_tic*detector_thickstep
-
-    # construct detector subpixel position in 3D space
+def find_pixel_pos(Fdet, Sdet, Odet, fdet_vector, sdet_vector, odet_vector, pix0_vector,
+                   curved_detector, distance, beam_vector):
+    """ construct detector subpixel position in 3D space """
     pixel_pos = np.zeros(4)
     pixel_pos[1] = Fdet*fdet_vector[1]+Sdet*sdet_vector[1]+Odet*odet_vector[1]+pix0_vector[1]
     pixel_pos[2] = Fdet*fdet_vector[2]+Sdet*sdet_vector[2]+Odet*odet_vector[2]+pix0_vector[2]
@@ -164,6 +19,7 @@ def loop_over_detector_thicksteps():
     pixel_pos[0] = 0.0
     if curved_detector:
         # construct detector pixel that is always "distance" from the sample
+        vector = np.zeros(4)
         vector[1] = distance*beam_vector[1]
         vector[2] = distance*beam_vector[2]
         vector[3] = distance*beam_vector[3]
@@ -171,7 +27,102 @@ def loop_over_detector_thicksteps():
         # treat detector pixel coordinates as radians
         newvector = rotate_axis(vector,sdet_vector,pixel_pos[2]/distance)
         pixel_pos = rotate_axis(newvector,fdet_vector,pixel_pos[3]/distance)
+    return pixel_pos  
 
+def add_nanoBragg_spots(spixels, 
+                        fpixels,
+                        phisteps,
+                        mosaic_domains,
+                        oversample,
+                        pixel_size,
+                        roi_xmin, roi_xmax, roi_ymin, roi_ymax,
+                        maskimage, 
+                        detector_thicksteps,
+                        spot_scale, fluence,
+                        r_e_sqr,
+                        verbose=9):
+    max_I = 0.0
+    raw_pixels = torch.zeros((spixels,fpixels))
+
+    # make sure we are normalizing with the right number of sub-steps
+    steps = phisteps*mosaic_domains*oversample*oversample
+    subpixel_size = pixel_size/oversample
+
+    sum = 0.0
+    sumsqr = 0.0
+    sumn = 0
+    progress_pixel = 0
+    omega_sum = 0.0
+
+    pixel_linear_ind = -1
+    for spixel in range(spixels):
+        for fpixel in range(fpixels):
+
+            pixel_linear_ind += 1
+            # reset photon count for this pixel
+            I = 0
+
+            # allow for just one part of detector to be rendered
+            if(fpixel < roi_xmin or fpixel > roi_xmax or spixel < roi_ymin or spixel > roi_ymax):
+                # out-of-bounds, move on to next pixel
+                print("skipping pixel %d %d\n",spixel,fpixel)
+            # allow for the use of a mask
+            elif(maskimage != None):
+                # skip any flagged pixels in the mask
+                if(maskimage[pixel_linear_ind] == 0):
+                    print("skipping pixel %d %d\n",spixel,fpixel)
+            else: # render pixel
+                # loop over sub-pixels
+                for subS in range(oversample):
+                    for subF in range(oversample):
+                        Fdet, Sdet = detector_position(subpixel_size, oversample, fpixel, spixel, subF, subS)
+                        # loop over detector thickness
+                        for thick_tic in range(detector_thicksteps):
+                            I_contribution, polar = find_detector_thickstep_contribution(thick_tic)
+                            I += I_contribution*polar
+                # end of sub-pixel loop
+
+                raw_pixels[spixel,fpixel] += r_e_sqr*fluence*spot_scale*I/steps
+                
+                if(raw_pixels[spixel,fpixel] > max_I):
+                    max_I = raw_pixels[spixel,fpixel]
+                    max_I_x = Fdet
+                    max_I_y = Sdet
+                
+                sum += raw_pixels[spixel,fpixel]
+                sumsqr += raw_pixels[spixel,fpixel]*raw_pixels[spixel,fpixel]
+                sumn += 1
+
+                print_pixel_output()
+
+    
+    if(verbose):
+        print("done with pixel loop\n")
+        print("solid angle subtended by detector = %g steradian ( %g%% sphere)\n",omega_sum/steps,100*omega_sum/steps/4/np.pi)
+        print("max_I= %g sum= %g avg= %g\n",max_I,sum,sum/sumn)
+
+
+  
+    
+def find_detector_thickstep_contribution(thick_tic,
+                                         detector_thickstep,
+                                         Fdet, Sdet, Odet,
+                                         fdet_vector, sdet_vector, odet_vector, pix0_vector,
+                                         curved_detector, distance,
+                                         beam_vector, pixel_size, close_distance,
+                                         point_pixel,
+                                         detector_thick, detector_attnlen,
+                                         sources,
+                                         ):
+    # intensity for this detector thickness step, in the subpixel
+    I_contribution = 0
+
+    # assume "distance" is to the front of the detector sensor layer
+    Odet = thick_tic*detector_thickstep
+
+    # construct detector subpixel position in 3D space
+    pixel_pos = find_pixel_pos(Fdet, Sdet, Odet, fdet_vector, sdet_vector, odet_vector, pix0_vector,
+                   curved_detector, distance, beam_vector)
 
     # construct the diffracted-beam unit vector to this sub-pixel
     airpath, diffracted = unitize(pixel_pos)
@@ -195,11 +146,11 @@ def loop_over_detector_thicksteps():
 
     # loop over sources now
     for source in range(sources):
-        loop_over_sources(source)
+        I_contribution_source = find_source_contribution(source)
+        I_contribution += I_contribution_source
 
 
-def loop_over_sources():
-
+def find_source_contribution(source, source_X, source_Y, source_Z, source_lambda, diffracted, dmin, phisteps):
     incident = np.zeros(4)
     # retrieve stuff from cache
     incident[1] = -source_X[source]
@@ -211,6 +162,7 @@ def loop_over_sources():
     source_path, incident = unitize(incident)
 
     # construct the scattering vector for this pixel
+    scattering = np.zeros(4)
     scattering[1] = (diffracted[1]-incident[1])/lambda_0
     scattering[2] = (diffracted[2]-incident[2])/lambda_0
     scattering[3] = (diffracted[3]-incident[3])/lambda_0
@@ -223,10 +175,14 @@ def loop_over_sources():
         pass
     else: # sweep over phi angles
         for phi_tic in range(phisteps):
-            loop_over_phi()
+            find_phi_contribution()
 
 
-def loop_over_phi(): # only 1 angle to loop over in XFEL
+def find_phi_contribution(phi0, phistep, phi_tic, 
+                          a0, b0, c0, ap, bp, cp, spindle_vector,
+                          mosaic_domains,
+                          ): 
+    """only 1 angle to loop over in XFEL"""
     phi = phi0 + phistep*phi_tic
 
     if( phi != 0.0 ):
@@ -238,12 +194,11 @@ def loop_over_phi(): # only 1 angle to loop over in XFEL
 
     # enumerate mosaic domains
     for mos_tic in range(mosaic_domains):
-        calc_mosaic_domain_contribution()
+        find_mosaic_domain_contribution()
 
-import sys
-from utils import rotate_umat, dot_product, sincg, sinc3, cross_product, vector_scale, magnitude, unitize
 
-def calc_mosaic_domain_contribution(mosaic_spread,
+
+def find_mosaic_domain_contribution(mosaic_spread,
                                     mosaic_umats,
                                     mos_tic,
                                     ap, bp, cp,
@@ -410,15 +365,66 @@ def calc_mosaic_domain_contribution(mosaic_spread,
             F_cell = default_F # usually zero
 
     # now we have the structure factor for this pixel
-    XXX STOPPED HERE
+
     # polarization factor
     if(not(nopolar)):
         # need to compute polarization factor
-        polar = polarization_factor(polarization,incident,diffracted,polar_vector)
+        raise NotImplementedError("Polarization factor not implemented")
+        # polar = polarization_factor(polarization,incident,diffracted,polar_vector)
     else:
         polar = 1.0
 
     # convert amplitudes into intensity (photons per steradian)
     I += F_cell*F_cell*F_latt*F_latt*source_I[source]*capture_fraction*omega_pixel
-    return I
+    return I, polar
 
+def print_pixel_output():
+    if printout:
+        if((fpixel==printout_fpixel and spixel==printout_spixel) or printout_fpixel < 0):
+            twotheta = atan2(sqrt(pixel_pos[2]*pixel_pos[2]+pixel_pos[3]*pixel_pos[3]),pixel_pos[1])
+            test = sin(twotheta/2.0)/(lambda0*1e10)
+            print(f"%4d %4d : stol = %g or %g\n", fpixel,spixel,stol,test)
+            print(f"at %g %g %g\n", pixel_pos[1],pixel_pos[2],pixel_pos[3])
+            print(f"hkl= %f %f %f  hkl0= %d %d %d\n", h,k,l,h0,k0,l0)
+            print(f" F_cell=%g  F_latt=%g   I = %g\n", F_cell,F_latt,I)
+            print(f"I/steps %15.10g\n", I/steps)
+            print(f"cap frac   %f\n", capture_fraction)
+            print(f"polar   %15.10g\n", polar)
+            print(f"omega   %15.10g\n", omega_pixel)
+            print(f"pixel   %15.10g\n", raw_pixels[spixel,fpixel])
+            print(f"real-space cell vectors (Angstrom):\n")
+            print(f"     %-10s  %-10s  %-10s\n","a","b","c")
+            print(f"X: %11.8f %11.8f %11.8f\n",a[1]*1e10,b[1]*1e10,c[1]*1e10)
+            print(f"Y: %11.8f %11.8f %11.8f\n",a[2]*1e10,b[2]*1e10,c[2]*1e10)
+            print(f"Z: %11.8f %11.8f %11.8f\n",a[3]*1e10,b[3]*1e10,c[3]*1e10)
+            SCITBX_EXAMINE(fluence)
+            SCITBX_EXAMINE(source_I[0])
+            SCITBX_EXAMINE(spot_scale)
+            SCITBX_EXAMINE(Na)
+            SCITBX_EXAMINE(Nb)
+            SCITBX_EXAMINE(Nc)
+            SCITBX_EXAMINE(airpath)
+            SCITBX_EXAMINE(Fclose)
+            SCITBX_EXAMINE(Sclose)
+            SCITBX_EXAMINE(close_distance)
+            SCITBX_EXAMINE(pix0_vector[0])
+            SCITBX_EXAMINE(pix0_vector[1])
+            SCITBX_EXAMINE(pix0_vector[2])
+            SCITBX_EXAMINE(pix0_vector[3])
+            SCITBX_EXAMINE(odet_vector[0])
+            SCITBX_EXAMINE(odet_vector[1])
+            SCITBX_EXAMINE(odet_vector[2])
+            SCITBX_EXAMINE(odet_vector[3])
+    
+    else:
+        if(progress_meter and verbose and progress_pixels/100 > 0):
+        
+            if(progress_pixel % ( progress_pixels/20 ) == 0 or
+                ((10*progress_pixel<progress_pixels or
+                    10*progress_pixel>9*progress_pixels) and
+                (progress_pixel % (progress_pixels/100) == 0))):
+            
+                print(f"%lu%% done\n",progress_pixel*100/progress_pixels)
+            
+        
+        progress_pixel+=1
