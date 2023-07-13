@@ -112,6 +112,48 @@ def rotate_umat(v, umat):
 
 
 
+def polarization_factor(kahn_factor, incident, diffracted, axis):
+    """polarization factor"""
+    E_out = np.zeros(4)
+    B_out = np.zeros(4)
+
+    # unitize the vectors
+    _, incident = unitize(incident)
+    _, diffracted = unitize(diffracted)
+    _, axis = unitize(axis)
+
+    # component of diffracted unit vector along incident beam unit vector
+    cos2theta = dot_product(incident,diffracted)
+    cos2theta_sqr = cos2theta*cos2theta
+    sin2theta_sqr = 1-cos2theta_sqr
+
+    if(kahn_factor != 0.0):
+        # tricky bit here is deciding which direciton the E-vector lies in for each source
+        # here we assume it is closest to the "axis" defined above
+
+        # cross product to get "vertical" axis that is orthogonal to the cannonical "polarization"
+        B_in = cross_product(axis,incident)
+        # make it a unit vector
+        _, B_in = unitize(B_in)
+
+        # cross product with incident beam to get E-vector direction
+        E_in = cross_product(incident,B_in)
+
+        # make it a unit vector
+        E_in = unitize(E_in)
+
+        # get components of diffracted ray projected onto the E-B plane
+        E_out[0] = dot_product(diffracted,E_in)
+        B_out[0] = dot_product(diffracted,B_in)
+
+        # compute the angle of the diffracted ray projected onto the incident E-B plane
+        psi = -np.arctan2(B_out[0],E_out[0])
+    
+
+    # correction for polarized incident beam
+    return 0.5*(1.0 + cos2theta_sqr - kahn_factor*np.cos(2*psi)*sin2theta_sqr)
+
+
 def interpolate_unit_cell():
     """Calculates Fcell"""
     # NOT IMPLEMENTED

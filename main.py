@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from utils import rotate_axis, rotate_umat, dot_product, sincg, sinc3, cross_product, vector_scale, magnitude, unitize
+from utils import rotate_axis, rotate_umat, dot_product, sincg, sinc3, cross_product, vector_scale, magnitude, unitize, polarization_factor
 
 
 def detector_position(subpixel_size, oversample, fpixel, spixel, subF, subS):
@@ -40,6 +40,30 @@ def add_nanoBragg_spots(spixels,
                         detector_thicksteps,
                         spot_scale, fluence,
                         r_e_sqr,
+                        detector_thickstep,
+                        Odet,
+                        fdet_vector, sdet_vector, odet_vector, pix0_vector,
+                        curved_detector, distance, beam_vector, close_distance,
+                        point_pixel,
+                        detector_thick, detector_attnlen,
+                        sources,
+                        source_X, source_Y, source_Z, source_lambda,
+                        dmin,phi0, phistep,
+                        a0, b0, c0, ap, bp, cp, spindle_vector,
+                        mosaic_spread,
+                        mosaic_umats,
+                        xtal_shape,
+                        Na, Nb, Nc,
+                        fudge,
+                        integral_form,
+                        V_cell,
+                        Xbeam, Ybeam,
+                        interpolate,
+                        h_max, h_min, k_max, k_min, l_max, l_min,
+                        Fhkl, default_F,
+                        nopolar,source_I,
+                        polarization,
+                        polar_vector,
                         verbose=9):
     max_I = 0.0
     raw_pixels = torch.zeros((spixels,fpixels))
@@ -78,9 +102,39 @@ def add_nanoBragg_spots(spixels,
                         Fdet, Sdet = detector_position(subpixel_size, oversample, fpixel, spixel, subF, subS)
                         # loop over detector thickness
                         for thick_tic in range(detector_thicksteps):
-                            I_contribution = find_detector_thickstep_contribution(thick_tic)
+                            I_contribution, polar = find_detector_thickstep_contribution(thick_tic,
+                                                                                        detector_thickstep,
+                                                                                        Fdet, Sdet, Odet,
+                                                                                        fdet_vector, sdet_vector, odet_vector, pix0_vector,
+                                                                                        curved_detector, distance,
+                                                                                        beam_vector, pixel_size, close_distance,
+                                                                                        point_pixel,
+                                                                                        detector_thick, detector_attnlen,
+                                                                                        sources, 
+                                                                                        source_X, source_Y, source_Z, source_lambda,
+                                                                                        dmin, phisteps,
+                                                                                        phi0, phistep,
+                                                                                        a0, b0, c0, ap, bp, cp, spindle_vector,
+                                                                                        mosaic_domains,
+                                                                                        mosaic_spread,
+                                                                                        mosaic_umats,
+                                                                                        xtal_shape,
+                                                                                        Na, Nb, Nc,
+                                                                                        fudge,
+                                                                                        integral_form,
+                                                                                        V_cell,
+                                                                                        Xbeam, Ybeam,
+                                                                                        interpolate,
+                                                                                        h_max, h_min, k_max, k_min, l_max, l_min,
+                                                                                        Fhkl, default_F,
+                                                                                        nopolar,source_I,
+                                                                                        polarization,
+                                                                                        polar_vector,
+                                                                                        verbose,
+                                                                                        )
                             I += I_contribution
                 # end of sub-pixel loop
+
 
                 raw_pixels[spixel,fpixel] += r_e_sqr*fluence*spot_scale*polar*I/steps
                 
@@ -112,8 +166,28 @@ def find_detector_thickstep_contribution(thick_tic,
                                          beam_vector, pixel_size, close_distance,
                                          point_pixel,
                                          detector_thick, detector_attnlen,
-                                         sources,
-                                         ):
+                                         sources, 
+                                         source_X, source_Y, source_Z, source_lambda,
+                                         dmin, phisteps,
+                                         phi0, phistep,
+                                        a0, b0, c0, ap, bp, cp, spindle_vector,
+                                        mosaic_domains,
+                                        mosaic_spread,
+                                        mosaic_umats,
+                                        xtal_shape,
+                                        Na, Nb, Nc,
+                                        fudge,
+                                        integral_form,
+                                        V_cell,
+                                        Xbeam, Ybeam,
+                                        interpolate,
+                                        h_max, h_min, k_max, k_min, l_max, l_min,
+                                        Fhkl, default_F,
+                                        nopolar,source_I,
+                                        polarization,
+                                        polar_vector,
+                                        verbose,
+                                        ):
     # intensity for this detector thickness step, in the subpixel
     I_contribution = 0
 
@@ -146,13 +220,64 @@ def find_detector_thickstep_contribution(thick_tic,
 
     # loop over sources now
     for source in range(sources):
-        I_contribution_source = find_source_contribution(source, capture_fraction)
+        I_contribution_source, polar = find_source_contribution(source, source_X, source_Y, source_Z, source_lambda, diffracted, dmin, phisteps,
+                                                                phi0, phistep,
+                                                                a0, b0, c0, ap, bp, cp, spindle_vector,
+                                                                mosaic_domains,
+                                                                mosaic_spread,
+                                                                mosaic_umats,
+                                                                xtal_shape,
+                                                                Na, Nb, Nc,
+                                                                fudge,
+                                                                integral_form,
+                                                                V_cell,
+                                                                fdet_vector,
+                                                                sdet_vector,
+                                                                odet_vector,
+                                                                distance,
+                                                                Xbeam, Ybeam,
+                                                                Fdet, Sdet,
+                                                                interpolate,
+                                                                h_max, h_min, k_max, k_min, l_max, l_min,
+                                                                Fhkl, default_F,
+                                                                nopolar,source_I,
+                                                                capture_fraction, omega_pixel,
+                                                                polarization,
+                                                                polar_vector,
+                                                                verbose,
+                                                                )
         I_contribution += I_contribution_source
     
-    return I_contribution
+    return I_contribution, polar
 
 
-def find_source_contribution(source, source_X, source_Y, source_Z, source_lambda, diffracted, dmin, phisteps):
+def find_source_contribution(source, source_X, source_Y, source_Z, source_lambda, diffracted, dmin, phisteps,
+                            phi0, phistep,
+                            a0, b0, c0, ap, bp, cp, spindle_vector,
+                            mosaic_domains,
+                            mosaic_spread,
+                            mosaic_umats,
+                            xtal_shape,
+                            Na, Nb, Nc,
+                            fudge,
+                            integral_form,
+                            V_cell,
+                            fdet_vector,
+                            sdet_vector,
+                            odet_vector,
+                            distance,
+                            Xbeam, Ybeam,
+                            Fdet, Sdet,
+                            interpolate,
+                            h_max, h_min, k_max, k_min, l_max, l_min,
+                            Fhkl, default_F,
+                            nopolar,source_I,
+                            capture_fraction, omega_pixel,
+                            polarization,
+                            polar_vector,
+                            verbose,
+                            ):
+                           
     I_contribution_source = 0
     incident = np.zeros(4)
     # retrieve stuff from cache
@@ -178,17 +303,63 @@ def find_source_contribution(source, source_X, source_Y, source_Z, source_lambda
         pass
     else: # sweep over phi angles
         for phi_tic in range(phisteps):
-            I_contribution_phi = find_phi_contribution()
+            I_contribution_phi, polar = find_phi_contribution(phi0, phistep, phi_tic, 
+                                                            a0, b0, c0, ap, bp, cp, spindle_vector,
+                                                            mosaic_domains,
+                                                            mosaic_spread,
+                                                            mosaic_umats,
+                                                            scattering,
+                                                            xtal_shape,
+                                                            Na, Nb, Nc,
+                                                            fudge,
+                                                            integral_form,
+                                                            V_cell,
+                                                            incident, 
+                                                            lambda_0,
+                                                            fdet_vector,
+                                                            sdet_vector,
+                                                            odet_vector,
+                                                            distance,
+                                                            Xbeam, Ybeam,
+                                                            Fdet, Sdet,
+                                                            interpolate,
+                                                            h_max, h_min, k_max, k_min, l_max, l_min,
+                                                            Fhkl, default_F,
+                                                            nopolar,source_I, source, capture_fraction, omega_pixel,
+                                                            polarization,diffracted,polar_vector,
+                                                            verbose,
+                                                            )
             I_contribution_source += I_contribution_phi
-    return I_contribution_source
+    return I_contribution_source, polar
 
 
 def find_phi_contribution(phi0, phistep, phi_tic, 
-                          a0, b0, c0, ap, bp, cp, spindle_vector,
-                          mosaic_domains,
-                          mosaic_spread,
-                            mosaic_umats,
-                          ): 
+                        a0, b0, c0, ap, bp, cp, spindle_vector,
+                        mosaic_domains,
+                        mosaic_spread,
+                        mosaic_umats,
+                        scattering,
+                        xtal_shape,
+                        Na, Nb, Nc,
+                        fudge,
+                        integral_form,
+                        V_cell,
+                        incident, 
+                        lambda_0,
+                        fdet_vector,
+                        sdet_vector,
+                        odet_vector,
+                        distance,
+                        Xbeam, Ybeam,
+                        Fdet, Sdet,
+                        interpolate,
+                        h_max, h_min, k_max, k_min, l_max, l_min,
+                        Fhkl, default_F,
+                        nopolar,source_I, source, capture_fraction, omega_pixel,
+                        polarization,diffracted,polar_vector,
+                        verbose,
+                        ): 
+    
     """only 1 angle to loop over in XFEL"""
 
     I_contribution_phi = 0
@@ -221,16 +392,17 @@ def find_phi_contribution(phi0, phistep, phi_tic,
                                                                        odet_vector,
                                                                        distance,
                                                                        Xbeam, Ybeam,
-                                                                       verbose,
                                                                        Fdet, Sdet,
                                                                        interpolate,
                                                                        h_max, h_min, k_max, k_min, l_max, l_min,
                                                                        Fhkl, default_F,
                                                                        nopolar,source_I, source, capture_fraction, omega_pixel,
-                                                                      )
+                                                                       polarization,diffracted,polar_vector,
+                                                                       verbose,
+                                                                       )
         I_contribution_phi += I_contribution_mosaic
 
-    return I_contribution_phi
+    return I_contribution_phi, polar
 
 
 def find_mosaic_domain_contribution(mosaic_spread,
@@ -251,12 +423,13 @@ def find_mosaic_domain_contribution(mosaic_spread,
                                     odet_vector,
                                     distance,
                                     Xbeam, Ybeam,
-                                    verbose,
                                     Fdet, Sdet,
                                     interpolate,
                                     h_max, h_min, k_max, k_min, l_max, l_min,
                                     Fhkl, default_F,
                                     nopolar,source_I, source, capture_fraction, omega_pixel,
+                                    polarization,diffracted,polar_vector
+                                    verbose,
                                     ):
 
     # apply mosaic rotation after phi rotation
@@ -401,8 +574,7 @@ def find_mosaic_domain_contribution(mosaic_spread,
     # polarization factor
     if(not(nopolar)):
         # need to compute polarization factor
-        raise NotImplementedError("Polarization factor not implemented")
-        # polar = polarization_factor(polarization,incident,diffracted,polar_vector)
+        polar = polarization_factor(polarization,incident,diffracted,polar_vector)
     else:
         polar = 1.0
 
