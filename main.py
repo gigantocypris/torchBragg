@@ -1,33 +1,9 @@
 import torch
 import numpy as np
-from utils import rotate_axis, rotate_umat, dot_product, sincg, sinc3, cross_product, vector_scale, magnitude, unitize, polarization_factor
+from utils import rotate_axis, rotate_umat, dot_product, sincg, sinc3, \
+    cross_product, vector_scale, magnitude, unitize, polarization_factor, \
+    detector_position, find_pixel_pos
 
-
-def detector_position(subpixel_size, oversample, fpixel, spixel, subF, subS):
-    """absolute mm position on detector (relative to its origin)"""
-    Fdet = subpixel_size*(fpixel*oversample + subF ) + subpixel_size/2.0
-    Sdet = subpixel_size*(spixel*oversample + subS ) + subpixel_size/2.0
-    return Fdet, Sdet
-
-def find_pixel_pos(Fdet, Sdet, Odet, fdet_vector, sdet_vector, odet_vector, pix0_vector,
-                   curved_detector, distance, beam_vector):
-    """ construct detector subpixel position in 3D space """
-    pixel_pos = np.zeros(4)
-    pixel_pos[1] = Fdet*fdet_vector[1]+Sdet*sdet_vector[1]+Odet*odet_vector[1]+pix0_vector[1]
-    pixel_pos[2] = Fdet*fdet_vector[2]+Sdet*sdet_vector[2]+Odet*odet_vector[2]+pix0_vector[2]
-    pixel_pos[3] = Fdet*fdet_vector[3]+Sdet*sdet_vector[3]+Odet*odet_vector[3]+pix0_vector[3]
-    pixel_pos[0] = 0.0
-    if curved_detector:
-        # construct detector pixel that is always "distance" from the sample
-        vector = np.zeros(4)
-        vector[1] = distance*beam_vector[1]
-        vector[2] = distance*beam_vector[2]
-        vector[3] = distance*beam_vector[3]
-        
-        # treat detector pixel coordinates as radians
-        newvector = rotate_axis(vector,sdet_vector,pixel_pos[2]/distance)
-        pixel_pos = rotate_axis(newvector,fdet_vector,pixel_pos[3]/distance)
-    return pixel_pos  
 
 def add_nanoBragg_spots(spixels, 
                         fpixels,
@@ -147,14 +123,14 @@ def add_nanoBragg_spots(spixels,
                 sumsqr += raw_pixels[spixel,fpixel]*raw_pixels[spixel,fpixel]
                 sumn += 1
 
-                print_pixel_output()
-
+                # print_pixel_output()
     
     if(verbose):
         print("done with pixel loop\n")
         print("solid angle subtended by detector = %g steradian ( %g%% sphere)\n",omega_sum/steps,100*omega_sum/steps/4/np.pi)
         print("max_I= %g sum= %g avg= %g\n",max_I,sum,sum/sumn)
 
+    return raw_pixels
 
   
     
@@ -582,53 +558,109 @@ def find_mosaic_domain_contribution(mosaic_spread,
     I_contribution_mosaic = F_cell*F_cell*F_latt*F_latt*source_I[source]*capture_fraction*omega_pixel
     return I_contribution_mosaic, polar
 
-def print_pixel_output():
-    if printout:
-        if((fpixel==printout_fpixel and spixel==printout_spixel) or printout_fpixel < 0):
-            twotheta = atan2(sqrt(pixel_pos[2]*pixel_pos[2]+pixel_pos[3]*pixel_pos[3]),pixel_pos[1])
-            test = sin(twotheta/2.0)/(lambda0*1e10)
-            print(f"%4d %4d : stol = %g or %g\n", fpixel,spixel,stol,test)
-            print(f"at %g %g %g\n", pixel_pos[1],pixel_pos[2],pixel_pos[3])
-            print(f"hkl= %f %f %f  hkl0= %d %d %d\n", h,k,l,h0,k0,l0)
-            print(f" F_cell=%g  F_latt=%g   I = %g\n", F_cell,F_latt,I)
-            print(f"I/steps %15.10g\n", I/steps)
-            print(f"cap frac   %f\n", capture_fraction)
-            print(f"polar   %15.10g\n", polar)
-            print(f"omega   %15.10g\n", omega_pixel)
-            print(f"pixel   %15.10g\n", raw_pixels[spixel,fpixel])
-            print(f"real-space cell vectors (Angstrom):\n")
-            print(f"     %-10s  %-10s  %-10s\n","a","b","c")
-            print(f"X: %11.8f %11.8f %11.8f\n",a[1]*1e10,b[1]*1e10,c[1]*1e10)
-            print(f"Y: %11.8f %11.8f %11.8f\n",a[2]*1e10,b[2]*1e10,c[2]*1e10)
-            print(f"Z: %11.8f %11.8f %11.8f\n",a[3]*1e10,b[3]*1e10,c[3]*1e10)
-            SCITBX_EXAMINE(fluence)
-            SCITBX_EXAMINE(source_I[0])
-            SCITBX_EXAMINE(spot_scale)
-            SCITBX_EXAMINE(Na)
-            SCITBX_EXAMINE(Nb)
-            SCITBX_EXAMINE(Nc)
-            SCITBX_EXAMINE(airpath)
-            SCITBX_EXAMINE(Fclose)
-            SCITBX_EXAMINE(Sclose)
-            SCITBX_EXAMINE(close_distance)
-            SCITBX_EXAMINE(pix0_vector[0])
-            SCITBX_EXAMINE(pix0_vector[1])
-            SCITBX_EXAMINE(pix0_vector[2])
-            SCITBX_EXAMINE(pix0_vector[3])
-            SCITBX_EXAMINE(odet_vector[0])
-            SCITBX_EXAMINE(odet_vector[1])
-            SCITBX_EXAMINE(odet_vector[2])
-            SCITBX_EXAMINE(odet_vector[3])
-    
-    else:
-        if(progress_meter and verbose and progress_pixels/100 > 0):
-        
-            if(progress_pixel % ( progress_pixels/20 ) == 0 or
-                ((10*progress_pixel<progress_pixels or
-                    10*progress_pixel>9*progress_pixels) and
-                (progress_pixel % (progress_pixels/100) == 0))):
-            
-                print(f"%lu%% done\n",progress_pixel*100/progress_pixels)
-            
-        
-        progress_pixel+=1
+if __name__=="__main__":
+    spixels = 1024
+    fpixels = 1024
+    phisteps = 1
+    mosaic_domains = 1
+    oversample = 2
+    pixel_size = 0.0001
+    roi_xmin = 0 
+    roi_xmax = 1024
+    roi_ymin = 0
+    roi_ymax = 1024
+    maskimage = None
+    detector_thicksteps = 1
+    spot_scale = 1
+    fluence = 125932015286227086360700780544.0
+    r_e_sqr = 7.94079248018965e-30 # Thomson cross section in m^2
+    detector_thickstep
+    Odet
+    fdet_vector = np.array([0,0,0,1]) 
+    sdet_vector = np.array([0,0,-1,0]) 
+    odet_vector = np.array([0,1,0,0]) 
+    pix0_vector
+    curved_detector = False
+    distance = 0.1 
+    beam_vector =  np.array([0,1,0,0]) 
+    close_distance
+    point_pixel = False
+    detector_thick
+    detector_attnlen
+    sources = 1
+    source_X
+    source_Y 
+    source_Z 
+    source_lambda,
+    dmin,
+    phi0, 
+    phistep,
+    a0, 
+    b0, 
+    c0, 
+    ap, 
+    bp, 
+    cp, 
+    spindle_vector = np.array([0,0,0,1])
+    mosaic_spread,
+    mosaic_umats,
+    xtal_shape = 'SQUARE'
+    Na = 5.0
+    Nb = 5.0
+    Nc = 5.0
+    fudge = 1
+    integral_form = 0
+    V_cell,
+    Xbeam = 0.05125
+    Ybeam = 0.05125
+    interpolate = False
+    h_max, 
+    h_min, 
+    k_max, 
+    k_min, 
+    l_max, 
+    l_min,
+    Fhkl, 
+    default_F = 1.0
+    nopolar = False
+    source_I
+    polarization = 0
+    polar_vector np.array([0,0,0,1])
+    verbose=9
+
+    raw_pixels = add_nanoBragg_spots(spixels, 
+                        fpixels,
+                        phisteps,
+                        mosaic_domains,
+                        oversample,
+                        pixel_size,
+                        roi_xmin, roi_xmax, roi_ymin, roi_ymax,
+                        maskimage, 
+                        detector_thicksteps,
+                        spot_scale, fluence,
+                        r_e_sqr,
+                        detector_thickstep,
+                        Odet,
+                        fdet_vector, sdet_vector, odet_vector, pix0_vector,
+                        curved_detector, distance, beam_vector, close_distance,
+                        point_pixel,
+                        detector_thick, detector_attnlen,
+                        sources,
+                        source_X, source_Y, source_Z, source_lambda,
+                        dmin,phi0, phistep,
+                        a0, b0, c0, ap, bp, cp, spindle_vector,
+                        mosaic_spread,
+                        mosaic_umats,
+                        xtal_shape,
+                        Na, Nb, Nc,
+                        fudge,
+                        integral_form,
+                        V_cell,
+                        Xbeam, Ybeam,
+                        interpolate,
+                        h_max, h_min, k_max, k_min, l_max, l_min,
+                        Fhkl, default_F,
+                        nopolar,source_I,
+                        polarization,
+                        polar_vector,
+                        verbose=verbose)

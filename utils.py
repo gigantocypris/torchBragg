@@ -153,6 +153,83 @@ def polarization_factor(kahn_factor, incident, diffracted, axis):
     # correction for polarized incident beam
     return 0.5*(1.0 + cos2theta_sqr - kahn_factor*np.cos(2*psi)*sin2theta_sqr)
 
+def detector_position(subpixel_size, oversample, fpixel, spixel, subF, subS):
+    """absolute mm position on detector (relative to its origin)"""
+    Fdet = subpixel_size*(fpixel*oversample + subF ) + subpixel_size/2.0
+    Sdet = subpixel_size*(spixel*oversample + subS ) + subpixel_size/2.0
+    return Fdet, Sdet
+
+def find_pixel_pos(Fdet, Sdet, Odet, fdet_vector, sdet_vector, odet_vector, pix0_vector,
+                   curved_detector, distance, beam_vector):
+    """ construct detector subpixel position in 3D space """
+    pixel_pos = np.zeros(4)
+    pixel_pos[1] = Fdet*fdet_vector[1]+Sdet*sdet_vector[1]+Odet*odet_vector[1]+pix0_vector[1]
+    pixel_pos[2] = Fdet*fdet_vector[2]+Sdet*sdet_vector[2]+Odet*odet_vector[2]+pix0_vector[2]
+    pixel_pos[3] = Fdet*fdet_vector[3]+Sdet*sdet_vector[3]+Odet*odet_vector[3]+pix0_vector[3]
+    pixel_pos[0] = 0.0
+    if curved_detector:
+        # construct detector pixel that is always "distance" from the sample
+        vector = np.zeros(4)
+        vector[1] = distance*beam_vector[1]
+        vector[2] = distance*beam_vector[2]
+        vector[3] = distance*beam_vector[3]
+        
+        # treat detector pixel coordinates as radians
+        newvector = rotate_axis(vector,sdet_vector,pixel_pos[2]/distance)
+        pixel_pos = rotate_axis(newvector,fdet_vector,pixel_pos[3]/distance)
+    return pixel_pos 
+
+def print_pixel_output():
+    if printout:
+        if((fpixel==printout_fpixel and spixel==printout_spixel) or printout_fpixel < 0):
+            twotheta = atan2(sqrt(pixel_pos[2]*pixel_pos[2]+pixel_pos[3]*pixel_pos[3]),pixel_pos[1])
+            test = sin(twotheta/2.0)/(lambda0*1e10)
+            print(f"%4d %4d : stol = %g or %g\n", fpixel,spixel,stol,test)
+            print(f"at %g %g %g\n", pixel_pos[1],pixel_pos[2],pixel_pos[3])
+            print(f"hkl= %f %f %f  hkl0= %d %d %d\n", h,k,l,h0,k0,l0)
+            print(f" F_cell=%g  F_latt=%g   I = %g\n", F_cell,F_latt,I)
+            print(f"I/steps %15.10g\n", I/steps)
+            print(f"cap frac   %f\n", capture_fraction)
+            print(f"polar   %15.10g\n", polar)
+            print(f"omega   %15.10g\n", omega_pixel)
+            print(f"pixel   %15.10g\n", raw_pixels[spixel,fpixel])
+            print(f"real-space cell vectors (Angstrom):\n")
+            print(f"     %-10s  %-10s  %-10s\n","a","b","c")
+            print(f"X: %11.8f %11.8f %11.8f\n",a[1]*1e10,b[1]*1e10,c[1]*1e10)
+            print(f"Y: %11.8f %11.8f %11.8f\n",a[2]*1e10,b[2]*1e10,c[2]*1e10)
+            print(f"Z: %11.8f %11.8f %11.8f\n",a[3]*1e10,b[3]*1e10,c[3]*1e10)
+            SCITBX_EXAMINE(fluence)
+            SCITBX_EXAMINE(source_I[0])
+            SCITBX_EXAMINE(spot_scale)
+            SCITBX_EXAMINE(Na)
+            SCITBX_EXAMINE(Nb)
+            SCITBX_EXAMINE(Nc)
+            SCITBX_EXAMINE(airpath)
+            SCITBX_EXAMINE(Fclose)
+            SCITBX_EXAMINE(Sclose)
+            SCITBX_EXAMINE(close_distance)
+            SCITBX_EXAMINE(pix0_vector[0])
+            SCITBX_EXAMINE(pix0_vector[1])
+            SCITBX_EXAMINE(pix0_vector[2])
+            SCITBX_EXAMINE(pix0_vector[3])
+            SCITBX_EXAMINE(odet_vector[0])
+            SCITBX_EXAMINE(odet_vector[1])
+            SCITBX_EXAMINE(odet_vector[2])
+            SCITBX_EXAMINE(odet_vector[3])
+    
+    else:
+        if(progress_meter and verbose and progress_pixels/100 > 0):
+        
+            if(progress_pixel % ( progress_pixels/20 ) == 0 or
+                ((10*progress_pixel<progress_pixels or
+                    10*progress_pixel>9*progress_pixels) and
+                (progress_pixel % (progress_pixels/100) == 0))):
+            
+                print(f"%lu%% done\n",progress_pixel*100/progress_pixels)
+            
+        
+        progress_pixel+=1
+    
 
 def interpolate_unit_cell():
     """Calculates Fcell"""
