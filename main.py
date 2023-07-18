@@ -164,6 +164,7 @@ def find_detector_thickstep_contribution(thick_tic,
                                         polar_vector,
                                         verbose,
                                         ):
+
     # intensity for this detector thickness step, in the subpixel
     I_contribution = 0
 
@@ -574,59 +575,62 @@ if __name__=="__main__":
     spot_scale = 1
     fluence = 125932015286227086360700780544.0
     r_e_sqr = 7.94079248018965e-30 # Thomson cross section in m^2
-    detector_thickstep
-    Odet
+    detector_thickstep = 0.000000
+    Odet = 0.000000
     fdet_vector = np.array([0,0,0,1]) 
     sdet_vector = np.array([0,0,-1,0]) 
     odet_vector = np.array([0,1,0,0]) 
-    pix0_vector
+    pix0_vector = np.array([0.000000, 0.100000, 0.051300, -0.051300])
     curved_detector = False
     distance = 0.1 
     beam_vector =  np.array([0,1,0,0]) 
-    close_distance
+    close_distance = 0.100000
     point_pixel = False
-    detector_thick
-    detector_attnlen
+    detector_thick = 0.000000
+    detector_attnlen = 0.000234
     sources = 1
-    source_X
-    source_Y 
-    source_Z 
-    source_lambda,
-    dmin,
-    phi0, 
-    phistep,
-    a0, 
-    b0, 
-    c0, 
-    ap, 
-    bp, 
-    cp, 
+    source_X = np.array([-10.000000])
+    source_Y = np.array([0.000000])
+    source_Z  = np.array([0.000000])
+    source_lambda = np.array([0.000000])
+    dmin = 0.000000
+    phi0 = 0.000000
+    phistep = 0.000000
+    a0 = np.array([0.000000])
+    b0 = np.array([0.000000])
+    c0 = np.array([0.000000])
+    ap = np.array([0.000000])
+    bp = np.array([0.000000]) 
+    cp = np.array([0.000000])
     spindle_vector = np.array([0,0,0,1])
-    mosaic_spread,
-    mosaic_umats,
+    mosaic_spread = 0.000000
+    mosaic_umats = np.array([[1.0, 0, 0],[0, 1.0, 0],[0, 0, 1.0]])
     xtal_shape = 'SQUARE'
     Na = 5.0
     Nb = 5.0
     Nc = 5.0
     fudge = 1
     integral_form = 0
-    V_cell,
+    V_cell = 231192.000000
     Xbeam = 0.05125
     Ybeam = 0.05125
     interpolate = False
-    h_max, 
-    h_min, 
-    k_max, 
-    k_min, 
-    l_max, 
-    l_min,
-    Fhkl, 
+    h_max = 0
+    h_min = 0
+    k_max = 0
+    k_min = 0
+    l_max = 0
+    l_min = 0
+    Fhkl_indices = [(0,0,0)]
+    Fhkl_data = [10.0]
     default_F = 1.0
     nopolar = False
-    source_I
+    source_I = 1.000000
     polarization = 0
-    polar_vector np.array([0,0,0,1])
+    polar_vector = np.array([0,0,0,1])
     verbose=9
+
+    Fhkl = {h:v for h,v in zip(Fhkl_indices,Fhkl_data)}
 
     raw_pixels = add_nanoBragg_spots(spixels, 
                         fpixels,
