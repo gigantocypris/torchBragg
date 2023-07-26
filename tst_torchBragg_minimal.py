@@ -41,4 +41,5 @@ def tst_torchBragg_minimal():
    pass
 
 if __name__=="__main__":
+  tst_nanoBragg_minimal()
   print("OK")

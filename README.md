@@ -67,6 +67,12 @@ Get this unit test to work:
 > cd $WORK/output_torchBragg
 > libtbx.python $MODULES/cctbx_project/simtbx/nanoBragg/tst_nanoBragg_minimal.py
 
+
+Run main.py
+> cd $WORK/output_torchBragg
+> libtbx.python $MODULES/torchBragg/main.py
+
+
 ## Questions on nanoBragg.cpp
 
 Why is there interpolation starting on line 2779? Isn't the correct thing to do is take all the neighboring HKL spots, loop over these spots, getting the contribution of that spot to the pixel of interest?

@@ -405,7 +405,7 @@ def find_mosaic_domain_contribution(mosaic_spread,
                                     h_max, h_min, k_max, k_min, l_max, l_min,
                                     Fhkl, default_F,
                                     nopolar,source_I, source, capture_fraction, omega_pixel,
-                                    polarization,diffracted,polar_vector
+                                    polarization,diffracted,polar_vector,
                                     verbose,
                                     ):
 
@@ -592,7 +592,7 @@ if __name__=="__main__":
     source_X = np.array([-10.000000])
     source_Y = np.array([0.000000])
     source_Z  = np.array([0.000000])
-    source_lambda = np.array([0.000000])
+    source_lambda = np.array([1e-10])
     dmin = 0.000000
     phi0 = 0.000000
     phistep = 0.000000
