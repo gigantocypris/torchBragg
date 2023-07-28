@@ -421,7 +421,7 @@ def find_mosaic_domain_contribution(mosaic_spread,
         a[1]=ap[1];a[2]=ap[2];a[3]=ap[3]
         b[1]=bp[1];b[2]=bp[2];b[3]=bp[3]
         c[1]=cp[1];c[2]=cp[2];c[3]=cp[3]
-    
+
     print(f"%d %f %f %f\n",mos_tic,mosaic_umats[mos_tic*9+0],mosaic_umats[mos_tic*9+1],mosaic_umats[mos_tic*9+2])
     print(f"%d %f %f %f\n",mos_tic,mosaic_umats[mos_tic*9+3],mosaic_umats[mos_tic*9+4],mosaic_umats[mos_tic*9+5])
     print(f"%d %f %f %f\n",mos_tic,mosaic_umats[mos_tic*9+6],mosaic_umats[mos_tic*9+7],mosaic_umats[mos_tic*9+8])
@@ -596,15 +596,16 @@ if __name__=="__main__":
     dmin = 0.000000
     phi0 = 0.000000
     phistep = 0.000000
-    a0 = np.array([0.000000])
-    b0 = np.array([0.000000])
-    c0 = np.array([0.000000])
-    ap = np.array([0.000000])
-    bp = np.array([0.000000]) 
-    cp = np.array([0.000000])
+    a0 = np.array([7.800000e-09, 6.484601e-09, 3.443972e-09, -2.632301e-09])
+    b0 = np.array([7.800000e-09, -2.431495e-09, 6.811206e-09, 2.921523e-09])
+    c0 = np.array([3.800000e-09, 1.748274e-09, -7.835150e-10, 3.281713e-09])
+    ap = np.array([7.800000e-09, 6.484601e-09, 3.443972e-09, -2.632301e-09])
+    bp = np.array([7.800000e-09, -2.431495e-09, 6.811206e-09, 2.921523e-09]) 
+    cp = np.array([3.800000e-09, 1.748274e-09, -7.835150e-10, 3.281713e-09])
     spindle_vector = np.array([0,0,0,1])
     mosaic_spread = 0.000000
     mosaic_umats = np.array([[1.0, 0, 0],[0, 1.0, 0],[0, 0, 1.0]])
+    mosaic_umats = np.array([1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0])
     xtal_shape = 'SQUARE'
     Na = 5.0
     Nb = 5.0

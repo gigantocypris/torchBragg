@@ -7,6 +7,11 @@
 
 - port these methods to PyTorch
     - add_nanoBragg_spots
+    - add_background
+    - apply_psf
+    - add_noise
+    
+
 
 
 ## Requirements

@@ -62,11 +62,17 @@ References:
 cctbx_project/simtbx/nanoBragg/nanoBragg.cpp --> add_nanoBragg_spots
 cctbx_project/simtbx/nanoBragg/tst_nanoBragg_minimal.py
 
+diffBragg tests are in:
+simtbx/diffBragg/tests
+
 Get this unit test to work:
 
 > cd $WORK/output_torchBragg
 > libtbx.python $MODULES/cctbx_project/simtbx/nanoBragg/tst_nanoBragg_minimal.py
 
+diffBragg unit test:
+> cd $WORK/output_torchBragg
+> libtbx.python $MODULES/cctbx_project/simtbx/diffBragg/tests/tst_diffBragg_Fcell_deriv.py
 
 Run main.py
 > cd $WORK/output_torchBragg
