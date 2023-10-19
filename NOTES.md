@@ -42,4 +42,23 @@ dials.image_viewer idx-0155_indexed.refl idx-0155_refined.expt
 Viewing integrated image:
 dials.image_viewer idx-0155_integrated.refl idx-0155_integrated.expt
 
-Replicate indexed or integrated image with nanoBragg?
+Merging results are in:
+14297594/out (why does merging output .refl files? aggregates data about all the spots)
+
+
+
+To get data from MTZ file, look at: /global/cfs/cdirs/m3562/users/vidyagan/p20231/alcc-recipes-spread/cctbx/modules/exafel_project/kpp-sim/thermolysin/evaluate_100k.py
+
+TODO: Look into diffBragg to figure out how to simulate the shoeboxes
+
+TODO: Replicate indexed or integrated image with nanoBragg?
+
+Useful notes:
+'aaron_notes_creating_worker_image_pixels_nov_18_2022'
+
+Useful commands:
+Counting certain number of a type of file in current directory
+find . -type f -name "*.refl" | wc -l
+
+viewing just the reflections:
+dials.reflection_viewer
