@@ -62,3 +62,45 @@ find . -type f -name "*.refl" | wc -l
 
 viewing just the reflections:
 dials.reflection_viewer
+
+
+Notes from diffBragg code:
+
+## hopper (stage 1):
+
+using indexed and refined shoeboxes, saves the data and simulation of the data in the pkl file
+
+### Forward Simulation
+
+/global/cfs/cdirs/m3562/users/vidyagan/p20231/alcc-recipes-spread/cctbx/modules/cctbx_project/simtbx/diffBragg/utils.py
+Line 794: simulator_from_expt_and_params
+
+/global/cfs/cdirs/m3562/users/vidyagan/p20231/alcc-recipes-spread/cctbx/modules/cctbx_project/simtbx/diffBragg/hopper_utils.py
+Line 973: Minimize
+Line 1679: TargetFunc
+Line 1804: model_pix = model_bragg + background
+Line 1790: model_bragg, Jac = model(x, mod, SIM, compute_grad=_compute_grad)
+SIM.D.add_diffBragg_spots, then get raw pixels from SIM
+
+
+### Gathering shoeboxes
+
+/global/cfs/cdirs/m3562/users/vidyagan/p20231/alcc-recipes-spread/cctbx/modules/cctbx_project/simtbx/diffBragg/hopper_utils.py
+
+line 361 GatherFromReflectionTable
+
+## Integrate and predict step
+simtbx/command_line/integrate.py
+
+outputs expts and refls
+
+
+STOPPED HERE
+
+## diffBragg stage 2
+
+
+# Transformer idea
+
+Shoeboxes are tokens
+Process all shoeboxes with transformer architecture to create a representation. The representation is processed to determine the orientation and unit cell distributions (Structure factor matrix is optimized directly). Orientation, unit cell, structure factor matrix processed by the forward model to create the simulated image.
