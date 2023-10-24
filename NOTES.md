@@ -14,10 +14,15 @@ cd $WORK/output_torchBragg
 
 What we need to do:
 1. Create simulated images
-2. Run dials.stills_process and cctbx.xfel.merge on the simulated images, yielding shoeboxes and other parameters
-3. Go through the shoeboxes, and run a nanoBragg simulation with the shoebox/image parameters
-4. Create a new repo, deepBragg, which is a copy of the CT_NVAE repo
-5. Input the shoebox to the NVAE architecture, along with the structure factors, orientation, unit cell, etc. Structure factors are the top hierarchy level (like the ring artifact in the CT problem). For this first test, the structure factors are deterministic, but are a variable that can be optimized. The output of the parameter projection network are deltas to the orientation and unit cell. These go into the nanoBragg forward simulation, and we optimize the likelihood and minimize KL divergence of the latent space.
+2. Run dials.stills_process and cctbx.xfel.merge on the simulated images, yielding orientation, unit cell, structure factors, etc
+3. Run a nanoBragg simulation with the parameters found in dials.stills_process and cctbx.xfel.merge and try to replicate the simulated image (reference step). All the differentiable operations will need to be re-written in PyTorch
+4. Using all the shoeboxes are tokens, process through the encoder of a transformer architecture and get to the latent space
+5. Sample the latent space, and process through a decoder (need to think what architecture will be like) to get the orientation and unit cell (these could be deltas on the DIALS values)
+6. Structure factors will have a Wilson prior, and the lattice will not be applied
+7. Sample the structure factors, apply the lattice due to the sampled unit cell
+8. With all the sampled values, run in the new PyTorch add_spots function. Assume detector metrology, beam, other crystal parameters known for the initial iteration
+9. Optimize so that the VAE loss is minimized at all the original shoebox positions
+
 
 Steps 1-2 are complete for thermolysin. See the results detailed in `/global/cfs/cdirs/m3562/users/vidyagan/p20231/alcc-recipes-spread/cctbx/modules/exafel_project/kpp-sim/thermolysin/README.md`
 
@@ -43,7 +48,7 @@ Viewing integrated image:
 dials.image_viewer idx-0155_integrated.refl idx-0155_integrated.expt
 
 Merging results are in:
-14297594/out (why does merging output .refl files? aggregates data about all the spots)
+14297594/out (why does merging output .refl files? aggregates data about all the spots. pixel values appear to be missing)
 
 
 
@@ -68,7 +73,7 @@ Notes from diffBragg code:
 
 ## hopper (stage 1):
 
-using indexed and refined shoeboxes, saves the data and simulation of the data in the pkl file
+using indexed and refined shoeboxes, saves the data and values to simulate the data in the pkl file
 
 ### Forward Simulation
 
@@ -89,11 +94,32 @@ SIM.D.add_diffBragg_spots, then get raw pixels from SIM
 
 line 361 GatherFromReflectionTable
 
+### output
+
+cd /pscratch/sd/v/vidyagan/thermolysin/14310798/stage1/pandas
+
+.pkl files are output:
+```
+libtbx.python
+import pandas
+rank = 0
+df = pandas.read_pickle("hopper_results_rank" + str(rank) + ".pkl")
+print(df.keys()) # print column names
+print(df.iloc[0]) # print row 0
+print(df.iloc[0]['lam0']) # print row 0, column 'lam0'
+```
+I don't think the pixels of the predicted shoeboxes are saved, only refined quantities (e.g. rotation) that will allow simulation of spot
+
 ## Integrate and predict step
 simtbx/command_line/integrate.py
 
 outputs expts and refls
+view output:
+cd /pscratch/sd/v/vidyagan/thermolysin/14314404/predict/expts_and_refls
+dials.image_viewer rank250_preds.refl rank250_preds.expt
+dials.reflection_viewer rank250_preds.refl
 
+I think this step outputs the predicted refls and expts from simulation values, and draws the integrated shoeboxes
 
 STOPPED HERE
 
@@ -104,3 +130,12 @@ STOPPED HERE
 
 Shoeboxes are tokens
 Process all shoeboxes with transformer architecture to create a representation. The representation is processed to determine the orientation and unit cell distributions (Structure factor matrix is optimized directly). Orientation, unit cell, structure factor matrix processed by the forward model to create the simulated image.
+
+
+# Reference
+
+Count number of files with extension .ext in current folder:
+find . -type f -name "*.ext" | wc -l
+
+All all files in current folder:
+find . -type f | wc -l
