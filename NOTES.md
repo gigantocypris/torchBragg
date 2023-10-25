@@ -16,9 +16,9 @@ What we need to do:
 1. Create simulated images
 2. Run dials.stills_process and cctbx.xfel.merge on the simulated images, yielding orientation, unit cell, structure factors, etc
 3. Run a nanoBragg simulation with the parameters found in dials.stills_process and cctbx.xfel.merge and try to replicate the simulated image (reference step). All the differentiable operations will need to be re-written in PyTorch
-4. Using all the shoeboxes are tokens, process through the encoder of a transformer architecture and get to the latent space
+4. Using all the shoeboxes are tokens (integrated shoeboxes or indexed shoeboxes? Note the indexed shoeboxes are not the same size), process through the encoder of a transformer architecture and get to the latent space. Include a positional encoding denoting the coordinates on the image as well as the miller indices/reciprocal lattice space coordinates.
 5. Sample the latent space, and process through a decoder (need to think what architecture will be like) to get the orientation and unit cell (these could be deltas on the DIALS values)
-6. Structure factors will have a Wilson prior, and the lattice will not be applied
+6. Structure factors will have a Wilson prior (or no prior, just maximizing the likelihood), and the lattice will not be applied
 7. Sample the structure factors, apply the lattice due to the sampled unit cell
 8. With all the sampled values, run in the new PyTorch add_spots function. Assume detector metrology, beam, other crystal parameters known for the initial iteration
 9. Optimize so that the VAE loss is minimized at all the original shoebox positions
@@ -69,6 +69,22 @@ viewing just the reflections:
 dials.reflection_viewer
 
 
+Create the file: 14310365_integ_exp_ref.txt --> this is the "exp_ref_spec_file"
+This file lists all the refined/indexed expt/refl pairs, with a number indexing the single still shot
+Need to iterate through this file and simulate each of the constituent images and compare to original image simulation
+
+
+Extracting information from an *.expt file:
+cd /pscratch/sd/v/vidyagan/thermolysin/14199866
+libtbx.python
+>> from dxtbx.model import ExperimentList
+>> ab=ExperimentList.from_file('idx-0103_refined.expt')
+>> ab[0]
+>> ab[0].crystal
+>> ab[0].detector
+>> ab[0].beam
+>> ab[0].crystal.get_unit_cell()
+
 Notes from diffBragg code:
 
 ## hopper (stage 1):
@@ -109,6 +125,18 @@ print(df.iloc[0]) # print row 0
 print(df.iloc[0]['lam0']) # print row 0, column 'lam0'
 ```
 I don't think the pixels of the predicted shoeboxes are saved, only refined quantities (e.g. rotation) that will allow simulation of spot
+Note: each row of the pandas tables probably corresponds to a single image
+
+Column names:
+['spot_scales', 'Amats', 'ncells', 'spot_scales_init', 'ncells_init',
+       'eta_abc', 'detz_shift_mm', 'ncells_def', 'diffuse_gamma',
+       'diffuse_sigma', 'fp_fdp_shift', 'use_diffuse_models',
+       'gamma_miller_units', 'eta', 'rotX', 'rotY', 'rotZ', 'a', 'b', 'c',
+       'al', 'be', 'ga', 'a_init', 'b_init', 'c_init', 'al_init', 'lam0',
+       'lam1', 'be_init', 'ga_init', 'spectrum_filename', 'spectrum_stride',
+       'total_flux', 'beamsize_mm', 'exp_name', 'opt_exp_name',
+       'spectrum_from_imageset', 'oversample', 'stage1_refls',
+       'stage1_output_img', 'exp_idx', 'sigz', 'niter', 'phi_deg', 'osc_deg']
 
 ## Integrate and predict step
 simtbx/command_line/integrate.py
