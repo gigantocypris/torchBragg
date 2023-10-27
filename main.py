@@ -5,7 +5,7 @@ from utils import rotate_axis, rotate_umat, dot_product, sincg, sinc3, \
     detector_position, find_pixel_pos
 
 
-def add_nanoBragg_spots(spixels, 
+def add_torchBragg_spots(spixels, 
                         fpixels,
                         phisteps,
                         mosaic_domains,
@@ -57,6 +57,8 @@ def add_nanoBragg_spots(spixels,
     pixel_linear_ind = -1
     for spixel in range(spixels):
         for fpixel in range(fpixels):
+            print("spixel is: ", spixel)
+            print("fpixel is: ", fpixel)
 
             pixel_linear_ind += 1
             # reset photon count for this pixel
@@ -422,9 +424,10 @@ def find_mosaic_domain_contribution(mosaic_spread,
         b[1]=bp[1];b[2]=bp[2];b[3]=bp[3]
         c[1]=cp[1];c[2]=cp[2];c[3]=cp[3]
 
-    print(f"%d %f %f %f\n",mos_tic,mosaic_umats[mos_tic*9+0],mosaic_umats[mos_tic*9+1],mosaic_umats[mos_tic*9+2])
-    print(f"%d %f %f %f\n",mos_tic,mosaic_umats[mos_tic*9+3],mosaic_umats[mos_tic*9+4],mosaic_umats[mos_tic*9+5])
-    print(f"%d %f %f %f\n",mos_tic,mosaic_umats[mos_tic*9+6],mosaic_umats[mos_tic*9+7],mosaic_umats[mos_tic*9+8])
+    if verbose>9:
+        print("%d %f %f %f" % (mos_tic,mosaic_umats[mos_tic*9+0],mosaic_umats[mos_tic*9+1],mosaic_umats[mos_tic*9+2]))
+        print("%d %f %f %f" % (mos_tic,mosaic_umats[mos_tic*9+3],mosaic_umats[mos_tic*9+4],mosaic_umats[mos_tic*9+5]))
+        print("%d %f %f %f" % (mos_tic,mosaic_umats[mos_tic*9+6],mosaic_umats[mos_tic*9+7],mosaic_umats[mos_tic*9+8]))
 
     # construct fractional Miller indicies
     h = dot_product(a,scattering)
@@ -432,9 +435,9 @@ def find_mosaic_domain_contribution(mosaic_spread,
     l = dot_product(c,scattering)
 
     # round off to nearest whole index
-    h0 = np.ceil(h-0.5)
-    k0 = np.ceil(k-0.5)
-    l0 = np.ceil(l-0.5)
+    h0 = int(np.ceil(h-0.5))
+    k0 = int(np.ceil(k-0.5))
+    l0 = int(np.ceil(l-0.5))
 
     # structure factor of the lattice
     F_latt = 1.0
@@ -529,7 +532,7 @@ def find_mosaic_domain_contribution(mosaic_spread,
         Sdet0 = distance*(yd/zd) + Ybeam
 
         if(verbose>8):
-            print(f"integral_form: %g %g   %g %g\n",Fdet,Sdet,Fdet0,Sdet0)
+            print("integral_form: %g %g %g %g" % (Fdet,Sdet,Fdet0,Sdet0))
         test = np.exp(-( (Fdet-Fdet0)*(Fdet-Fdet0)+(Sdet-Sdet0)*(Sdet-Sdet0) + d_r*d_r )/1e-8)
     # end of integral form
 
@@ -539,9 +542,10 @@ def find_mosaic_domain_contribution(mosaic_spread,
         raise NotImplementedError("Interpolation of structure factors not implemented")
         # F_cell = interpolate_unit_cell()
     else:
+        
         if ((h0<=h_max) and (h0>=h_min) and (k0<=k_max) and (k0>=k_min) and (l0<=l_max) and (l0>=l_min)):
             # just take nearest-neighbor
-            F_cell = Fhkl[h0-h_min][k0-k_min][l0-l_min]
+            F_cell = Fhkl[(h0-h_min,k0-k_min,l0-l_min)]
         
         else:
             F_cell = default_F # usually zero
@@ -558,114 +562,3 @@ def find_mosaic_domain_contribution(mosaic_spread,
     # convert amplitudes into intensity (photons per steradian)
     I_contribution_mosaic = F_cell*F_cell*F_latt*F_latt*source_I[source]*capture_fraction*omega_pixel
     return I_contribution_mosaic, polar
-
-if __name__=="__main__":
-    spixels = 1024
-    fpixels = 1024
-    phisteps = 1
-    mosaic_domains = 1
-    oversample = 2
-    pixel_size = 0.0001
-    roi_xmin = 0 
-    roi_xmax = 1024
-    roi_ymin = 0
-    roi_ymax = 1024
-    maskimage = None
-    detector_thicksteps = 1
-    spot_scale = 1
-    fluence = 125932015286227086360700780544.0
-    r_e_sqr = 7.94079248018965e-30 # Thomson cross section in m^2
-    detector_thickstep = 0.000000
-    Odet = 0.000000
-    fdet_vector = np.array([0,0,0,1]) 
-    sdet_vector = np.array([0,0,-1,0]) 
-    odet_vector = np.array([0,1,0,0]) 
-    pix0_vector = np.array([0.000000, 0.100000, 0.051300, -0.051300])
-    curved_detector = False
-    distance = 0.1 
-    beam_vector =  np.array([0,1,0,0]) 
-    close_distance = 0.100000
-    point_pixel = False
-    detector_thick = 0.000000
-    detector_attnlen = 0.000234
-    sources = 1
-    source_X = np.array([-10.000000])
-    source_Y = np.array([0.000000])
-    source_Z  = np.array([0.000000])
-    source_lambda = np.array([1e-10])
-    dmin = 0.000000
-    phi0 = 0.000000
-    phistep = 0.000000
-    a0 = np.array([7.800000e-09, 6.484601e-09, 3.443972e-09, -2.632301e-09])
-    b0 = np.array([7.800000e-09, -2.431495e-09, 6.811206e-09, 2.921523e-09])
-    c0 = np.array([3.800000e-09, 1.748274e-09, -7.835150e-10, 3.281713e-09])
-    ap = np.array([7.800000e-09, 6.484601e-09, 3.443972e-09, -2.632301e-09])
-    bp = np.array([7.800000e-09, -2.431495e-09, 6.811206e-09, 2.921523e-09]) 
-    cp = np.array([3.800000e-09, 1.748274e-09, -7.835150e-10, 3.281713e-09])
-    spindle_vector = np.array([0,0,0,1])
-    mosaic_spread = 0.000000
-    mosaic_umats = np.array([[1.0, 0, 0],[0, 1.0, 0],[0, 0, 1.0]])
-    mosaic_umats = np.array([1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0])
-    xtal_shape = 'SQUARE'
-    Na = 5.0
-    Nb = 5.0
-    Nc = 5.0
-    fudge = 1
-    integral_form = 0
-    V_cell = 231192.000000
-    Xbeam = 0.05125
-    Ybeam = 0.05125
-    interpolate = False
-    h_max = 0
-    h_min = 0
-    k_max = 0
-    k_min = 0
-    l_max = 0
-    l_min = 0
-    Fhkl_indices = [(0,0,0)]
-    Fhkl_data = [10.0]
-    default_F = 1.0
-    nopolar = False
-    source_I = 1.000000
-    polarization = 0
-    polar_vector = np.array([0,0,0,1])
-    verbose=9
-
-    Fhkl = {h:v for h,v in zip(Fhkl_indices,Fhkl_data)}
-
-    raw_pixels = add_nanoBragg_spots(spixels, 
-                        fpixels,
-                        phisteps,
-                        mosaic_domains,
-                        oversample,
-                        pixel_size,
-                        roi_xmin, roi_xmax, roi_ymin, roi_ymax,
-                        maskimage, 
-                        detector_thicksteps,
-                        spot_scale, fluence,
-                        r_e_sqr,
-                        detector_thickstep,
-                        Odet,
-                        fdet_vector, sdet_vector, odet_vector, pix0_vector,
-                        curved_detector, distance, beam_vector, close_distance,
-                        point_pixel,
-                        detector_thick, detector_attnlen,
-                        sources,
-                        source_X, source_Y, source_Z, source_lambda,
-                        dmin,phi0, phistep,
-                        a0, b0, c0, ap, bp, cp, spindle_vector,
-                        mosaic_spread,
-                        mosaic_umats,
-                        xtal_shape,
-                        Na, Nb, Nc,
-                        fudge,
-                        integral_form,
-                        V_cell,
-                        Xbeam, Ybeam,
-                        interpolate,
-                        h_max, h_min, k_max, k_min, l_max, l_min,
-                        Fhkl, default_F,
-                        nopolar,source_I,
-                        polarization,
-                        polar_vector,
-                        verbose=verbose)

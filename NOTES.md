@@ -249,3 +249,26 @@ export CUDA_MANAGED_FORCE_DEVICE_ALLOC=1
 
 libtbx.python $MODULES/exafel_project/kpp_utils/LY99_batch.py trial.phil
 
+# October 26, 2023
+Get unit cell, line 92 in /global/cfs/cdirs/m3562/users/vidyagan/p20231/alcc-recipes-spread/cctbx/modules/LS49/sim/util_fmodel.py
+xray_structure.unit_cell()
+
+Single unit cell for initial prototype:
+1. Create PyTorch equivalent of nanoBragg C++ object, torchBragg
+2. Simulate with nanoBragg and simulate with torchBragg, compare --> test
+3. Simulate a dataset with nanoBragg, index, integrate, and merge (merged SF can be used as warm start), use integrated shoeboxes (or make spotfinder/indexed shoeboxes equal size)
+4. Vision transformer (may need to add null padding for variable numbers of shoeboxes) to get latent space for the orientation, decode and sample to get orientation
+5. Run forward solution to get shoebox mean and variances, transform these by a neural network to get corrected mean and variance
+
+Unit test:
+libtbx.python $MODULES/cctbx_project/simtbx/nanoBragg/tst_nanoBragg_minimal.py >> output_tst_nanoBragg_minimal.txt
+libtbx.python $MODULES/cctbx_project/simtbx/nanoBragg/tst_nanoBragg_basic.py >> output_tst_nanoBragg_basic.txt
+
+Run main.py
+> cd $WORK/output_torchBragg
+> libtbx.python $MODULES/torchBragg/main.py
+
+For KOKKOS, looks like the work happends here: /global/cfs/cdirs/m3562/users/vidyagan/p20231/alcc-recipes-spread/cctbx/modules/cctbx_project/simtbx/kokkos/simulation_kernels.h
+
+New test:
+libtbx.python $MODULES/torchBragg/tst_torchBragg_minimal.py

@@ -116,7 +116,8 @@ def polarization_factor(kahn_factor, incident, diffracted, axis):
     """polarization factor"""
     E_out = np.zeros(4)
     B_out = np.zeros(4)
-
+    psi = 0.0
+    
     # unitize the vectors
     _, incident = unitize(incident)
     _, diffracted = unitize(diffracted)
