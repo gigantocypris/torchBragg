@@ -250,6 +250,7 @@ export CUDA_MANAGED_FORCE_DEVICE_ALLOC=1
 libtbx.python $MODULES/exafel_project/kpp_utils/LY99_batch.py trial.phil
 
 # October 26, 2023
+
 Get unit cell, line 92 in /global/cfs/cdirs/m3562/users/vidyagan/p20231/alcc-recipes-spread/cctbx/modules/LS49/sim/util_fmodel.py
 xray_structure.unit_cell()
 
@@ -264,11 +265,14 @@ Unit test:
 libtbx.python $MODULES/cctbx_project/simtbx/nanoBragg/tst_nanoBragg_minimal.py >> output_tst_nanoBragg_minimal.txt
 libtbx.python $MODULES/cctbx_project/simtbx/nanoBragg/tst_nanoBragg_basic.py >> output_tst_nanoBragg_basic.txt
 
-Run main.py
-> cd $WORK/output_torchBragg
-> libtbx.python $MODULES/torchBragg/main.py
-
 For KOKKOS, looks like the work happends here: /global/cfs/cdirs/m3562/users/vidyagan/p20231/alcc-recipes-spread/cctbx/modules/cctbx_project/simtbx/kokkos/simulation_kernels.h
 
-New test:
-libtbx.python $MODULES/torchBragg/tst_torchBragg_minimal.py
+Run test:
+> cd $WORK/output_torchBragg
+> libtbx.python $MODULES/torchBragg/tst_torchBragg_minimal.py
+
+# October 27, 2023
+
+/global/cfs/cdirs/m3562/users/vidyagan/p20231/alcc-recipes-spread/cctbx/modules/cctbx_project/simtbx/nanoBragg/nanoBragg.cpp
+
+Line 2462: add_nanoBragg_spots

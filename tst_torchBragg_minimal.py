@@ -18,7 +18,8 @@ def tst_nanoBragg_minimal():
     SIM.Ncells_abc = (5,5,5)
 
     # default orientation is with a axis down the beam, lets pick a random one
-    SIM.randomize_orientation()
+    # SIM.randomize_orientation()
+
     # display randomly-picked missetting angles
     print(SIM.missets_deg)
     # or an Arndt-Wonacott A matrix (U*B), same as used by mosflm
@@ -154,6 +155,7 @@ def tst_torchBragg_minimal():
 if __name__=="__main__":
   raw_pixels_0 = tst_nanoBragg_minimal()
 
+  breakpoint()
   
   raw_pixels_1 = tst_torchBragg_minimal()
 
