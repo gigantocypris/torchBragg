@@ -24,12 +24,13 @@ def tst_nanoBragg_minimal():
     print(SIM.missets_deg)
     # or an Arndt-Wonacott A matrix (U*B), same as used by mosflm
     print(SIM.Amatrix)
-
+    
     # show all parameters
     SIM.show_params()
     # now actually run the simulation
     SIM.add_nanoBragg_spots()
-
+    breakpoint()
+    
     # # write out a file on arbitrary scale, header contains beam center in various conventions
     # SIM.to_smv_format(fileout="intimage_001.img")
 

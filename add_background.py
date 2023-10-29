@@ -1,4 +1,118 @@
-def add_background(oversample, override_source):
+import torch
+import numpy as np
+from utils import rotate_axis, unitize
+
+def add_background(oversample, 
+                   override_source,
+                   sources,
+                   spixels,
+                   fpixels,
+                   pixel_size,
+                   roi_xmin, roi_xmax, roi_ymin, roi_ymax,
+                   ):
+    source_start = 0
+    orig_sources = sources
+    end_sources = sources
+    max_I = 0.0
+    raw_pixels = np.zeros((spixels,fpixels))
+    have_single_source = False
+
+    if override_source>=0:
+        # user-specified idx_single_source in the argument
+        source_start = override_source
+        end_sources = source_start +1
+        have_single_source = True
+    
+    # make sure we are normalizing with the right number of sub-steps
+    steps = oversample*oversample
+    subpixel_size = pixel_size/oversample
+
+    # sweep over detector
+    sum = sumsqr = 0.0
+    sumn = 0
+    progress_pixel = 0
+    omega_sum = 0.0
+    nearest = 0
+    i = 0
+    for spixel in range(spixels):
+        for fpixel in range(fpixels):
+            # allow for just one part of detector to be rendered
+            if fpixel < roi_xmin or fpixel > roi_xmax or spixel < roi_ymin or spixel > roi_ymax:
+                invalid_pixel[i] = True
+                i += 1
+                print("skipping pixel %d %d\n",spixel,fpixel)
+            else:
+                # reset background photon count for this pixel
+                Ibg = 0
+
+                # loop over sub-pixels
+                for subS in range(oversample):
+                    for subF in range(oversample):
+                        
+                        # absolute mm position on detector (relative to its origin)
+                        Fdet = subpixel_size*(fpixel*oversample + subF) + subpixel_size/2.0
+                        Sdet = subpixel_size*(spixel*oversample + subS) + subpixel_size/2.0
+
+                        for thick_tic in range(detector_thicksteps):
+                            get_background_thick_tic(thick_tic)
+
+def get_background_thick_tic(thick_tic,
+                             detector_thickstep,
+                             Fdet, Sdet, Odet,
+                             fdet_vector, sdet_vector, odet_vector,
+                             pix0_vector,
+                             curved_detector,
+                             distance,
+                             beam_vector,
+                             pixel_size,
+                             close_distance,
+                             point_pixel,
+                             omega_sum,
+                             detector_thick,
+                             ):
+    # assume "distance" is to the front of the detector sensor layer
+    Odet = thick_tic*detector_thickstep
+    pixel_pos = np.zeros([4,])
+
+    # construct detector pixel position in 3D space
+    pixel_pos[1] = Fdet*fdet_vector[1]+Sdet*sdet_vector[1]+Odet*odet_vector[1]+pix0_vector[1]
+    pixel_pos[2] = Fdet*fdet_vector[2]+Sdet*sdet_vector[2]+Odet*odet_vector[2]+pix0_vector[2]
+    pixel_pos[3] = Fdet*fdet_vector[3]+Sdet*sdet_vector[3]+Odet*odet_vector[3]+pix0_vector[3]
+
+    if curved_detector:
+        # construct detector pixel that is always "distance" from the sample
+        vector = np.zeros([4,])
+        vector[1] = distance*beam_vector[1]
+        vector[2] = distance*beam_vector[2]
+        vector[3] = distance*beam_vector[3]
+
+
+        # treat detector pixel coordinates as radians
+        newvector = rotate_axis(vector,sdet_vector,pixel_pos[2]/distance)
+        pixel_pos = rotate_axis(newvector,fdet_vector,pixel_pos[3]/distance)
+
+    # construct the diffracted-beam unit vector to this pixel
+    airpath, diffracted = unitize(pixel_pos)
+    
+
+    # solid angle subtended by a pixel: (pix/airpath)^2*cos(2theta)
+    omega_pixel = pixel_size*pixel_size/airpath/airpath*close_distance/airpath
+
+    # option to turn off obliquity effect, inverse-square-law only
+    if point_pixel:
+        omega_pixel = 1.0/airpath/airpath
+    omega_sum += omega_pixel
+
+    STOPPED HERE
+    
+    if detector_thick > 0.0:
+        # inverse of effective thickness increase
+        parallax = dot_product(diffracted,odet_vector)
+        capture_fraction = np.exp(-thick_tic*detector_thickstep/detector_attnlen/parallax) - np.exp(-(thick_tic+1)*detector_thickstep/detector_attnlen/parallax)
+
+    else:
+        capture_fraction = 1.0
+
 {
     int i;
     int source_start = 0;
