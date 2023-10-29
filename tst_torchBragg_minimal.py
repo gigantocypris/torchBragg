@@ -30,7 +30,7 @@ def tst_nanoBragg_minimal():
     # now actually run the simulation
     SIM.add_nanoBragg_spots()
     breakpoint()
-    
+
     # # write out a file on arbitrary scale, header contains beam center in various conventions
     # SIM.to_smv_format(fileout="intimage_001.img")
 
@@ -84,6 +84,36 @@ def tst_torchBragg_minimal():
     ap = np.array([7.800000e-09, 6.484601e-09, 3.443972e-09, -2.632301e-09])
     bp = np.array([7.800000e-09, -2.431495e-09, 6.811206e-09, 2.921523e-09]) 
     cp = np.array([3.800000e-09, 1.748274e-09, -7.835150e-10, 3.281713e-09])
+
+"""
+a0[0]= 7.8e-09
+b0[0]= 7.8e-09
+c0[0]= 3.8e-09
+ap[0]= 7.8e-09
+bp[0]= 7.8e-09
+cp[0]= 3.8e-09
+a0[1]= 7.8e-09
+b0[1]= -0
+c0[1]= 0
+ap[1]= 7.8e-09
+bp[1]= -0
+cp[1]= 0
+a0[2]= 4.77612e-25
+b0[2]= 7.8e-09
+c0[2]= -0
+ap[2]= 4.77612e-25
+bp[2]= 7.8e-09
+cp[2]= -0
+a0[3]= 4.77612e-25
+b0[3]= 4.77612e-25
+c0[3]= 3.8e-09
+ap[3]= 4.77612e-25
+bp[3]= 4.77612e-25
+cp[3]= 3.8e-09
+"""
+
+
+
     spindle_vector = np.array([0,0,0,1])
     mosaic_spread = 0.000000
     mosaic_umats = np.array([[1.0, 0, 0],[0, 1.0, 0],[0, 0, 1.0]])
