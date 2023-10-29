@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from utils import rotate_axis, unitize
+from utils import rotate_axis, unitize, dot_product, magnitude, polint
 
 def add_background(oversample, 
                    override_source,
@@ -54,22 +54,25 @@ def add_background(oversample,
                         Sdet = subpixel_size*(spixel*oversample + subS) + subpixel_size/2.0
 
                         for thick_tic in range(detector_thicksteps):
-                            get_background_thick_tic(thick_tic)
+                            get_background_contribution(thick_tic)
 
-def get_background_thick_tic(thick_tic,
-                             detector_thickstep,
-                             Fdet, Sdet, Odet,
-                             fdet_vector, sdet_vector, odet_vector,
-                             pix0_vector,
-                             curved_detector,
-                             distance,
-                             beam_vector,
-                             pixel_size,
-                             close_distance,
-                             point_pixel,
-                             omega_sum,
-                             detector_thick,
-                             ):
+def get_background_contribution(thick_tic,
+                                detector_thickstep,
+                                Fdet, Sdet, Odet,
+                                fdet_vector, sdet_vector, odet_vector,
+                                pix0_vector,
+                                curved_detector,
+                                distance,
+                                beam_vector,
+                                pixel_size,
+                                close_distance,
+                                point_pixel,
+                                omega_sum,
+                                detector_thick,
+                                detector_attnlen,
+                                source_start, end_sources,
+                                have_single_source, source_I,
+                                ):
     # assume "distance" is to the front of the detector sensor layer
     Odet = thick_tic*detector_thickstep
     pixel_pos = np.zeros([4,])
@@ -103,15 +106,85 @@ def get_background_thick_tic(thick_tic,
         omega_pixel = 1.0/airpath/airpath
     omega_sum += omega_pixel
 
-    STOPPED HERE
-    
     if detector_thick > 0.0:
         # inverse of effective thickness increase
         parallax = dot_product(diffracted,odet_vector)
         capture_fraction = np.exp(-thick_tic*detector_thickstep/detector_attnlen/parallax) - np.exp(-(thick_tic+1)*detector_thickstep/detector_attnlen/parallax)
-
     else:
         capture_fraction = 1.0
+
+    # loop over sources now
+    for source in range(source_start, end_sources):
+        get_source_contribution()
+
+def get_source_contribution(source,
+                            have_single_source,
+                            orig_sources,
+                            source_I,
+                            source_X, source_Y, source_Z,
+                            source_wavelength, diffracted,
+                            nearest, stol_of, stols, Fbg_of,
+                            nopolar,
+                           ):    
+    if have_single_source:
+        n_source_scale = orig_sources
+    else:
+        n_source_scale = source_I[source]
+
+    incident = np.zeros([4,])
+    incident[1] = -source_X[source]
+    incident[2] = -source_Y[source]
+    incident[3] = -source_Z[source]
+
+    # lambda --> wavelength, C++ code --> Python code
+    wavelength = source_wavelength[source]
+
+    # construct the incident beam unit vector while recovering source distance
+    source_path, incident = unitize(incident)
+
+    # construct the scattering vector for this pixel
+    scattering = np.zeros([4,])
+    scattering[1] = (diffracted[1]-incident[1])/wavelength
+    scattering[2] = (diffracted[2]-incident[2])/wavelength
+    scattering[3] = (diffracted[3]-incident[3])/wavelength
+
+    # sin(theta)/lambda is half the scattering vector length
+
+    stol = 0.5*magnitude(scattering)
+
+    # now we need to find the nearest four "stol file" points
+
+    while stol > stol_of[nearest] and nearest <= stols:
+        nearest += 1
+    while stol < stol_of[nearest] and nearest >= 2:
+        nearest -= 1
+
+    # cubic spline interpolation
+    Fbg = polint(stol_of + nearest - 1, Fbg_of + nearest - 1, stol)
+
+    # allow negative F values to yield negative intensities
+    sign=1.0
+    if Fbg<0.0:
+        sign=-1.0
+    
+    # now we have the structure factor for this pixel
+
+    # polarization factor
+
+    if not nopolar:
+        # STOPPED HERE
+        
+        # need to compute polarization factor
+        polar = polarization_factor(polarization,incident,diffracted,polar_vector)
+    else:
+        polar = 1.0
+    
+    # accumulate unscaled pixel intensity from this
+    Ibg += sign*Fbg*Fbg*polar*omega_pixel*capture_fraction*n_source_scale
+    if verbose>7 and i==1:
+        print("DEBUG: Fbg= %g polar= %g omega_pixel= %g source[%d]= %g capture_fraction= %g\n", Fbg,polar,omega_pixel,source,source_I[source],capture_fraction)    
+    return(Ibg)
+
 
 {
     int i;

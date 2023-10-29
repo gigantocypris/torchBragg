@@ -128,9 +128,9 @@ def add_torchBragg_spots(spixels,
                 # print_pixel_output()
     
     if(verbose):
-        print("done with pixel loop\n")
-        print("solid angle subtended by detector = %g steradian ( %g%% sphere)\n",omega_sum/steps,100*omega_sum/steps/4/np.pi)
-        print("max_I= %g sum= %g avg= %g\n",max_I,sum,sum/sumn)
+        print("done with pixel loop")
+        print("solid angle subtended by detector = %g steradian ( %g%% sphere)" % (omega_sum/steps,100*omega_sum/steps/4/np.pi))
+        print("max_I= %g sum= %g avg= %g" % (max_I,sum,sum/sumn))
 
     return raw_pixels
 

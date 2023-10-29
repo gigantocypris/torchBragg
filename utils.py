@@ -180,6 +180,14 @@ def find_pixel_pos(Fdet, Sdet, Odet, fdet_vector, sdet_vector, odet_vector, pix0
         pixel_pos = rotate_axis(newvector,fdet_vector,pixel_pos[3]/distance)
     return pixel_pos 
 
+def polint(xa, ya, x):
+    x0 = (x-xa[1])*(x-xa[2])*(x-xa[3])*ya[0]/((xa[0]-xa[1])*(xa[0]-xa[2])*(xa[0]-xa[3]))
+    x1 = (x-xa[0])*(x-xa[2])*(x-xa[3])*ya[1]/((xa[1]-xa[0])*(xa[1]-xa[2])*(xa[1]-xa[3]))
+    x2 = (x-xa[0])*(x-xa[1])*(x-xa[3])*ya[2]/((xa[2]-xa[0])*(xa[2]-xa[1])*(xa[2]-xa[3]))
+    x3 = (x-xa[0])*(x-xa[1])*(x-xa[2])*ya[3]/((xa[3]-xa[0])*(xa[3]-xa[1])*(xa[3]-xa[2]))
+    y = x0+x1+x2+x3
+    return y
+
 def print_pixel_output():
     if printout:
         if((fpixel==printout_fpixel and spixel==printout_spixel) or printout_fpixel < 0):
