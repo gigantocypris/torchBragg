@@ -276,3 +276,7 @@ Run test:
 /global/cfs/cdirs/m3562/users/vidyagan/p20231/alcc-recipes-spread/cctbx/modules/cctbx_project/simtbx/nanoBragg/nanoBragg.cpp
 
 Line 2462: add_nanoBragg_spots
+
+# October 30, 2023
+
+Bulk solvent: https://journals.iucr.org/d/issues/2013/04/00/dz5273/index.html
