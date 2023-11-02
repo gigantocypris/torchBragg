@@ -243,23 +243,21 @@ def tst_torchBragg_basic(spixels, fpixels):
   Na = Ncells_abc[0]
   Nb = Ncells_abc[1]
   Nc = Ncells_abc[2]
-  fudge = 1 # XXX CHECK
+  fudge = 1
+  V_cell = 2.100000e5
+  Xbeam=0.00505 
+  Ybeam=0.00505
+  interpolate = False
+  h_max= 31
+  h_min= -31
+  k_max= 37
+  k_min= -37
+  l_max= 43
+  l_min= -43
   
   # STOPPED HERE
   # set the rest of the parameters:
 
-  
-  
-  V_cell = 231192.000000
-  Xbeam = 0.05125
-  Ybeam = 0.05125
-  interpolate = False
-  h_max = 0
-  h_min = 0
-  k_max = 0
-  k_min = 0
-  l_max = 0
-  l_min = 0
   Fhkl_indices = [(0,0,0)]
   Fhkl_data = [10.0]
   default_F = 1.0
