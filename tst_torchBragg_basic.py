@@ -146,19 +146,19 @@ def tst_nanoBragg_basic(spixels, fpixels):
   print("integral_form=",SIM.integral_form)
   # now actually burn up some CPU
   SIM.add_nanoBragg_spots()
-  # # simulated crystal is only 125 unit cells (25 nm wide)
-  # # amplify spot signal to simulate physical crystal of 4000x larger: 100 um (64e9 x the volume)
-  # SIM.raw_pixels *= 64e9;
-  # # rough approximation to water: interpolation points for sin(theta/lambda) vs structure factor
-  # bg = flex.vec2_double([(0,2.57),(0.0365,2.58),(0.07,2.8),(0.12,5),(0.162,8),(0.2,6.75),(0.18,7.32),(0.216,6.75),(0.236,6.5),(0.28,4.5),(0.3,4.3),(0.345,4.36),(0.436,3.77),(0.5,3.17)])
-  # SIM.Fbg_vs_stol = bg
-  # SIM.amorphous_sample_thick_mm = 0.1
-  # SIM.amorphous_density_gcm3 = 1
-  # SIM.amorphous_molecular_weight_Da = 18
-  # SIM.flux=1e12
-  # SIM.beamsize_mm=0.1
-  # SIM.exposure_s=0.1
-  # SIM.add_background()
+  # simulated crystal is only 125 unit cells (25 nm wide)
+  # amplify spot signal to simulate physical crystal of 4000x larger: 100 um (64e9 x the volume)
+  SIM.raw_pixels *= 64e9;
+  # rough approximation to water: interpolation points for sin(theta/lambda) vs structure factor
+  bg = flex.vec2_double([(0,2.57),(0.0365,2.58),(0.07,2.8),(0.12,5),(0.162,8),(0.2,6.75),(0.18,7.32),(0.216,6.75),(0.236,6.5),(0.28,4.5),(0.3,4.3),(0.345,4.36),(0.436,3.77),(0.5,3.17)])
+  SIM.Fbg_vs_stol = bg
+  SIM.amorphous_sample_thick_mm = 0.1
+  SIM.amorphous_density_gcm3 = 1
+  SIM.amorphous_molecular_weight_Da = 18
+  SIM.flux=1e12
+  SIM.beamsize_mm=0.1
+  SIM.exposure_s=0.1
+  SIM.add_background()
   
   # # rough approximation to air
   # bg = flex.vec2_double([(0,14.1),(0.045,13.5),(0.174,8.35),(0.35,4.78),(0.5,4.22)])
@@ -172,50 +172,24 @@ def tst_nanoBragg_basic(spixels, fpixels):
   # print("amorphous_molecular_weight_Da=",SIM.amorphous_molecular_weight_Da)
   # SIM.add_background()
   # print("Value of pixel: ",SIM.raw_pixels[5000])
-  breakpoint()
   params = (SIM.phisteps, SIM.mosaic_domains, SIM.oversample, SIM.pixel_size_mm, SIM.detector_thicksteps,
             SIM.spot_scale, SIM.fluence, SIM.detector_thickstep_mm, SIM.fdet_vector, SIM.sdet_vector, SIM.odet_vector,
-            SIM.pix0_vector, SIM.curved_detector, SIM.distance_mm, SIM.beam_vector, SIM.close_distance_mm,
+            SIM.pix0_vector_mm, SIM.curved_detector, SIM.distance_mm, SIM.beam_vector, SIM.close_distance_mm,
             SIM.point_pixel, SIM.detector_thick_mm, SIM.Ncells_abc, SIM.integral_form, 
-            SIM.Fhkl._indices.as_vec3_double().as_numpy_array(), SIM.Fhkl._data.as_numpy_array(), SIM.default_F
+            SIM.Fhkl._indices.as_vec3_double().as_numpy_array(), SIM.Fhkl._data.as_numpy_array(), SIM.default_F,
+            SIM.nopolar, SIM.polarization, SIM.polar_vector, SIM.verbose,
             )
   return(SIM.raw_pixels, params)
 
 def convert_vector(tuple):
-  return(np.array([0, tuple[0],tuple[1],tuple[2],tuple[3]]))
+  return(np.array([0, tuple[0],tuple[1],tuple[2]]))
 
 def tst_torchBragg_basic(spixels, fpixels, params):
-  phisteps, mosaic_domains, oversample, pixel_size_mm, detector_thicksteps, spot_scale, fluence,
-  detector_thickstep_mm, fdet_vector, sdet_vector, odet_vector, pix0_vector_mm, curved_detector,
-  distance_mm, beam_vector, close_distance_mm, point_pixel, detector_thick_mm, Ncells_abc,
-  integral_form, Fhkl_indices, Fhkl_data = params
-  
-  phisteps = 1
-  mosaic_domains = 1
-  oversample = 2
-  pixel_size_mm = 0.1
-  detector_thicksteps = 1
-  spot_scale = 1
-  fluence = 125932015286227086360700780544.0
-  detector_thickstep_mm = 0.000000
-  fdet_vector = np.array([0,0,0,1]) 
-  sdet_vector = np.array([0,0,-1,0]) 
-  odet_vector = np.array([0,1,0,0]) 
-  pix0_vector_mm = np.array([0.000000, 0.100000, 0.051300, -0.051300])
-  curved_detector = False
-  distance_mm = 100.0
-  beam_vector =  np.array([0,1,0,0]) 
-  close_distance_mm = 100.0
-  point_pixel = False
-  detector_thick_mm = 0.0
-  Ncells_abc = np.array([5,5,5])
-  integral_form = False
-  Fhkl_indices = [(0,0,0)]
-  Fhkl_data = [10.0]
-  default_F = 1.0
-  nopolar = False
-  polarization = 0
-  verbose = 9
+  phisteps, mosaic_domains, oversample, pixel_size_mm, detector_thicksteps, spot_scale, fluence, \
+  detector_thickstep_mm, fdet_vector, sdet_vector, odet_vector, pix0_vector_mm, curved_detector, \
+  distance_mm, beam_vector, close_distance_mm, point_pixel, detector_thick_mm, Ncells_abc, \
+  integral_form, Fhkl_indices, Fhkl_data, default_F, nopolar, polarization, polar_vector, verbose = params
+
 
   pixel_size = pixel_size_mm/1000
   roi_xmin = 0 
@@ -307,6 +281,9 @@ def tst_torchBragg_basic(spixels, fpixels, params):
                       polarization,
                       polar_vector,
                       verbose=verbose)
+  
+  
+
   return(raw_pixels)
 
 
@@ -314,22 +291,21 @@ def tst_torchBragg_basic(spixels, fpixels, params):
 
 
 if __name__=="__main__":
-  spixels = 100
-  fpixels = 100
+  spixels = 1000
+  fpixels = 1000
 
-  raw_pixels_0 = tst_nanoBragg_basic(spixels,fpixels).as_numpy_array()
-  # raw_pixels_1 = tst_torchBragg_basic(spixels,fpixels).numpy()
+  raw_pixels_0, params = tst_nanoBragg_basic(spixels,fpixels)
+  raw_pixels_1 = tst_torchBragg_basic(spixels,fpixels, params).numpy()*64e9
+  raw_pixels_0 = raw_pixels_0.as_numpy_array()*64e9
+
   fig, axs = plt.subplots(1, 2)
-  im = axs[0].imshow(raw_pixels_0, vmax=400)
+  im = axs[0].imshow(raw_pixels_0,vmax=1)
   cbar = fig.colorbar(im, ax=axs[0])
 
-  im2 = axs[1].imshow(raw_pixels_0, vmax=400)
+  im2 = axs[1].imshow(raw_pixels_1, vmax=1)
   cbar2 = fig.colorbar(im2, ax=axs[1])
   plt.savefig("nanoBragg_vs_torchBragg_basic.png")
 
-  fig, axs = plt.subplots(1, 2)
-  axs[0].imshow(np.log(raw_pixels_0))
-  axs[1].imshow(np.log(raw_pixels_0))
-  plt.savefig("nanoBragg_vs_torchBragg_basic_log.png")
 
+  breakpoint()
   print("OK")

@@ -144,7 +144,7 @@ def polarization_factor(kahn_factor, incident, diffracted, axis):
         E_in = cross_product(incident,B_in)
 
         # make it a unit vector
-        E_in = unitize(E_in)
+        E_in_mag, E_in = unitize(E_in)
 
         # get components of diffracted ray projected onto the E-B plane
         E_out[0] = dot_product(diffracted,E_in)

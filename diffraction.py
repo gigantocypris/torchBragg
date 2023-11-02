@@ -411,9 +411,9 @@ def find_mosaic_domain_contribution(mosaic_spread,
 
     # apply mosaic rotation after phi rotation
     if(mosaic_spread > 0.0):
-        a = rotate_umat(ap,mosaic_umats[mos_tic*9])
-        b = rotate_umat(bp,mosaic_umats[mos_tic*9])
-        c = rotate_umat(cp,mosaic_umats[mos_tic*9])
+        a = rotate_umat(ap,mosaic_umats[mos_tic*9:mos_tic*9+9])
+        b = rotate_umat(bp,mosaic_umats[mos_tic*9:mos_tic*9+9])
+        c = rotate_umat(cp,mosaic_umats[mos_tic*9:mos_tic*9+9])
     else:
         a = np.zeros(4)
         b = np.zeros(4)
@@ -468,12 +468,12 @@ def find_mosaic_domain_contribution(mosaic_spread,
             F_latt = 0. # not expected to give performance gain on optimized C++, only on GPU
     if(xtal_shape == 'TOPHAT'):
         # make a flat-top spot of same height and volume as square_xtal spots
-        F_latt = Na*Nb*Nc*(hrad_sqr*fudge < 0.3969 );
+        F_latt = Na*Nb*Nc*(hrad_sqr*fudge < 0.3969 )
 
 
     # no need to go further if result will be zero
     if(F_latt == 0.0):
-        return F_latt
+        return F_latt, 0
 
 
     # find nearest point on Ewald sphere surface?
@@ -543,7 +543,7 @@ def find_mosaic_domain_contribution(mosaic_spread,
         
         if ((h0<=h_max) and (h0>=h_min) and (k0<=k_max) and (k0>=k_min) and (l0<=l_max) and (l0>=l_min)):
             # just take nearest-neighbor
-            F_cell = Fhkl[(h0-h_min,k0-k_min,l0-l_min)]
+            F_cell = Fhkl[(h0,k0,l0)]
         
         else:
             F_cell = default_F # usually zero
