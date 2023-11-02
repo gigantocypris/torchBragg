@@ -176,13 +176,20 @@ def tst_nanoBragg_basic(spixels, fpixels):
   params = (SIM.phisteps, SIM.mosaic_domains, SIM.oversample, SIM.pixel_size_mm, SIM.detector_thicksteps,
             SIM.spot_scale, SIM.fluence, SIM.detector_thickstep_mm, SIM.fdet_vector, SIM.sdet_vector, SIM.odet_vector,
             SIM.pix0_vector, SIM.curved_detector, SIM.distance_mm, SIM.beam_vector, SIM.close_distance_mm,
-            SIM.point_pixel, SIM.detector_thick_mm, SIM.Ncells_abc)
-  return(SIM.raw_pixels)
+            SIM.point_pixel, SIM.detector_thick_mm, SIM.Ncells_abc, SIM.integral_form, 
+            SIM.Fhkl._indices.as_vec3_double().as_numpy_array(), SIM.Fhkl._data.as_numpy_array(), SIM.default_F
+            )
+  return(SIM.raw_pixels, params)
 
 def convert_vector(tuple):
   return(np.array([0, tuple[0],tuple[1],tuple[2],tuple[3]]))
 
-def tst_torchBragg_basic(spixels, fpixels):
+def tst_torchBragg_basic(spixels, fpixels, params):
+  phisteps, mosaic_domains, oversample, pixel_size_mm, detector_thicksteps, spot_scale, fluence,
+  detector_thickstep_mm, fdet_vector, sdet_vector, odet_vector, pix0_vector_mm, curved_detector,
+  distance_mm, beam_vector, close_distance_mm, point_pixel, detector_thick_mm, Ncells_abc,
+  integral_form, Fhkl_indices, Fhkl_data = params
+  
   phisteps = 1
   mosaic_domains = 1
   oversample = 2
@@ -203,6 +210,12 @@ def tst_torchBragg_basic(spixels, fpixels):
   detector_thick_mm = 0.0
   Ncells_abc = np.array([5,5,5])
   integral_form = False
+  Fhkl_indices = [(0,0,0)]
+  Fhkl_data = [10.0]
+  default_F = 1.0
+  nopolar = False
+  polarization = 0
+  verbose = 9
 
   pixel_size = pixel_size_mm/1000
   roi_xmin = 0 
@@ -254,19 +267,9 @@ def tst_torchBragg_basic(spixels, fpixels):
   k_min= -37
   l_max= 43
   l_min= -43
-  
-  # STOPPED HERE
-  # set the rest of the parameters:
+  polar_vector = convert_vector(polar_vector)
 
-  Fhkl_indices = [(0,0,0)]
-  Fhkl_data = [10.0]
-  default_F = 1.0
-  nopolar = False
-  
-  polarization = 0
-  polar_vector = np.array([0,0,0,1])
-  verbose=9
-
+  Fhkl_indices = [tuple(h) for h in Fhkl_indices]
   Fhkl = {h:v for h,v in zip(Fhkl_indices,Fhkl_data)}
 
   raw_pixels = add_torchBragg_spots(spixels, 
