@@ -92,4 +92,4 @@ print(SIM.pixel_size)
 
 The polarization factor is computed in the innermost loop. However, it is applied in the outermost loop. Why is this?
 
-Is nanoBragg_nks.cpp or nanoBragg.cpp the one used in kpp_utils?
+nanoBragg_nks.cpp or nanoBragg.cpp or KOKKOS nanoBragg: what are differences, what should I use?

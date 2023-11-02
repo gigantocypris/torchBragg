@@ -2,8 +2,7 @@ import torch
 import numpy as np
 from utils import rotate_axis, rotate_umat, dot_product, sincg, sinc3, \
     cross_product, vector_scale, magnitude, unitize, polarization_factor, \
-    detector_position, find_pixel_pos
-
+    detector_position, find_pixel_pos, r_e_sqr
 
 def add_torchBragg_spots(spixels, 
                         fpixels,
@@ -15,7 +14,6 @@ def add_torchBragg_spots(spixels,
                         maskimage, 
                         detector_thicksteps,
                         spot_scale, fluence,
-                        r_e_sqr,
                         detector_thickstep,
                         Odet,
                         fdet_vector, sdet_vector, odet_vector, pix0_vector,

@@ -1,18 +1,6 @@
 import numpy as np
 from utils import rotate_axis, unitize, dot_product, magnitude, polint, polarization_factor
 
-"""
-    /* background stuff */
-    stol_of = NULL;
-    Fbg_of  = NULL;
-    allocated_stols = 0;
-    nearest=0;
-    stol_file_mult=1.0e10;
-    ignore_values=0;
-    Fmap_pixel=false;
-
-"""
-
 def add_background(oversample, 
                    override_source,
                    sources,

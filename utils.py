@@ -1,5 +1,8 @@
 import numpy as np
 
+# Thomson cross section ((e^2)/(4*PI*epsilon0*m*c^2))^2
+r_e_sqr = 7.94079248018965e-30
+
 def rotate_axis(v, axis, phi):
     """rotate a point about a unit vector axis"""
     sinphi = np.sin(phi)

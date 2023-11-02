@@ -280,3 +280,29 @@ Line 2462: add_nanoBragg_spots
 # October 30, 2023
 
 Bulk solvent: https://journals.iucr.org/d/issues/2013/04/00/dz5273/index.html
+
+# October 31, 2023
+
+> cd $WORK/output_torchBragg
+> libtbx.python $MODULES/cctbx_project/simtbx/nanoBragg/tst_nanoBragg_basic.py
+
+
+Noise:
+Add flicker noise (additive Gaussian)
+Add Poisson noise
+Add calibration noise (additive Gaussian that is the same for all shots in the experiment)
+
+Implement PSF here
+
+Add read out noise:
+  Convert photon signal to read out units (photon signal is floatimage[i]): adu = floatimage[i]*quantum_gain + adc_offset
+  Additive Gaussian readout noise, readout_noise is in adu units: adu += readout_noise * image_deviates.gaussdev( &seed );
+
+Notes for torchBragg: do an additive sum of normal distributions, including approximating the Poisson distribution as a normal.
+
+In add_noise, the only approximation is the addition of Poisson noise. First of all, we take the Gaussian distribution of the Poisson distribution. Secondly, to add Poisson noise, nanoBragg first adds flicker noise, then samples the distribution. The sampled value becames the Poisson parameter (the mean and variance of the approximate Gaussian distribution). In the torchBragg code, we add the flicker noise deterministically and then apply the Poisson approximate distribution. This means that we take a single Monte Carlo sample of the flicker noise to approximate the distribution.
+
+
+torchBragg basic test:
+> cd $WORK/output_torchBragg
+> libtbx.python $MODULES/torchBragg/tst_torchBragg_basic.py

@@ -2,7 +2,7 @@ from __future__ import absolute_import, division, print_function
 # absolute bare-minimum diffraction image simulation
 
 from simtbx.nanoBragg import nanoBragg
-from main import add_torchBragg_spots
+from diffraction import add_torchBragg_spots
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -23,7 +23,7 @@ def tst_nanoBragg_minimal():
     # display randomly-picked missetting angles
     print(SIM.missets_deg)
     # or an Arndt-Wonacott A matrix (U*B), same as used by mosflm
-    print(SIM.Amatrix)
+    print(SIM.Amatrix) # unit cell encoded in this matrix
     
     # show all parameters
     SIM.show_params()
@@ -55,7 +55,6 @@ def tst_torchBragg_minimal():
     detector_thicksteps = 1
     spot_scale = 1
     fluence = 125932015286227086360700780544.0
-    r_e_sqr = 7.94079248018965e-30 # Thomson cross section in m^2
     detector_thickstep = 0.000000
     Odet = 0.000000
     fdet_vector = np.array([0,0,0,1]) 
@@ -133,7 +132,6 @@ def tst_torchBragg_minimal():
                         maskimage, 
                         detector_thicksteps,
                         spot_scale, fluence,
-                        r_e_sqr,
                         detector_thickstep,
                         Odet,
                         fdet_vector, sdet_vector, odet_vector, pix0_vector,
