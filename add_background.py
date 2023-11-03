@@ -1,5 +1,5 @@
 import numpy as np
-from utils import rotate_axis, unitize, dot_product, magnitude, polint, polarization_factor
+from utils import rotate_axis, unitize, dot_product, magnitude, polint, polarization_factor, r_e_sqr
 
 def add_background(oversample, 
                    override_source,
@@ -9,7 +9,7 @@ def add_background(oversample,
                    pixel_size,
                    roi_xmin, roi_xmax, roi_ymin, roi_ymax,
                    detector_thicksteps,
-                   r_e_sqr, fluence, amorphous_molecules, 
+                   fluence, amorphous_molecules, 
                    Fmap_pixel, # bool override: just plot interpolated structure factor at every pixel, useful for making absorption masks
                    detector_thickstep, Odet, 
                    fdet_vector, sdet_vector, odet_vector, 
@@ -137,6 +137,7 @@ def get_thickness_contribution(thick_tic,
                                 nopolar, polarization, polar_vector, verbose, i
                                 ):
     
+    Ibg = 0
     # assume "distance" is to the front of the detector sensor layer
     Odet = thick_tic*detector_thickstep
     pixel_pos = np.zeros([4,])
@@ -200,7 +201,6 @@ def get_source_contribution(source,
                             nopolar, polarization, polar_vector,
                             omega_pixel, capture_fraction, verbose, i,
                            ):    
-    
     if have_single_source:
         n_source_scale = orig_sources
     else:
@@ -227,13 +227,12 @@ def get_source_contribution(source,
     stol = 0.5*magnitude(scattering)
 
     # now we need to find the nearest four "stol file" points
-    while stol > stol_of[nearest] and nearest <= stols:
-        nearest += 1
-    while stol < stol_of[nearest] and nearest >= 2:
-        nearest -= 1
+
+    dist = stol_of[2:-3]-stol
+    nearest = np.argmin(np.abs(dist[dist<0]))+2
 
     # cubic spline interpolation
-    Fbg = polint(stol_of + nearest - 1, Fbg_of + nearest - 1, stol)
+    Fbg = polint(stol_of[nearest-1:nearest+3], Fbg_of[nearest-1:nearest+3], stol)
 
     # allow negative F values to yield negative intensities
     sign=1.0
@@ -243,14 +242,14 @@ def get_source_contribution(source,
     # Fbg is the structure factor for this pixel
 
     # polarization factor
-        if(not(nopolar)):
-            # need to compute polarization factor
-            polar = polarization_factor(polarization,incident,diffracted,polar_vector)
-        else:
-            polar = 1.0
+    if(not(nopolar)):
+        # need to compute polarization factor
+        polar = polarization_factor(polarization,incident,diffracted,polar_vector)
+    else:
+        polar = 1.0
     
     # accumulate unscaled pixel intensity from this
-    Ibg += sign*Fbg*Fbg*polar*omega_pixel*capture_fraction*n_source_scale
+    Ibg = sign*Fbg*Fbg*polar*omega_pixel*capture_fraction*n_source_scale
     if verbose>7 and i==1:
         print("DEBUG: Fbg= %g polar= %g omega_pixel= %g source[%d]= %g capture_fraction= %g" % \
               (Fbg,polar,omega_pixel,source,source_I[source],capture_fraction))    

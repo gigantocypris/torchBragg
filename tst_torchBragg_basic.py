@@ -15,6 +15,7 @@ from cctbx import crystal
 from cctbx import miller
 assert miller
 from diffraction import add_torchBragg_spots
+from add_background import add_background
 
 pdb_lines = """HEADER TEST
 CRYST1   50.000   60.000   70.000  90.00  90.00  90.00 P 1
@@ -146,9 +147,18 @@ def tst_nanoBragg_basic(spixels, fpixels):
   print("integral_form=",SIM.integral_form)
   # now actually burn up some CPU
   SIM.add_nanoBragg_spots()
+
+  params = (SIM.phisteps, SIM.mosaic_domains, SIM.oversample, SIM.pixel_size_mm, SIM.detector_thicksteps,
+            SIM.spot_scale, SIM.fluence, SIM.detector_thickstep_mm, SIM.fdet_vector, SIM.sdet_vector, SIM.odet_vector,
+            SIM.pix0_vector_mm, SIM.curved_detector, SIM.distance_mm, SIM.beam_vector, SIM.close_distance_mm,
+            SIM.point_pixel, SIM.detector_thick_mm, SIM.Ncells_abc, SIM.integral_form, 
+            SIM.Fhkl._indices.as_vec3_double().as_numpy_array(), SIM.Fhkl._data.as_numpy_array(), SIM.default_F,
+            SIM.nopolar, SIM.polarization, SIM.polar_vector, SIM.verbose,
+            )
   # simulated crystal is only 125 unit cells (25 nm wide)
   # amplify spot signal to simulate physical crystal of 4000x larger: 100 um (64e9 x the volume)
-  SIM.raw_pixels *= 64e9;
+
+  SIM.raw_pixels *= 64e9
   # rough approximation to water: interpolation points for sin(theta/lambda) vs structure factor
   bg = flex.vec2_double([(0,2.57),(0.0365,2.58),(0.07,2.8),(0.12,5),(0.162,8),(0.2,6.75),(0.18,7.32),(0.216,6.75),(0.236,6.5),(0.28,4.5),(0.3,4.3),(0.345,4.36),(0.436,3.77),(0.5,3.17)])
   SIM.Fbg_vs_stol = bg
@@ -159,7 +169,7 @@ def tst_nanoBragg_basic(spixels, fpixels):
   SIM.beamsize_mm=0.1
   SIM.exposure_s=0.1
   SIM.add_background()
-  
+
   # # rough approximation to air
   # bg = flex.vec2_double([(0,14.1),(0.045,13.5),(0.174,8.35),(0.35,4.78),(0.5,4.22)])
   # SIM.Fbg_vs_stol = bg
@@ -172,13 +182,7 @@ def tst_nanoBragg_basic(spixels, fpixels):
   # print("amorphous_molecular_weight_Da=",SIM.amorphous_molecular_weight_Da)
   # SIM.add_background()
   # print("Value of pixel: ",SIM.raw_pixels[5000])
-  params = (SIM.phisteps, SIM.mosaic_domains, SIM.oversample, SIM.pixel_size_mm, SIM.detector_thicksteps,
-            SIM.spot_scale, SIM.fluence, SIM.detector_thickstep_mm, SIM.fdet_vector, SIM.sdet_vector, SIM.odet_vector,
-            SIM.pix0_vector_mm, SIM.curved_detector, SIM.distance_mm, SIM.beam_vector, SIM.close_distance_mm,
-            SIM.point_pixel, SIM.detector_thick_mm, SIM.Ncells_abc, SIM.integral_form, 
-            SIM.Fhkl._indices.as_vec3_double().as_numpy_array(), SIM.Fhkl._data.as_numpy_array(), SIM.default_F,
-            SIM.nopolar, SIM.polarization, SIM.polar_vector, SIM.verbose,
-            )
+
   return(SIM.raw_pixels, params)
 
 def convert_vector(tuple):
@@ -281,8 +285,41 @@ def tst_torchBragg_basic(spixels, fpixels, params):
                       polarization,
                       polar_vector,
                       verbose=verbose)
+  raw_pixels *= 64e9
+
+  # add background of water
+  Fmap_pixel = False
+  override_source = -1
+  amorphous_molecules= 33456343277777776.000000
   
-  
+
+  stols = 18
+
+  stol_of = [-1e+99, -1e+98, 0, 3.65e+08, 7e+08, 1.2e+09, 1.62e+09, 2e+09, 1.8e+09, 2.16e+09, 2.36e+09, 2.8e+09,
+            3e+09, 3.45e+09, 4.36e+09, 5e+09, 1e+98, 1e+99]
+  Fbg_of = [2.57, 2.57, 2.57, 2.58, 2.8, 5, 8, 6.75, 7.32, 6.75, 6.5, 4.5, 4.3, 4.36, 3.77, 3.17, 3.17, 3.17]
+
+
+
+  background_pixels, invalid_pixel = add_background(oversample, 
+                                                    override_source,
+                                                    sources,
+                                                    spixels,
+                                                    fpixels,
+                                                    pixel_size,
+                                                    roi_xmin, roi_xmax, roi_ymin, roi_ymax,
+                                                    detector_thicksteps,
+                                                    fluence, amorphous_molecules, 
+                                                    Fmap_pixel, # bool override: just plot interpolated structure factor at every pixel, useful for making absorption masks
+                                                    detector_thickstep, Odet, 
+                                                    fdet_vector, sdet_vector, odet_vector, 
+                                                    pix0_vector, curved_detector, distance, beam_vector,
+                                                    close_distance, point_pixel, detector_thick, detector_attnlen,
+                                                    source_I, source_X, source_Y, source_Z, source_lambda,
+                                                    stol_of, stols, Fbg_of, nopolar, polarization, polar_vector,
+                                                    verbose,
+                                                    )
+  raw_pixels += background_pixels
 
   return(raw_pixels)
 
@@ -299,13 +336,13 @@ if __name__=="__main__":
   raw_pixels_0 = raw_pixels_0.as_numpy_array()*64e9
 
   fig, axs = plt.subplots(1, 2)
-  im = axs[0].imshow(raw_pixels_0,vmax=1)
-  cbar = fig.colorbar(im, ax=axs[0])
+  im = axs[0].imshow(raw_pixels_0,vmax=1e13)
+  # cbar = fig.colorbar(im, ax=axs[0])
 
-  im2 = axs[1].imshow(raw_pixels_1, vmax=1)
-  cbar2 = fig.colorbar(im2, ax=axs[1])
+  im2 = axs[1].imshow(raw_pixels_1, vmax=1e13)
+  # cbar2 = fig.colorbar(im2, ax=axs[1])
   plt.savefig("nanoBragg_vs_torchBragg_basic.png")
 
-
   breakpoint()
+
   print("OK")
