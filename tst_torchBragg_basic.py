@@ -170,18 +170,18 @@ def tst_nanoBragg_basic(spixels, fpixels):
   SIM.exposure_s=0.1
   SIM.add_background()
 
-  # # rough approximation to air
-  # bg = flex.vec2_double([(0,14.1),(0.045,13.5),(0.174,8.35),(0.35,4.78),(0.5,4.22)])
-  # SIM.Fbg_vs_stol = bg
-  # SIM.amorphous_sample_thick_mm = 35 # between beamstop and collimator
-  # SIM.amorphous_density_gcm3 = 1.2e-3
-  # SIM.amorphous_sample_molecular_weight_Da = 28 # nitrogen = N2
-  # print("amorphous_sample_size_mm=",SIM.amorphous_sample_size_mm)
-  # print("amorphous_sample_thick_mm=",SIM.amorphous_sample_thick_mm)
-  # print("amorphous_density_gcm3=",SIM.amorphous_density_gcm3)
-  # print("amorphous_molecular_weight_Da=",SIM.amorphous_molecular_weight_Da)
-  # SIM.add_background()
-  # print("Value of pixel: ",SIM.raw_pixels[5000])
+  # rough approximation to air
+  bg = flex.vec2_double([(0,14.1),(0.045,13.5),(0.174,8.35),(0.35,4.78),(0.5,4.22)])
+  SIM.Fbg_vs_stol = bg
+  SIM.amorphous_sample_thick_mm = 35 # between beamstop and collimator
+  SIM.amorphous_density_gcm3 = 1.2e-3
+  SIM.amorphous_sample_molecular_weight_Da = 28 # nitrogen = N2
+  print("amorphous_sample_size_mm=",SIM.amorphous_sample_size_mm)
+  print("amorphous_sample_thick_mm=",SIM.amorphous_sample_thick_mm)
+  print("amorphous_density_gcm3=",SIM.amorphous_density_gcm3)
+  print("amorphous_molecular_weight_Da=",SIM.amorphous_molecular_weight_Da)
+  SIM.add_background()
+  print("Value of pixel: ",SIM.raw_pixels[5000])
 
   return(SIM.raw_pixels, params)
 
@@ -342,7 +342,5 @@ if __name__=="__main__":
   im2 = axs[1].imshow(raw_pixels_1, vmax=1e13)
   # cbar2 = fig.colorbar(im2, ax=axs[1])
   plt.savefig("nanoBragg_vs_torchBragg_basic.png")
-
-  breakpoint()
 
   print("OK")
