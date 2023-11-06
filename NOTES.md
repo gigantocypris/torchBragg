@@ -306,3 +306,10 @@ In add_noise, the only approximation is the addition of Poisson noise. First of 
 torchBragg basic test:
 > cd $WORK/output_torchBragg
 > libtbx.python $MODULES/torchBragg/tst_torchBragg_basic.py
+
+# November 6, 2023
+
+Testing apply_psf.py
+
+> cd $WORK/output_torchBragg
+> libtbx.python $MODULES/torchBragg/apply_psf.py

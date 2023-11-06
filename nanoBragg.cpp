@@ -3029,10 +3029,10 @@ printf("stol_size= %d\n",stol_size);
 printf("Fbg_size= %d\n",Fbg_size);
 int total_stols = 18;
 for (int stol_ind = 0; stol_ind < total_stols; stol_ind++) {
-    printf("stol_ind= %d\n",stol_ind);
-    printf("stols= %f\n",stols);
-    // printf("stol_of= %g\n",stol_of[stol_ind]);
-    // printf("Fbg_of= %g\n",Fbg_of[stol_ind]);
+    // printf("stol_ind= %d\n",stol_ind);
+    // printf("stols= %f\n",stols);
+    printf("stol_of= %g\n",stol_of[stol_ind]);
+    printf("Fbg_of= %g\n",Fbg_of[stol_ind]);
 }
 
 printf("stols= %f\n",stols);

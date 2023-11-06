@@ -321,6 +321,38 @@ def tst_torchBragg_basic(spixels, fpixels, params):
                                                     )
   raw_pixels += background_pixels
 
+
+  # add background of air
+  Fmap_pixel = False
+  override_source = -1
+
+  amorphous_molecules = 14051664176666668.000000
+  stols = 9
+  
+  stol_of = [-1e+99, -1e+98, 0, 4.5e+08, 1.74e+09, 3.5e+09, 5e+09, 1e+98, 1e+99]
+  Fbg_of = [14.1, 14.1, 14.1, 13.5, 8.35, 4.78, 4.22, 4.22, 4.22]
+  
+
+  background_pixels, invalid_pixel = add_background(oversample, 
+                                                    override_source,
+                                                    sources,
+                                                    spixels,
+                                                    fpixels,
+                                                    pixel_size,
+                                                    roi_xmin, roi_xmax, roi_ymin, roi_ymax,
+                                                    detector_thicksteps,
+                                                    fluence, amorphous_molecules, 
+                                                    Fmap_pixel, # bool override: just plot interpolated structure factor at every pixel, useful for making absorption masks
+                                                    detector_thickstep, Odet, 
+                                                    fdet_vector, sdet_vector, odet_vector, 
+                                                    pix0_vector, curved_detector, distance, beam_vector,
+                                                    close_distance, point_pixel, detector_thick, detector_attnlen,
+                                                    source_I, source_X, source_Y, source_Z, source_lambda,
+                                                    stol_of, stols, Fbg_of, nopolar, polarization, polar_vector,
+                                                    verbose,
+                                                    )
+  raw_pixels += background_pixels
+
   return(raw_pixels)
 
 
@@ -332,15 +364,21 @@ if __name__=="__main__":
   fpixels = 1000
 
   raw_pixels_0, params = tst_nanoBragg_basic(spixels,fpixels)
-  raw_pixels_1 = tst_torchBragg_basic(spixels,fpixels, params).numpy()*64e9
-  raw_pixels_0 = raw_pixels_0.as_numpy_array()*64e9
+  raw_pixels_0 = raw_pixels_0.as_numpy_array()
+  raw_pixels_1 = tst_torchBragg_basic(spixels,fpixels, params).numpy()
+  
+
+  plt.figure(); plt.imshow(raw_pixels_0, vmax=300);plt.colorbar(); plt.savefig("nanoBragg_basic.png")
+  plt.figure(); plt.imshow(raw_pixels_1, vmax=300);plt.colorbar(); plt.savefig("nanoBragg_basic1.png")
 
   fig, axs = plt.subplots(1, 2)
-  im = axs[0].imshow(raw_pixels_0,vmax=1e13)
+  im = axs[0].imshow(raw_pixels_0,vmax=300)
   # cbar = fig.colorbar(im, ax=axs[0])
 
-  im2 = axs[1].imshow(raw_pixels_1, vmax=1e13)
+  im2 = axs[1].imshow(raw_pixels_1, vmax=300)
   # cbar2 = fig.colorbar(im2, ax=axs[1])
   plt.savefig("nanoBragg_vs_torchBragg_basic.png")
+
+  breakpoint()
 
   print("OK")
