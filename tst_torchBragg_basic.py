@@ -17,6 +17,8 @@ assert miller
 from diffraction import add_torchBragg_spots
 from add_background import add_background
 
+torch.set_default_dtype(torch.float64)
+
 pdb_lines = """HEADER TEST
 CRYST1   50.000   60.000   70.000  90.00  90.00  90.00 P 1
 ATOM      1  O   HOH A   1      56.829   2.920  55.702  1.00 20.00           O
@@ -360,8 +362,8 @@ def tst_torchBragg_basic(spixels, fpixels, params):
 
 
 if __name__=="__main__":
-  spixels = 100
-  fpixels = 100
+  spixels = 200
+  fpixels = 200
 
   raw_pixels_0, params = tst_nanoBragg_basic(spixels,fpixels)
   raw_pixels_0 = raw_pixels_0.as_numpy_array()

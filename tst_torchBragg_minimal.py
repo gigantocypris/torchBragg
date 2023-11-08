@@ -6,18 +6,22 @@ from diffraction import add_torchBragg_spots
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+from simtbx.nanoBragg import shapetype
+
+torch.set_default_dtype(torch.float64)
 
 def tst_nanoBragg_minimal(spixels,fpixels):
     # create the simulation object, all parameters have sensible defaults
     SIM = nanoBragg(detpixels_slowfast=(spixels,fpixels))
-
+    # SIM.seed = 10
+    # SIM.randomize_orientation()
     # dont bother with importing a structure, we just want spots
     SIM.default_F = 1
     SIM.F000 = 10
 
-    # default is one unit cell, lets to 125
+    # default is one unit cell, let's do 125
     SIM.Ncells_abc = (5,5,5)
-
+    SIM.xtal_shape = shapetype.Tophat
     # default orientation is with a axis down the beam, lets pick a random one
     # SIM.randomize_orientation()
 
@@ -25,11 +29,11 @@ def tst_nanoBragg_minimal(spixels,fpixels):
     print(SIM.missets_deg)
     # or an Arndt-Wonacott A matrix (U*B), same as used by mosflm
     print(SIM.Amatrix) # unit cell encoded in this matrix
-    
     # show all parameters
     SIM.show_params()
     # now actually run the simulation
     SIM.add_nanoBragg_spots()
+
     # # write out a file on arbitrary scale, header contains beam center in various conventions
     # SIM.to_smv_format(fileout="intimage_001.img")
 
@@ -55,13 +59,13 @@ def tst_torchBragg_minimal(spixels,fpixels):
     fluence = 125932015286227086360700780544.0
     detector_thickstep = 0.000000
     Odet = 0.000000
-    fdet_vector = torch.Tensor([0,0,0,1]) 
-    sdet_vector = torch.Tensor([0,0,-1,0]) 
-    odet_vector = torch.Tensor([0,1,0,0]) 
+    fdet_vector = torch.Tensor([0.,0,0,1.]) 
+    sdet_vector = torch.Tensor([0.,0,-1.,0]) 
+    odet_vector = torch.Tensor([0.,1.,0,0]) 
     pix0_vector = torch.Tensor([0.000000, 0.100000, 0.051300, -0.051300])
     curved_detector = False
     distance = 0.1 
-    beam_vector =  torch.Tensor([0,1,0,0]) 
+    beam_vector =  torch.Tensor([0,1.,0,0]) 
     close_distance = 0.100000
     point_pixel = False
     detector_thick = 0.000000
@@ -75,6 +79,13 @@ def tst_torchBragg_minimal(spixels,fpixels):
     phi0 = 0.000000
     phistep = 0.000000
 
+    # a0 = torch.Tensor([5e-09, 3.86524e-09, -2.18873e-09, 2.29551e-09])
+    # b0 = torch.Tensor([6e-09, 3.7375e-09, 3.96373e-09, -2.51395e-09])
+    # c0 = torch.Tensor([7e-09, -8.39164e-10, 4.26918e-09, 5.4836e-09])
+    # ap = torch.Tensor([5e-09, 3.86524e-09, -2.18873e-09, 2.29551e-09])
+    # bp = torch.Tensor([6e-09, 3.7375e-09, 3.96373e-09, -2.51395e-09]) 
+    # cp = torch.Tensor([7e-09, -8.39164e-10, 4.26918e-09, 5.4836e-09])
+
     a0 = torch.Tensor([7.8e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
     b0 = torch.Tensor([7.8e-09, 0, 7.8e-09, 4.77612e-25])
     c0 = torch.Tensor([3.8e-09, 0, 0, 3.8e-09])
@@ -82,10 +93,25 @@ def tst_torchBragg_minimal(spixels,fpixels):
     bp = torch.Tensor([7.8e-09, 0, 7.8e-09, 4.77612e-25]) 
     cp = torch.Tensor([3.8e-09, 0, 0, 3.8e-09])
 
-    spindle_vector = torch.Tensor([0,0,0,1])
+    # a0 = np.array([7.8e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
+    # b0 = np.array([7.8e-09, 0, 7.8e-09, 4.77612e-25])
+    # c0 = np.array([3.8e-09, 0, 0, 3.8e-09])
+    # ap = np.array([7.8e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
+    # bp = np.array([7.8e-09, 0, 7.8e-09, 4.77612e-25]) 
+    # cp = np.array([3.8e-09, 0, 0, 3.8e-09])
+
+    # a0 = torch.Tensor([7.8e-09, 7.8e-09, 0, 0])
+    # b0 = torch.Tensor([7.8e-09, 0, 7.8e-09, 0])
+    # c0 = torch.Tensor([3.8e-09, 0, 0, 3.8e-09])
+    # ap = torch.Tensor([7.8e-09, 7.8e-09, 0, 0])
+    # bp = torch.Tensor([7.8e-09, 0, 7.8e-09, 0]) 
+    # cp = torch.Tensor([3.8e-09, 0, 0, 3.8e-09])
+
+    spindle_vector = torch.Tensor([0,0,0,1.])
     mosaic_spread = 0.000000
+    # mosaic_umats = torch.Tensor([[1.0, 0, 0],[0, 1.0, 0],[0, 0, 1.0]])
     mosaic_umats = torch.Tensor([1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0])
-    xtal_shape = 'SQUARE'
+    xtal_shape = 'TOPHAT' #'SQUARE'
     Na = 5.0
     Nb = 5.0
     Nc = 5.0
