@@ -4,7 +4,7 @@ Same as tst_nanoBragg_basic.py, but without noise, only background
 
 from __future__ import absolute_import, division, print_function
 import matplotlib.pyplot as plt
-import numpy as np
+import torch
 from scitbx.array_family import flex
 from simtbx.nanoBragg import testuple
 from simtbx.nanoBragg import shapetype
@@ -186,7 +186,7 @@ def tst_nanoBragg_basic(spixels, fpixels):
   return(SIM.raw_pixels, params)
 
 def convert_vector(tuple):
-  return(np.array([0, tuple[0],tuple[1],tuple[2]]))
+  return(torch.Tensor([0, tuple[0],tuple[1],tuple[2]]))
 
 def tst_torchBragg_basic(spixels, fpixels, params):
   phisteps, mosaic_domains, oversample, pixel_size_mm, detector_thicksteps, spot_scale, fluence, \
@@ -213,24 +213,24 @@ def tst_torchBragg_basic(spixels, fpixels, params):
   detector_thick = detector_thick_mm/1000
   detector_attnlen = 0.000234
   sources = 1
-  source_X = np.array([-10.000000])
-  source_Y = np.array([0.000000])
-  source_Z  = np.array([0.000000])
-  source_I = np.array([1.000000])
-  source_lambda = np.array([1e-10])
+  source_X = torch.Tensor([-10.000000])
+  source_Y = torch.Tensor([0.000000])
+  source_Z  = torch.Tensor([0.000000])
+  source_I = torch.Tensor([1.000000])
+  source_lambda = torch.Tensor([1e-10])
   dmin = 0.000000
   phi0 = 0.000000
   phistep = 0.000000
-  spindle_vector = np.array([0,0,0,1])
+  spindle_vector = torch.Tensor([0,0,0,1])
   mosaic_spread = 0.000000
-  mosaic_umats = np.array([1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0])
+  mosaic_umats = torch.Tensor([1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0])
   xtal_shape = 'TOPHAT'
-  a0 = np.array([5e-09, 3.86524e-09, -2.18873e-09, 2.29551e-09])
-  b0 = np.array([6e-09, 3.7375e-09, 3.96373e-09, -2.51395e-09])
-  c0 = np.array([7e-09, -8.39164e-10, 4.26918e-09, 5.4836e-09])
-  ap = np.array([5e-09, 3.86524e-09, -2.18873e-09, 2.29551e-09])
-  bp = np.array([6e-09, 3.7375e-09, 3.96373e-09, -2.51395e-09]) 
-  cp = np.array([7e-09, -8.39164e-10, 4.26918e-09, 5.4836e-09])
+  a0 = torch.Tensor([5e-09, 3.86524e-09, -2.18873e-09, 2.29551e-09])
+  b0 = torch.Tensor([6e-09, 3.7375e-09, 3.96373e-09, -2.51395e-09])
+  c0 = torch.Tensor([7e-09, -8.39164e-10, 4.26918e-09, 5.4836e-09])
+  ap = torch.Tensor([5e-09, 3.86524e-09, -2.18873e-09, 2.29551e-09])
+  bp = torch.Tensor([6e-09, 3.7375e-09, 3.96373e-09, -2.51395e-09]) 
+  cp = torch.Tensor([7e-09, -8.39164e-10, 4.26918e-09, 5.4836e-09])
   Na = Ncells_abc[0]
   Nb = Ncells_abc[1]
   Nc = Ncells_abc[2]
@@ -295,9 +295,9 @@ def tst_torchBragg_basic(spixels, fpixels, params):
 
   stols = 18
 
-  stol_of = [-1e+99, -1e+98, 0, 3.65e+08, 7e+08, 1.2e+09, 1.62e+09, 2e+09, 1.8e+09, 2.16e+09, 2.36e+09, 2.8e+09,
-            3e+09, 3.45e+09, 4.36e+09, 5e+09, 1e+98, 1e+99]
-  Fbg_of = [2.57, 2.57, 2.57, 2.58, 2.8, 5, 8, 6.75, 7.32, 6.75, 6.5, 4.5, 4.3, 4.36, 3.77, 3.17, 3.17, 3.17]
+  stol_of = torch.Tensor([-1e+99, -1e+98, 0, 3.65e+08, 7e+08, 1.2e+09, 1.62e+09, 2e+09, 1.8e+09, 2.16e+09, 2.36e+09, 2.8e+09,
+            3e+09, 3.45e+09, 4.36e+09, 5e+09, 1e+98, 1e+99])
+  Fbg_of = torch.Tensor([2.57, 2.57, 2.57, 2.58, 2.8, 5, 8, 6.75, 7.32, 6.75, 6.5, 4.5, 4.3, 4.36, 3.77, 3.17, 3.17, 3.17])
 
 
 
@@ -329,8 +329,8 @@ def tst_torchBragg_basic(spixels, fpixels, params):
   amorphous_molecules = 14051664176666668.000000
   stols = 9
   
-  stol_of = [-1e+99, -1e+98, 0, 4.5e+08, 1.74e+09, 3.5e+09, 5e+09, 1e+98, 1e+99]
-  Fbg_of = [14.1, 14.1, 14.1, 13.5, 8.35, 4.78, 4.22, 4.22, 4.22]
+  stol_of = torch.Tensor([-1e+99, -1e+98, 0, 4.5e+08, 1.74e+09, 3.5e+09, 5e+09, 1e+98, 1e+99])
+  Fbg_of = torch.Tensor([14.1, 14.1, 14.1, 13.5, 8.35, 4.78, 4.22, 4.22, 4.22])
   
 
   background_pixels, invalid_pixel = add_background(oversample, 
@@ -360,8 +360,8 @@ def tst_torchBragg_basic(spixels, fpixels, params):
 
 
 if __name__=="__main__":
-  spixels = 1000
-  fpixels = 1000
+  spixels = 100
+  fpixels = 100
 
   raw_pixels_0, params = tst_nanoBragg_basic(spixels,fpixels)
   raw_pixels_0 = raw_pixels_0.as_numpy_array()

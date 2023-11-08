@@ -1,14 +1,14 @@
-import numpy as np
+import torch
 
 # Thomson cross section ((e^2)/(4*PI*epsilon0*m*c^2))^2
 r_e_sqr = 7.94079248018965e-30
 
 def rotate_axis(v, axis, phi):
     """rotate a point about a unit vector axis"""
-    sinphi = np.sin(phi)
-    cosphi = np.cos(phi)
+    sinphi = torch.sin(phi)
+    cosphi = torch.cos(phi)
     dot = (axis[1]*v[1]+axis[2]*v[2]+axis[3]*v[3])*(1.0-cosphi)
-    newv = np.zeros(4)
+    newv = torch.zeros(4)
 
     newv[1] = axis[1]*dot+v[1]*cosphi+(-axis[3]*v[2]+axis[2]*v[3])*sinphi
     newv[2] = axis[2]*dot+v[2]*cosphi+(+axis[3]*v[1]-axis[1]*v[3])*sinphi
@@ -22,7 +22,7 @@ def unitize(vector):
 
     # measure the magnitude
     mag = magnitude(vector)
-    new_unit_vector = np.zeros(4)
+    new_unit_vector = torch.zeros(4)
     if(mag != 0.0):
         # normalize it
         new_unit_vector[1]=vector[1]/mag
@@ -31,10 +31,10 @@ def unitize(vector):
 
     else:
         # can't normalize, report zero vector
-        new_unit_vector[0] = 0.0;
-        new_unit_vector[1] = 0.0;
-        new_unit_vector[2] = 0.0;
-        new_unit_vector[3] = 0.0;
+        new_unit_vector[0] = 0.0
+        new_unit_vector[1] = 0.0
+        new_unit_vector[2] = 0.0
+        new_unit_vector[3] = 0.0
 
     return mag, new_unit_vector
 
@@ -43,7 +43,7 @@ def dot_product(x, y):
     return x[1]*y[1]+x[2]*y[2]+x[3]*y[3]
 
 def cross_product(x,y):
-    z = np.zeros(4)
+    z = torch.zeros(4)
 
     """vector cross product where vector magnitude is 0th element"""
     z[1] = x[2]*y[3] - x[3]*y[2]
@@ -59,7 +59,7 @@ def sinc3( x):
     if(x==0.0): 
         return 1.0
     else:
-        return 3.0*(np.sin(x)/x-np.cos(x))/(x*x)
+        return 3.0*(torch.sin(x)/x-torch.cos(x))/(x*x)
 
 
 def sincg(x, N):
@@ -67,10 +67,10 @@ def sincg(x, N):
     if(x==0.0):
         return N
     else:
-        return np.sin(x*N)/np.sin(x)
+        return torch.sin(x*N)/torch.sin(x)
 
 def vector_scale(vector, scale):
-    new_vector = np.zeros(4)
+    new_vector = torch.zeros(4)
 
     """scale magnitude of provided vector"""
     new_vector[1] = scale*vector[1]
@@ -81,7 +81,7 @@ def vector_scale(vector, scale):
 
 def magnitude(vector):
     """measure magnitude of provided vector"""
-    magn = np.sqrt(vector[1]*vector[1]+vector[2]*vector[2]+vector[3]*vector[3])
+    magn = torch.sqrt(vector[1]*vector[1]+vector[2]*vector[2]+vector[3]*vector[3])
 
     return magn
 
@@ -93,18 +93,18 @@ def rotate_umat(v, umat):
     umat has 9 elements
     """
 
-    newv = np.zeros(4)
+    newv = torch.zeros(4)
     
     # for convenience, assign matrix x-y coordinate
-    uxx = umat[0];
-    uxy = umat[1];
-    uxz = umat[2];
-    uyx = umat[3];
-    uyy = umat[4];
-    uyz = umat[5];
-    uzx = umat[6];
-    uzy = umat[7];
-    uzz = umat[8];
+    uxx = umat[0]
+    uxy = umat[1]
+    uxz = umat[2]
+    uyx = umat[3]
+    uyy = umat[4]
+    uyz = umat[5]
+    uzx = umat[6]
+    uzy = umat[7]
+    uzz = umat[8]
 
     # rotate the vector (x=1,y=2,z=3)
     newv[1] = uxx*v[1] + uxy*v[2] + uxz*v[3]
@@ -117,9 +117,9 @@ def rotate_umat(v, umat):
 
 def polarization_factor(kahn_factor, incident, diffracted, axis):
     """polarization factor"""
-    E_out = np.zeros(4)
-    B_out = np.zeros(4)
-    psi = 0.0
+    E_out = torch.zeros(4)
+    B_out = torch.zeros(4)
+    psi = torch.zeros([])
     
     # unitize the vectors
     _, incident = unitize(incident)
@@ -151,11 +151,11 @@ def polarization_factor(kahn_factor, incident, diffracted, axis):
         B_out[0] = dot_product(diffracted,B_in)
 
         # compute the angle of the diffracted ray projected onto the incident E-B plane
-        psi = -np.arctan2(B_out[0],E_out[0])
+        psi = -torch.atan2(B_out[0],E_out[0])
     
 
     # correction for polarized incident beam
-    return 0.5*(1.0 + cos2theta_sqr - kahn_factor*np.cos(2*psi)*sin2theta_sqr)
+    return 0.5*(1.0 + cos2theta_sqr - kahn_factor*torch.cos(2*psi)*sin2theta_sqr)
 
 def detector_position(subpixel_size, oversample, fpixel, spixel, subF, subS):
     """absolute mm position on detector (relative to its origin)"""
@@ -166,14 +166,14 @@ def detector_position(subpixel_size, oversample, fpixel, spixel, subF, subS):
 def find_pixel_pos(Fdet, Sdet, Odet, fdet_vector, sdet_vector, odet_vector, pix0_vector,
                    curved_detector, distance, beam_vector):
     """ construct detector subpixel position in 3D space """
-    pixel_pos = np.zeros(4)
+    pixel_pos = torch.zeros(4)
     pixel_pos[1] = Fdet*fdet_vector[1]+Sdet*sdet_vector[1]+Odet*odet_vector[1]+pix0_vector[1]
     pixel_pos[2] = Fdet*fdet_vector[2]+Sdet*sdet_vector[2]+Odet*odet_vector[2]+pix0_vector[2]
     pixel_pos[3] = Fdet*fdet_vector[3]+Sdet*sdet_vector[3]+Odet*odet_vector[3]+pix0_vector[3]
     pixel_pos[0] = 0.0
     if curved_detector:
         # construct detector pixel that is always "distance" from the sample
-        vector = np.zeros(4)
+        vector = torch.zeros(4)
         vector[1] = distance*beam_vector[1]
         vector[2] = distance*beam_vector[2]
         vector[3] = distance*beam_vector[3]
@@ -191,7 +191,7 @@ def polint(xa, ya, x):
     y = x0+x1+x2+x3
     return y
 
-def print_pixel_output():
+def print_pixel_output(progress_pixel, printout=False):
     if printout:
         if((fpixel==printout_fpixel and spixel==printout_spixel) or printout_fpixel < 0):
             twotheta = atan2(sqrt(pixel_pos[2]*pixel_pos[2]+pixel_pos[3]*pixel_pos[3]),pixel_pos[1])
@@ -241,6 +241,7 @@ def print_pixel_output():
             
         
         progress_pixel+=1
+    return(progress_pixel)
     
 
 def interpolate_unit_cell():

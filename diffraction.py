@@ -111,7 +111,6 @@ def add_torchBragg_spots(spixels,
                             I += I_contribution
                 # end of sub-pixel loop
 
-
                 raw_pixels[spixel,fpixel] += r_e_sqr*fluence*spot_scale*polar*I/steps
                 
                 if(raw_pixels[spixel,fpixel] > max_I):
@@ -189,8 +188,8 @@ def find_detector_thickstep_contribution(thick_tic,
     if(detector_thick > 0.0 and detector_attnlen > 0.0):
         # inverse of effective thickness increase
         parallax = dot_product(diffracted,odet_vector)
-        capture_fraction = np.exp(-thick_tic*detector_thickstep/detector_attnlen/parallax) \
-                            - np.exp(-(thick_tic+1)*detector_thickstep/detector_attnlen/parallax)
+        capture_fraction = torch.exp(-thick_tic*detector_thickstep/detector_attnlen/parallax) \
+                            - torch.exp(-(thick_tic+1)*detector_thickstep/detector_attnlen/parallax)
     else:
         capture_fraction = 1.0
 
@@ -256,7 +255,7 @@ def find_source_contribution(source, source_X, source_Y, source_Z, source_lambda
                             ):
                            
     I_contribution_source = 0
-    incident = np.zeros(4)
+    incident = torch.zeros(4)
     # retrieve stuff from cache
     incident[1] = -source_X[source]
     incident[2] = -source_Y[source]
@@ -267,7 +266,7 @@ def find_source_contribution(source, source_X, source_Y, source_Z, source_lambda
     source_path, incident = unitize(incident)
 
     # construct the scattering vector for this pixel
-    scattering = np.zeros(4)
+    scattering = torch.zeros(4)
     scattering[1] = (diffracted[1]-incident[1])/lambda_0
     scattering[2] = (diffracted[2]-incident[2])/lambda_0
     scattering[3] = (diffracted[3]-incident[3])/lambda_0
@@ -344,9 +343,9 @@ def find_phi_contribution(phi0, phistep, phi_tic,
 
     if( phi != 0.0 ):
         # rotate about spindle if neccesary
-        rotate_axis(a0,ap,spindle_vector,phi)
-        rotate_axis(b0,bp,spindle_vector,phi)
-        rotate_axis(c0,cp,spindle_vector,phi)
+        ap = rotate_axis(a0,spindle_vector,phi)
+        bp = rotate_axis(b0,spindle_vector,phi)
+        cp = rotate_axis(c0,spindle_vector,phi)
 
 
     # enumerate mosaic domains
@@ -415,9 +414,9 @@ def find_mosaic_domain_contribution(mosaic_spread,
         b = rotate_umat(bp,mosaic_umats[mos_tic*9:mos_tic*9+9])
         c = rotate_umat(cp,mosaic_umats[mos_tic*9:mos_tic*9+9])
     else:
-        a = np.zeros(4)
-        b = np.zeros(4)
-        c = np.zeros(4)
+        a = torch.zeros(4)
+        b = torch.zeros(4)
+        c = torch.zeros(4)
         a[1]=ap[1];a[2]=ap[2];a[3]=ap[3]
         b[1]=bp[1];b[2]=bp[2];b[3]=bp[3]
         c[1]=cp[1];c[2]=cp[2];c[3]=cp[3]
@@ -433,9 +432,9 @@ def find_mosaic_domain_contribution(mosaic_spread,
     l = dot_product(c,scattering)
 
     # round off to nearest whole index
-    h0 = int(np.ceil(h-0.5))
-    k0 = int(np.ceil(k-0.5))
-    l0 = int(np.ceil(l-0.5))
+    h0 = int(torch.ceil(h-0.5))
+    k0 = int(torch.ceil(k-0.5))
+    l0 = int(torch.ceil(l-0.5))
 
     # structure factor of the lattice
     F_latt = 1.0
@@ -455,15 +454,15 @@ def find_mosaic_domain_contribution(mosaic_spread,
     if(xtal_shape == 'ROUND'):
         # use sinc3 for elliptical xtal shape,
         # correcting for sqrt of volume ratio between cube and sphere
-        F_latt = Na*Nb*Nc*0.723601254558268*sinc3(np.pi*np.sqrt( hrad_sqr * fudge ) )
+        F_latt = Na*Nb*Nc*0.723601254558268*sinc3(np.pi*torch.sqrt( hrad_sqr * fudge ) )
     if(xtal_shape == 'GAUSS'):
         # fudge the radius so that volume and FWHM are similar to square_xtal spots
-        F_latt = Na*Nb*Nc*np.exp(-( hrad_sqr / 0.63 * fudge ))
+        F_latt = Na*Nb*Nc*torch.exp(-( hrad_sqr / 0.63 * fudge ))
     if (xtal_shape == 'GAUSS_ARGCHK'):
         # fudge the radius so that volume and FWHM are similar to square_xtal spots
         my_arg = hrad_sqr / 0.63 * fudge # pre-calculate to check for no Bragg signal
         if (my_arg<35.):
-            F_latt = Na * Nb * Nc * np.exp(-(my_arg))
+            F_latt = Na * Nb * Nc * torch.exp(-(my_arg))
         else:
             F_latt = 0. # not expected to give performance gain on optimized C++, only on GPU
     if(xtal_shape == 'TOPHAT'):
@@ -492,21 +491,21 @@ def find_mosaic_domain_contribution(mosaic_spread,
             c_star = vector_scale(a_cross_b,1e20/V_cell)
 
         # reciprocal-space coordinates of nearest relp
-        relp = np.zeros(4)
+        relp = torch.zeros(4)
         relp[1] = h0*a_star[1] + k0*b_star[1] + l0*c_star[1]
         relp[2] = h0*a_star[2] + k0*b_star[2] + l0*c_star[2]
         relp[3] = h0*a_star[3] + k0*b_star[3] + l0*c_star[3]
         # d_star = magnitude(relp)
 
         # reciprocal-space coordinates of center of Ewald sphere
-        Ewald0 = np.zeros(4)
+        Ewald0 = torch.zeros(4)
         Ewald0[1] = -incident[1]/lambda_0/1e10
         Ewald0[2] = -incident[2]/lambda_0/1e10
         Ewald0[3] = -incident[3]/lambda_0/1e10
         # 1/lambda = magnitude(Ewald0)
 
         # distance from Ewald sphere in lambda=1 units
-        vector = np.zeros(4)
+        vector =torch.zeros(4)
         vector[1] = relp[1]-Ewald0[1]
         vector[2] = relp[2]-Ewald0[2]
         vector[3] = relp[3]-Ewald0[3]
@@ -531,7 +530,7 @@ def find_mosaic_domain_contribution(mosaic_spread,
 
         if(verbose>8):
             print("integral_form: %g %g %g %g" % (Fdet,Sdet,Fdet0,Sdet0))
-        test = np.exp(-( (Fdet-Fdet0)*(Fdet-Fdet0)+(Sdet-Sdet0)*(Sdet-Sdet0) + d_r*d_r )/1e-8)
+        test = torch.exp(-( (Fdet-Fdet0)*(Fdet-Fdet0)+(Sdet-Sdet0)*(Sdet-Sdet0) + d_r*d_r )/1e-8)
     # end of integral form
 
 

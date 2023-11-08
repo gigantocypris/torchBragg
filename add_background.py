@@ -1,3 +1,4 @@
+import torch
 import numpy as np
 from utils import rotate_axis, unitize, dot_product, magnitude, polint, polarization_factor, r_e_sqr
 
@@ -24,8 +25,8 @@ def add_background(oversample,
     orig_sources = sources
     end_sources = sources
     max_I = 0.0
-    raw_pixels = np.zeros((spixels,fpixels))
-    invalid_pixel = np.zeros((spixels,fpixels),dtype=bool)
+    raw_pixels = torch.zeros((spixels,fpixels))
+    invalid_pixel = torch.zeros((spixels,fpixels),dtype=bool)
     have_single_source = False
 
     if override_source>=0:
@@ -140,7 +141,7 @@ def get_thickness_contribution(thick_tic,
     Ibg = 0
     # assume "distance" is to the front of the detector sensor layer
     Odet = thick_tic*detector_thickstep
-    pixel_pos = np.zeros([4,])
+    pixel_pos = torch.zeros([4,])
 
     # construct detector pixel position in 3D space
     pixel_pos[1] = Fdet*fdet_vector[1]+Sdet*sdet_vector[1]+Odet*odet_vector[1]+pix0_vector[1]
@@ -149,7 +150,7 @@ def get_thickness_contribution(thick_tic,
 
     if curved_detector:
         # construct detector pixel that is always "distance" from the sample
-        vector = np.zeros([4,])
+        vector = torch.zeros([4,])
         vector[1] = distance*beam_vector[1]
         vector[2] = distance*beam_vector[2]
         vector[3] = distance*beam_vector[3]
@@ -172,7 +173,7 @@ def get_thickness_contribution(thick_tic,
     if detector_thick > 0.0:
         # inverse of effective thickness increase
         parallax = dot_product(diffracted,odet_vector)
-        capture_fraction = np.exp(-thick_tic*detector_thickstep/detector_attnlen/parallax) - np.exp(-(thick_tic+1)*detector_thickstep/detector_attnlen/parallax)
+        capture_fraction = torch.exp(-thick_tic*detector_thickstep/detector_attnlen/parallax) - torch.exp(-(thick_tic+1)*detector_thickstep/detector_attnlen/parallax)
     else:
         capture_fraction = 1.0
 
@@ -206,7 +207,7 @@ def get_source_contribution(source,
     else:
         n_source_scale = source_I[source]
 
-    incident = np.zeros([4,])
+    incident = torch.zeros([4,])
     incident[1] = -source_X[source]
     incident[2] = -source_Y[source]
     incident[3] = -source_Z[source]
@@ -218,7 +219,7 @@ def get_source_contribution(source,
     source_path, incident = unitize(incident)
 
     # construct the scattering vector for this pixel
-    scattering = np.zeros([4,])
+    scattering = torch.zeros([4,])
     scattering[1] = (diffracted[1]-incident[1])/wavelength
     scattering[2] = (diffracted[2]-incident[2])/wavelength
     scattering[3] = (diffracted[3]-incident[3])/wavelength
@@ -227,9 +228,8 @@ def get_source_contribution(source,
     stol = 0.5*magnitude(scattering)
 
     # now we need to find the nearest four "stol file" points
-
     dist = stol_of[2:-3]-stol
-    nearest = np.argmin(np.abs(dist[dist<0]))+2
+    nearest = torch.argmin(torch.abs(dist[dist<0]))+2
 
     # cubic spline interpolation
     Fbg = polint(stol_of[nearest-1:nearest+3], Fbg_of[nearest-1:nearest+3], stol)
