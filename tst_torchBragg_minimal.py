@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function
 
 from simtbx.nanoBragg import nanoBragg
 from diffraction import add_torchBragg_spots
+from utils import which_package
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
@@ -41,10 +42,12 @@ def tst_nanoBragg_minimal(spixels,fpixels):
     # SIM.raw_pixels*=2000
     # SIM.add_noise()
     # SIM.to_smv_format(fileout="noiseimage_001.img")
-
+    breakpoint()
     return SIM.raw_pixels
 
-def tst_torchBragg_minimal(spixels,fpixels):
+def tst_torchBragg_minimal(spixels,fpixels, use_numpy=False):
+    prefix, new_array = which_package(use_numpy)
+
     phisteps = 1
     mosaic_domains = 1
     oversample = 2
@@ -59,39 +62,39 @@ def tst_torchBragg_minimal(spixels,fpixels):
     fluence = 125932015286227086360700780544.0
     detector_thickstep = 0.000000
     Odet = 0.000000
-    fdet_vector = torch.Tensor([0.,0,0,1.]) 
-    sdet_vector = torch.Tensor([0.,0,-1.,0]) 
-    odet_vector = torch.Tensor([0.,1.,0,0]) 
-    pix0_vector = torch.Tensor([0.000000, 0.100000, 0.051300, -0.051300])
+    fdet_vector = new_array([0.,0,0,1.]) 
+    sdet_vector = new_array([0.,0,-1.,0]) 
+    odet_vector = new_array([0.,1.,0,0]) 
+    pix0_vector = new_array([0.000000, 0.100000, 0.051300, -0.051300])
     curved_detector = False
     distance = 0.1 
-    beam_vector =  torch.Tensor([0,1.,0,0]) 
+    beam_vector =  new_array([0,1.,0,0]) 
     close_distance = 0.100000
     point_pixel = False
     detector_thick = 0.000000
     detector_attnlen = 0.000234
     sources = 1
-    source_X = torch.Tensor([-10.000000])
-    source_Y = torch.Tensor([0.000000])
-    source_Z  = torch.Tensor([0.000000])
-    source_lambda = torch.Tensor([1e-10])
+    source_X = new_array([-10.000000])
+    source_Y = new_array([0.000000])
+    source_Z  = new_array([0.000000])
+    source_lambda = new_array([1e-10])
     dmin = 0.000000
     phi0 = 0.000000
     phistep = 0.000000
 
-    # a0 = torch.Tensor([5e-09, 3.86524e-09, -2.18873e-09, 2.29551e-09])
-    # b0 = torch.Tensor([6e-09, 3.7375e-09, 3.96373e-09, -2.51395e-09])
-    # c0 = torch.Tensor([7e-09, -8.39164e-10, 4.26918e-09, 5.4836e-09])
-    # ap = torch.Tensor([5e-09, 3.86524e-09, -2.18873e-09, 2.29551e-09])
-    # bp = torch.Tensor([6e-09, 3.7375e-09, 3.96373e-09, -2.51395e-09]) 
-    # cp = torch.Tensor([7e-09, -8.39164e-10, 4.26918e-09, 5.4836e-09])
+    # a0 = new_array([5e-09, 3.86524e-09, -2.18873e-09, 2.29551e-09])
+    # b0 = new_array([6e-09, 3.7375e-09, 3.96373e-09, -2.51395e-09])
+    # c0 = new_array([7e-09, -8.39164e-10, 4.26918e-09, 5.4836e-09])
+    # ap = new_array([5e-09, 3.86524e-09, -2.18873e-09, 2.29551e-09])
+    # bp = new_array([6e-09, 3.7375e-09, 3.96373e-09, -2.51395e-09]) 
+    # cp = new_array([7e-09, -8.39164e-10, 4.26918e-09, 5.4836e-09])
 
-    a0 = torch.Tensor([7.8e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
-    b0 = torch.Tensor([7.8e-09, 0, 7.8e-09, 4.77612e-25])
-    c0 = torch.Tensor([3.8e-09, 0, 0, 3.8e-09])
-    ap = torch.Tensor([7.8e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
-    bp = torch.Tensor([7.8e-09, 0, 7.8e-09, 4.77612e-25]) 
-    cp = torch.Tensor([3.8e-09, 0, 0, 3.8e-09])
+    a0 = new_array([7.8e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
+    b0 = new_array([7.8e-09, 0, 7.8e-09, 4.77612e-25])
+    c0 = new_array([3.8e-09, 0, 0, 3.8e-09])
+    ap = new_array([7.8e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
+    bp = new_array([7.8e-09, 0, 7.8e-09, 4.77612e-25]) 
+    cp = new_array([3.8e-09, 0, 0, 3.8e-09])
 
     # a0 = np.array([7.8e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
     # b0 = np.array([7.8e-09, 0, 7.8e-09, 4.77612e-25])
@@ -100,17 +103,17 @@ def tst_torchBragg_minimal(spixels,fpixels):
     # bp = np.array([7.8e-09, 0, 7.8e-09, 4.77612e-25]) 
     # cp = np.array([3.8e-09, 0, 0, 3.8e-09])
 
-    # a0 = torch.Tensor([7.8e-09, 7.8e-09, 0, 0])
-    # b0 = torch.Tensor([7.8e-09, 0, 7.8e-09, 0])
-    # c0 = torch.Tensor([3.8e-09, 0, 0, 3.8e-09])
-    # ap = torch.Tensor([7.8e-09, 7.8e-09, 0, 0])
-    # bp = torch.Tensor([7.8e-09, 0, 7.8e-09, 0]) 
-    # cp = torch.Tensor([3.8e-09, 0, 0, 3.8e-09])
+    # a0 = new_array([7.8e-09, 7.8e-09, 0, 0])
+    # b0 = new_array([7.8e-09, 0, 7.8e-09, 0])
+    # c0 = new_array([3.8e-09, 0, 0, 3.8e-09])
+    # ap = new_array([7.8e-09, 7.8e-09, 0, 0])
+    # bp = new_array([7.8e-09, 0, 7.8e-09, 0]) 
+    # cp = new_array([3.8e-09, 0, 0, 3.8e-09])
 
-    spindle_vector = torch.Tensor([0,0,0,1.])
+    spindle_vector = new_array([0,0,0,1.])
     mosaic_spread = 0.000000
-    # mosaic_umats = torch.Tensor([[1.0, 0, 0],[0, 1.0, 0],[0, 0, 1.0]])
-    mosaic_umats = torch.Tensor([1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0])
+    # mosaic_umats = new_array([[1.0, 0, 0],[0, 1.0, 0],[0, 0, 1.0]])
+    mosaic_umats = new_array([1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0])
     xtal_shape = 'TOPHAT' #'SQUARE'
     Na = 5.0
     Nb = 5.0
@@ -131,9 +134,9 @@ def tst_torchBragg_minimal(spixels,fpixels):
     Fhkl_data = [10.0]
     default_F = 1.0
     nopolar = False
-    source_I = torch.Tensor([1.000000])
+    source_I = new_array([1.000000])
     polarization = 0
-    polar_vector = torch.Tensor([0,0,0,1])
+    polar_vector = new_array([0,0,0,1])
     verbose=9
 
     Fhkl = {h:v for h,v in zip(Fhkl_indices,Fhkl_data)}
@@ -172,15 +175,20 @@ def tst_torchBragg_minimal(spixels,fpixels):
                         nopolar,source_I,
                         polarization,
                         polar_vector,
-                        verbose=verbose)
+                        verbose=verbose,
+                        use_numpy=use_numpy)
     return raw_pixels
 
 if __name__=="__main__":
   spixels = 100 #1024    
   fpixels = 100 #1024
+  use_numpy = True
 
   raw_pixels_0 = tst_nanoBragg_minimal(spixels, fpixels).as_numpy_array()
-  raw_pixels_1 = tst_torchBragg_minimal(spixels, fpixels).numpy()
+  raw_pixels_1 = tst_torchBragg_minimal(spixels, fpixels, use_numpy=use_numpy)
+
+  if not(use_numpy):
+    raw_pixels_1 = raw_pixels_1.numpy()
 
   # figure with 2 subplots
   fig, axs = plt.subplots(1, 2)

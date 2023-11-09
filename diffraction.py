@@ -2,7 +2,9 @@ import torch
 import numpy as np
 from utils import rotate_axis, rotate_umat, dot_product, sincg, sinc3, \
     cross_product, vector_scale, magnitude, unitize, polarization_factor, \
-    detector_position, find_pixel_pos, r_e_sqr
+    detector_position, find_pixel_pos, r_e_sqr, which_package
+
+
 
 def add_torchBragg_spots(spixels, 
                         fpixels,
@@ -38,9 +40,13 @@ def add_torchBragg_spots(spixels,
                         nopolar,source_I,
                         polarization,
                         polar_vector,
-                        verbose=9):
+                        verbose=9,
+                        use_numpy=False):
+    
+    prefix, new_array = which_package(use_numpy)
+
     max_I = 0.0
-    raw_pixels = torch.zeros((spixels,fpixels))
+    raw_pixels = prefix.zeros((spixels,fpixels))
 
     # make sure we are normalizing with the right number of sub-steps
     steps = phisteps*mosaic_domains*oversample*oversample
@@ -107,6 +113,7 @@ def add_torchBragg_spots(spixels,
                                                                                         polarization,
                                                                                         polar_vector,
                                                                                         verbose,
+                                                                                        use_numpy
                                                                                         )
                             I += I_contribution
                 # end of sub-pixel loop
@@ -162,7 +169,10 @@ def find_detector_thickstep_contribution(thick_tic,
                                          polarization,
                                          polar_vector,
                                          verbose,
+                                         use_numpy
                                          ):
+
+    prefix, new_array = which_package(use_numpy)
 
     # intensity for this detector thickness step, in the subpixel
     I_contribution = 0
@@ -172,10 +182,10 @@ def find_detector_thickstep_contribution(thick_tic,
 
     # construct detector subpixel position in 3D space
     pixel_pos = find_pixel_pos(Fdet, Sdet, Odet, fdet_vector, sdet_vector, odet_vector, pix0_vector,
-                   curved_detector, distance, beam_vector)
+                   curved_detector, distance, beam_vector, use_numpy)
 
     # construct the diffracted-beam unit vector to this sub-pixel
-    airpath, diffracted = unitize(pixel_pos)
+    airpath, diffracted = unitize(pixel_pos, use_numpy)
 
     # solid angle subtended by a pixel: (pix/airpath)^2*cos(2theta)
     omega_pixel = pixel_size*pixel_size/airpath/airpath*close_distance/airpath
@@ -188,8 +198,8 @@ def find_detector_thickstep_contribution(thick_tic,
     if(detector_thick > 0.0 and detector_attnlen > 0.0):
         # inverse of effective thickness increase
         parallax = dot_product(diffracted,odet_vector)
-        capture_fraction = torch.exp(-thick_tic*detector_thickstep/detector_attnlen/parallax) \
-                            - torch.exp(-(thick_tic+1)*detector_thickstep/detector_attnlen/parallax)
+        capture_fraction = prefix.exp(-thick_tic*detector_thickstep/detector_attnlen/parallax) \
+                            - prefix.exp(-(thick_tic+1)*detector_thickstep/detector_attnlen/parallax)
     else:
         capture_fraction = 1.0
 
@@ -221,6 +231,7 @@ def find_detector_thickstep_contribution(thick_tic,
                                                                 polarization,
                                                                 polar_vector,
                                                                 verbose,
+                                                                use_numpy,
                                                                 )
         I_contribution += I_contribution_source
     
@@ -252,10 +263,12 @@ def find_source_contribution(source, source_X, source_Y, source_Z, source_lambda
                             polarization,
                             polar_vector,
                             verbose,
+                            use_numpy,
                             ):
-                           
+    
+    prefix, new_array = which_package(use_numpy)
     I_contribution_source = 0
-    incident = torch.zeros(4)
+    incident = prefix.zeros(4)
     # retrieve stuff from cache
     incident[1] = -source_X[source]
     incident[2] = -source_Y[source]
@@ -263,16 +276,16 @@ def find_source_contribution(source, source_X, source_Y, source_Z, source_lambda
     lambda_0 = source_lambda[source]
 
     # construct the incident beam unit vector while recovering source distance
-    source_path, incident = unitize(incident)
+    source_path, incident = unitize(incident, use_numpy)
 
     # construct the scattering vector for this pixel
-    scattering = torch.zeros(4)
+    scattering = prefix.zeros(4)
     scattering[1] = (diffracted[1]-incident[1])/lambda_0
     scattering[2] = (diffracted[2]-incident[2])/lambda_0
     scattering[3] = (diffracted[3]-incident[3])/lambda_0
 
     # sin(theta)/lambda_0 is half the scattering vector length
-    stol = 0.5*magnitude(scattering)
+    stol = 0.5*magnitude(scattering, use_numpy)
 
     # rough cut to speed things up when we aren't using whole detector
     if(dmin > 0.0 and stol > 0.0 and dmin > 0.5/stol):
@@ -304,6 +317,7 @@ def find_source_contribution(source, source_X, source_Y, source_Z, source_lambda
                                                             nopolar,source_I, source, capture_fraction, omega_pixel,
                                                             polarization,diffracted,polar_vector,
                                                             verbose,
+                                                            use_numpy,
                                                             )
             I_contribution_source += I_contribution_phi
     return I_contribution_source, polar
@@ -334,18 +348,21 @@ def find_phi_contribution(phi0, phistep, phi_tic,
                         nopolar,source_I, source, capture_fraction, omega_pixel,
                         polarization,diffracted,polar_vector,
                         verbose,
+                        use_numpy,
                         ): 
     
     """only 1 angle to loop over in XFEL"""
+
+    prefix, new_array = which_package(use_numpy)
 
     I_contribution_phi = 0
     phi = phi0 + phistep*phi_tic
 
     if( phi != 0.0 ):
         # rotate about spindle if neccesary
-        ap = rotate_axis(a0,spindle_vector,phi)
-        bp = rotate_axis(b0,spindle_vector,phi)
-        cp = rotate_axis(c0,spindle_vector,phi)
+        ap = rotate_axis(a0,spindle_vector,phi, use_numpy)
+        bp = rotate_axis(b0,spindle_vector,phi, use_numpy)
+        cp = rotate_axis(c0,spindle_vector,phi, use_numpy)
 
 
     # enumerate mosaic domains
@@ -375,6 +392,7 @@ def find_phi_contribution(phi0, phistep, phi_tic,
                                                                        nopolar,source_I, source, capture_fraction, omega_pixel,
                                                                        polarization,diffracted,polar_vector,
                                                                        verbose,
+                                                                       use_numpy,
                                                                        )
         I_contribution_phi += I_contribution_mosaic
 
@@ -406,17 +424,19 @@ def find_mosaic_domain_contribution(mosaic_spread,
                                     nopolar,source_I, source, capture_fraction, omega_pixel,
                                     polarization,diffracted,polar_vector,
                                     verbose,
+                                    use_numpy,
                                     ):
 
+    prefix, new_array = which_package(use_numpy)
     # apply mosaic rotation after phi rotation
     if(mosaic_spread > 0.0):
-        a = rotate_umat(ap,mosaic_umats[mos_tic*9:mos_tic*9+9])
-        b = rotate_umat(bp,mosaic_umats[mos_tic*9:mos_tic*9+9])
-        c = rotate_umat(cp,mosaic_umats[mos_tic*9:mos_tic*9+9])
+        a = rotate_umat(ap,mosaic_umats[mos_tic*9:mos_tic*9+9], use_numpy)
+        b = rotate_umat(bp,mosaic_umats[mos_tic*9:mos_tic*9+9], use_numpy)
+        c = rotate_umat(cp,mosaic_umats[mos_tic*9:mos_tic*9+9], use_numpy)
     else:
-        a = torch.zeros(4)
-        b = torch.zeros(4)
-        c = torch.zeros(4)
+        a = prefix.zeros(4)
+        b = prefix.zeros(4)
+        c = prefix.zeros(4)
         a[1]=ap[1];a[2]=ap[2];a[3]=ap[3]
         b[1]=bp[1];b[2]=bp[2];b[3]=bp[3]
         c[1]=cp[1];c[2]=cp[2];c[3]=cp[3]
@@ -432,20 +452,20 @@ def find_mosaic_domain_contribution(mosaic_spread,
     l = dot_product(c,scattering)
 
     # round off to nearest whole index
-    h0 = int(torch.ceil(h-0.5))
-    k0 = int(torch.ceil(k-0.5))
-    l0 = int(torch.ceil(l-0.5))
+    h0 = int(prefix.ceil(h-0.5))
+    k0 = int(prefix.ceil(k-0.5))
+    l0 = int(prefix.ceil(l-0.5))
 
     # structure factor of the lattice
     F_latt = 1.0
     if(xtal_shape == 'SQUARE'):
         # xtal is a paralelpiped
         if(Na>1):
-            F_latt *= sincg(np.pi*h,Na)
+            F_latt *= sincg(np.pi*h,Na, use_numpy)
         if(Nb>1):
-            F_latt *= sincg(np.pi*k,Nb)
+            F_latt *= sincg(np.pi*k,Nb, use_numpy)
         if(Nc>1):
-            F_latt *= sincg(np.pi*l,Nc)
+            F_latt *= sincg(np.pi*l,Nc, use_numpy)
     else:
         #handy radius in reciprocal space, squared
         hrad_sqr = (h-h0)*(h-h0)*Na*Na + (k-k0)*(k-k0)*Nb*Nb + (l-l0)*(l-l0)*Nc*Nc
@@ -454,15 +474,15 @@ def find_mosaic_domain_contribution(mosaic_spread,
     if(xtal_shape == 'ROUND'):
         # use sinc3 for elliptical xtal shape,
         # correcting for sqrt of volume ratio between cube and sphere
-        F_latt = Na*Nb*Nc*0.723601254558268*sinc3(np.pi*torch.sqrt( hrad_sqr * fudge ) )
+        F_latt = Na*Nb*Nc*0.723601254558268*sinc3(np.pi*prefix.sqrt(hrad_sqr * fudge), use_numpy)
     if(xtal_shape == 'GAUSS'):
         # fudge the radius so that volume and FWHM are similar to square_xtal spots
-        F_latt = Na*Nb*Nc*torch.exp(-( hrad_sqr / 0.63 * fudge ))
+        F_latt = Na*Nb*Nc*prefix.exp(-( hrad_sqr / 0.63 * fudge ))
     if (xtal_shape == 'GAUSS_ARGCHK'):
         # fudge the radius so that volume and FWHM are similar to square_xtal spots
         my_arg = hrad_sqr / 0.63 * fudge # pre-calculate to check for no Bragg signal
         if (my_arg<35.):
-            F_latt = Na * Nb * Nc * torch.exp(-(my_arg))
+            F_latt = Na * Nb * Nc * prefix.exp(-(my_arg))
         else:
             F_latt = 0. # not expected to give performance gain on optimized C++, only on GPU
     if(xtal_shape == 'TOPHAT'):
@@ -481,38 +501,38 @@ def find_mosaic_domain_contribution(mosaic_spread,
             # need to re-calculate reciprocal matrix
 
             # various cross products
-            a_cross_b = cross_product(a,b)
-            b_cross_c = cross_product(b,c)
-            c_cross_a = cross_product(c,a)
+            a_cross_b = cross_product(a,b, use_numpy)
+            b_cross_c = cross_product(b,c, use_numpy)
+            c_cross_a = cross_product(c,a, use_numpy)
 
             # new reciprocal-space cell vectors
-            a_star = vector_scale(b_cross_c,1e20/V_cell)
-            b_star = vector_scale(c_cross_a,1e20/V_cell)
-            c_star = vector_scale(a_cross_b,1e20/V_cell)
+            a_star = vector_scale(b_cross_c,1e20/V_cell, use_numpy)
+            b_star = vector_scale(c_cross_a,1e20/V_cell, use_numpy)
+            c_star = vector_scale(a_cross_b,1e20/V_cell, use_numpy)
 
         # reciprocal-space coordinates of nearest relp
-        relp = torch.zeros(4)
+        relp = prefix.zeros(4)
         relp[1] = h0*a_star[1] + k0*b_star[1] + l0*c_star[1]
         relp[2] = h0*a_star[2] + k0*b_star[2] + l0*c_star[2]
         relp[3] = h0*a_star[3] + k0*b_star[3] + l0*c_star[3]
-        # d_star = magnitude(relp)
+        # d_star = magnitude(relp, use_numpy)
 
         # reciprocal-space coordinates of center of Ewald sphere
-        Ewald0 = torch.zeros(4)
+        Ewald0 = prefix.zeros(4)
         Ewald0[1] = -incident[1]/lambda_0/1e10
         Ewald0[2] = -incident[2]/lambda_0/1e10
         Ewald0[3] = -incident[3]/lambda_0/1e10
-        # 1/lambda = magnitude(Ewald0)
+        # 1/lambda = magnitude(Ewald0, use_numpy)
 
         # distance from Ewald sphere in lambda=1 units
-        vector =torch.zeros(4)
+        vector =prefix.zeros(4)
         vector[1] = relp[1]-Ewald0[1]
         vector[2] = relp[2]-Ewald0[2]
         vector[3] = relp[3]-Ewald0[3]
-        d_r = magnitude(vector)-1.0
+        d_r = magnitude(vector, use_numpy)-1.0
 
         # unit vector of diffracted ray through relp
-        _, diffracted0 = unitize(vector)
+        _, diffracted0 = unitize(vector, use_numpy)
 
         # intersection with detector plane
         xd = dot_product(fdet_vector,diffracted0)
@@ -530,7 +550,7 @@ def find_mosaic_domain_contribution(mosaic_spread,
 
         if(verbose>8):
             print("integral_form: %g %g %g %g" % (Fdet,Sdet,Fdet0,Sdet0))
-        test = torch.exp(-( (Fdet-Fdet0)*(Fdet-Fdet0)+(Sdet-Sdet0)*(Sdet-Sdet0) + d_r*d_r )/1e-8)
+        test = prefix.exp(-( (Fdet-Fdet0)*(Fdet-Fdet0)+(Sdet-Sdet0)*(Sdet-Sdet0) + d_r*d_r )/1e-8)
     # end of integral form
 
 
@@ -552,7 +572,7 @@ def find_mosaic_domain_contribution(mosaic_spread,
     # polarization factor
     if(not(nopolar)):
         # need to compute polarization factor
-        polar = polarization_factor(polarization,incident,diffracted,polar_vector)
+        polar = polarization_factor(polarization,incident,diffracted,polar_vector, use_numpy)
     else:
         polar = 1.0
 

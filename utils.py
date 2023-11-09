@@ -1,14 +1,25 @@
 import torch
+import numpy as np
 
 # Thomson cross section ((e^2)/(4*PI*epsilon0*m*c^2))^2
 r_e_sqr = 7.94079248018965e-30
 
-def rotate_axis(v, axis, phi):
+def which_package(use_numpy):
+    if use_numpy:
+        prefix = np
+        new_array = np.array
+    else:
+        prefix = torch
+        new_array = torch.Tensor
+    return prefix, new_array
+
+def rotate_axis(v, axis, phi, use_numpy):
+    prefix, new_array = which_package(use_numpy)
     """rotate a point about a unit vector axis"""
-    sinphi = torch.sin(phi)
-    cosphi = torch.cos(phi)
+    sinphi = prefix.sin(phi)
+    cosphi = prefix.cos(phi)
     dot = (axis[1]*v[1]+axis[2]*v[2]+axis[3]*v[3])*(1.0-cosphi)
-    newv = torch.zeros(4)
+    newv = prefix.zeros(4)
 
     newv[1] = axis[1]*dot+v[1]*cosphi+(-axis[3]*v[2]+axis[2]*v[3])*sinphi
     newv[2] = axis[2]*dot+v[2]*cosphi+(+axis[3]*v[1]-axis[1]*v[3])*sinphi
@@ -17,12 +28,12 @@ def rotate_axis(v, axis, phi):
     return newv
 
 
-def unitize(vector):
+def unitize(vector, use_numpy):
     """make provided vector a unit vector"""
-
+    prefix, new_array = which_package(use_numpy)
     # measure the magnitude
-    mag = magnitude(vector)
-    new_unit_vector = torch.zeros(4)
+    mag = magnitude(vector, use_numpy)
+    new_unit_vector = prefix.zeros(4)
     if(mag != 0.0):
         # normalize it
         new_unit_vector[1]=vector[1]/mag
@@ -42,8 +53,9 @@ def dot_product(x, y):
     """vector inner product where vector magnitude is 0th element"""
     return x[1]*y[1]+x[2]*y[2]+x[3]*y[3]
 
-def cross_product(x,y):
-    z = torch.zeros(4)
+def cross_product(x,y, use_numpy):
+    prefix, new_array = which_package(use_numpy)
+    z = prefix.zeros(4)
 
     """vector cross product where vector magnitude is 0th element"""
     z[1] = x[2]*y[3] - x[3]*y[2]
@@ -54,23 +66,26 @@ def cross_product(x,y):
     return z
 
 
-def sinc3( x):
+def sinc3(x, use_numpy):
     """Fourier transform of a sphere"""
+    prefix, new_array = which_package(use_numpy)
     if(x==0.0): 
         return 1.0
     else:
-        return 3.0*(torch.sin(x)/x-torch.cos(x))/(x*x)
+        return 3.0*(prefix.sin(x)/x-prefix.cos(x))/(x*x)
 
 
-def sincg(x, N):
+def sincg(x, N, use_numpy):
     """Fourier transform of a grating"""
+    prefix, new_array = which_package(use_numpy)
     if(x==0.0):
         return N
     else:
-        return torch.sin(x*N)/torch.sin(x)
+        return prefix.sin(x*N)/prefix.sin(x)
 
-def vector_scale(vector, scale):
-    new_vector = torch.zeros(4)
+def vector_scale(vector, scale, use_numpy):
+    prefix, new_array = which_package(use_numpy)
+    new_vector = prefix.zeros(4)
 
     """scale magnitude of provided vector"""
     new_vector[1] = scale*vector[1]
@@ -79,21 +94,24 @@ def vector_scale(vector, scale):
 
     return magnitude(new_vector)
 
-def magnitude(vector):
+def magnitude(vector, use_numpy):
     """measure magnitude of provided vector"""
-    magn = torch.sqrt(vector[1]*vector[1]+vector[2]*vector[2]+vector[3]*vector[3])
+
+    prefix, new_array = which_package(use_numpy)
+    magn = prefix.sqrt(vector[1]*vector[1]+vector[2]*vector[2]+vector[3]*vector[3])
 
     return magn
 
 
 
-def rotate_umat(v, umat):
+def rotate_umat(v, umat, use_numpy):
     """
     rotate a vector using a 9-element unitary matrix
     umat has 9 elements
     """
+    prefix, new_array = which_package(use_numpy)
 
-    newv = torch.zeros(4)
+    newv = prefix.zeros(4)
     
     # for convenience, assign matrix x-y coordinate
     uxx = umat[0]
@@ -115,16 +133,19 @@ def rotate_umat(v, umat):
 
 
 
-def polarization_factor(kahn_factor, incident, diffracted, axis):
+def polarization_factor(kahn_factor, incident, diffracted, axis, use_numpy):
     """polarization factor"""
-    E_out = torch.zeros(4)
-    B_out = torch.zeros(4)
-    psi = torch.zeros([])
+
+    prefix, new_array = which_package(use_numpy)
+
+    E_out = prefix.zeros(4)
+    B_out = prefix.zeros(4)
+    psi = prefix.zeros([])
     
     # unitize the vectors
-    _, incident = unitize(incident)
-    _, diffracted = unitize(diffracted)
-    _, axis = unitize(axis)
+    _, incident = unitize(incident, use_numpy)
+    _, diffracted = unitize(diffracted, use_numpy)
+    _, axis = unitize(axis, use_numpy)
 
     # component of diffracted unit vector along incident beam unit vector
     cos2theta = dot_product(incident,diffracted)
@@ -151,11 +172,15 @@ def polarization_factor(kahn_factor, incident, diffracted, axis):
         B_out[0] = dot_product(diffracted,B_in)
 
         # compute the angle of the diffracted ray projected onto the incident E-B plane
-        psi = -torch.atan2(B_out[0],E_out[0])
+        if use_numpy:
+            atan2 = np.arctan2
+        else:
+            atan2 = torch.atan2
+        psi = -atan2(B_out[0],E_out[0])
     
 
     # correction for polarized incident beam
-    return 0.5*(1.0 + cos2theta_sqr - kahn_factor*torch.cos(2*psi)*sin2theta_sqr)
+    return 0.5*(1.0 + cos2theta_sqr - kahn_factor*prefix.cos(2*psi)*sin2theta_sqr)
 
 def detector_position(subpixel_size, oversample, fpixel, spixel, subF, subS):
     """absolute mm position on detector (relative to its origin)"""
@@ -164,16 +189,18 @@ def detector_position(subpixel_size, oversample, fpixel, spixel, subF, subS):
     return Fdet, Sdet
 
 def find_pixel_pos(Fdet, Sdet, Odet, fdet_vector, sdet_vector, odet_vector, pix0_vector,
-                   curved_detector, distance, beam_vector):
+                   curved_detector, distance, beam_vector, use_numpy):
     """ construct detector subpixel position in 3D space """
-    pixel_pos = torch.zeros(4)
+    prefix, new_array = which_package(use_numpy)
+
+    pixel_pos = prefix.zeros(4)
     pixel_pos[1] = Fdet*fdet_vector[1]+Sdet*sdet_vector[1]+Odet*odet_vector[1]+pix0_vector[1]
     pixel_pos[2] = Fdet*fdet_vector[2]+Sdet*sdet_vector[2]+Odet*odet_vector[2]+pix0_vector[2]
     pixel_pos[3] = Fdet*fdet_vector[3]+Sdet*sdet_vector[3]+Odet*odet_vector[3]+pix0_vector[3]
     pixel_pos[0] = 0.0
     if curved_detector:
         # construct detector pixel that is always "distance" from the sample
-        vector = torch.zeros(4)
+        vector = prefix.zeros(4)
         vector[1] = distance*beam_vector[1]
         vector[2] = distance*beam_vector[2]
         vector[3] = distance*beam_vector[3]
