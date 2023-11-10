@@ -14,8 +14,8 @@ torch.set_default_dtype(torch.float64)
 def tst_nanoBragg_minimal(spixels,fpixels):
     # create the simulation object, all parameters have sensible defaults
     SIM = nanoBragg(detpixels_slowfast=(spixels,fpixels))
-    # SIM.seed = 10
-    # SIM.randomize_orientation()
+    SIM.seed = 10
+    SIM.randomize_orientation()
     # dont bother with importing a structure, we just want spots
     SIM.default_F = 1
     SIM.F000 = 10
@@ -42,7 +42,6 @@ def tst_nanoBragg_minimal(spixels,fpixels):
     # SIM.raw_pixels*=2000
     # SIM.add_noise()
     # SIM.to_smv_format(fileout="noiseimage_001.img")
-    breakpoint()
     return SIM.raw_pixels
 
 def tst_torchBragg_minimal(spixels,fpixels, use_numpy=False):
@@ -53,19 +52,19 @@ def tst_torchBragg_minimal(spixels,fpixels, use_numpy=False):
     oversample = 2
     pixel_size = 0.0001
     roi_xmin = 0 
-    roi_xmax = 1024
+    roi_xmax = spixels
     roi_ymin = 0
-    roi_ymax = 1024
+    roi_ymax = fpixels
     maskimage = None
     detector_thicksteps = 1
-    spot_scale = 1
+    spot_scale = 1.0
     fluence = 125932015286227086360700780544.0
     detector_thickstep = 0.000000
     Odet = 0.000000
     fdet_vector = new_array([0.,0,0,1.]) 
     sdet_vector = new_array([0.,0,-1.,0]) 
     odet_vector = new_array([0.,1.,0,0]) 
-    pix0_vector = new_array([0.000000, 0.100000, 0.051300, -0.051300])
+    pix0_vector = new_array([0.000000, 0.100000, 0.0051300, -0.0051300])
     curved_detector = False
     distance = 0.1 
     beam_vector =  new_array([0,1.,0,0]) 
@@ -77,24 +76,25 @@ def tst_torchBragg_minimal(spixels,fpixels, use_numpy=False):
     source_X = new_array([-10.000000])
     source_Y = new_array([0.000000])
     source_Z  = new_array([0.000000])
-    source_lambda = new_array([1e-10])
+    source_lambda = new_array([1.0e-10])
     dmin = 0.000000
     phi0 = 0.000000
     phistep = 0.000000
 
-    # a0 = new_array([5e-09, 3.86524e-09, -2.18873e-09, 2.29551e-09])
-    # b0 = new_array([6e-09, 3.7375e-09, 3.96373e-09, -2.51395e-09])
-    # c0 = new_array([7e-09, -8.39164e-10, 4.26918e-09, 5.4836e-09])
-    # ap = new_array([5e-09, 3.86524e-09, -2.18873e-09, 2.29551e-09])
-    # bp = new_array([6e-09, 3.7375e-09, 3.96373e-09, -2.51395e-09]) 
-    # cp = new_array([7e-09, -8.39164e-10, 4.26918e-09, 5.4836e-09])
+    a0 = new_array([7.8e-09, 6.02977e-09, -3.41442e-09, 3.581e-09])
+    b0 = new_array([7.8e-09, 4.85875e-09, 5.15285e-09, -3.26813e-09])
+    c0 = new_array([3.8e-09, -4.55546e-10,  2.31756e-099, 2.97681e-09])
+    ap = new_array([7.8e-09, 6.02977e-09,  -3.41442e-09, 3.581e-09])
+    bp = new_array([7.8e-09, 4.85875e-09, 5.15285e-09, -3.26813e-09]) 
+    cp = new_array([3.8e-09, -4.55546e-10, 2.31756e-09, 2.97681e-09])
 
-    a0 = new_array([7.8e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
-    b0 = new_array([7.8e-09, 0, 7.8e-09, 4.77612e-25])
-    c0 = new_array([3.8e-09, 0, 0, 3.8e-09])
-    ap = new_array([7.8e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
-    bp = new_array([7.8e-09, 0, 7.8e-09, 4.77612e-25]) 
-    cp = new_array([3.8e-09, 0, 0, 3.8e-09])
+
+    # a0 = new_array([7.8e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
+    # b0 = new_array([7.8e-09, 0, 7.8e-09, 4.77612e-25])
+    # c0 = new_array([3.8e-09, 0, 0, 3.8e-09])
+    # ap = new_array([7.8e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
+    # bp = new_array([7.8e-09, 0, 7.8e-09, 4.77612e-25]) 
+    # cp = new_array([3.8e-09, 0, 0, 3.8e-09])
 
     # a0 = np.array([7.8e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
     # b0 = np.array([7.8e-09, 0, 7.8e-09, 4.77612e-25])
@@ -114,7 +114,8 @@ def tst_torchBragg_minimal(spixels,fpixels, use_numpy=False):
     mosaic_spread = 0.000000
     # mosaic_umats = new_array([[1.0, 0, 0],[0, 1.0, 0],[0, 0, 1.0]])
     mosaic_umats = new_array([1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0])
-    xtal_shape = 'TOPHAT' #'SQUARE'
+    xtal_shape = 'TOPHAT' 
+    # xtal_shape = 'SQUARE'
     Na = 5.0
     Nb = 5.0
     Nc = 5.0
@@ -180,8 +181,8 @@ def tst_torchBragg_minimal(spixels,fpixels, use_numpy=False):
     return raw_pixels
 
 if __name__=="__main__":
-  spixels = 100 #1024    
-  fpixels = 100 #1024
+  spixels = 200    
+  fpixels = 200
   use_numpy = True
 
   raw_pixels_0 = tst_nanoBragg_minimal(spixels, fpixels).as_numpy_array()
@@ -194,12 +195,12 @@ if __name__=="__main__":
   fig, axs = plt.subplots(1, 2)
   axs[0].imshow(raw_pixels_0, vmax=0.001)
   axs[1].imshow(raw_pixels_1, vmax=0.001)
-  plt.savefig("nanoBragg_vs_torchBragg.png")
+  plt.savefig("nanoBragg_vs_torchBragg2.png")
 
   fig, axs = plt.subplots(1, 2)
   axs[0].imshow(np.log(raw_pixels_0))
   axs[1].imshow(np.log(raw_pixels_1))
-  plt.savefig("nanoBragg_vs_torchBragg_log.png")
+  plt.savefig("nanoBragg_vs_torchBragg_log2.png")
 
   assert(np.mean(raw_pixels_0-raw_pixels_1)/np.mean(raw_pixels_0) < 1e-9)
   print("OK")

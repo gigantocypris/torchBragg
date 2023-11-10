@@ -313,3 +313,9 @@ Testing apply_psf.py
 
 > cd $WORK/output_torchBragg
 > libtbx.python $MODULES/torchBragg/apply_psf.py
+
+# November 9, 2023
+
+torchBragg minimal test:
+> cd $WORK/output_torchBragg
+> libtbx.python $MODULES/torchBragg/tst_torchBragg_minimal.py

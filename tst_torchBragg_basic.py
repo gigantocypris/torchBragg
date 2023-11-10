@@ -5,6 +5,8 @@ Same as tst_nanoBragg_basic.py, but without noise, only background
 from __future__ import absolute_import, division, print_function
 import matplotlib.pyplot as plt
 import torch
+import numpy as np
+from utils import which_package
 from scitbx.array_family import flex
 from simtbx.nanoBragg import testuple
 from simtbx.nanoBragg import shapetype
@@ -364,12 +366,15 @@ def tst_torchBragg_basic(spixels, fpixels, params):
 if __name__=="__main__":
   spixels = 200
   fpixels = 200
+  use_numpy = True
 
   raw_pixels_0, params = tst_nanoBragg_basic(spixels,fpixels)
   raw_pixels_0 = raw_pixels_0.as_numpy_array()
-  raw_pixels_1 = tst_torchBragg_basic(spixels,fpixels, params).numpy()
+  raw_pixels_1 = tst_torchBragg_basic(spixels,fpixels, params, use_numpy=use_numpy)
   
-
+  if not(use_numpy):
+    raw_pixels_1 = raw_pixels_1.numpy()
+  
   plt.figure(); plt.imshow(raw_pixels_0, vmax=300);plt.colorbar(); plt.savefig("nanoBragg_basic.png")
   plt.figure(); plt.imshow(raw_pixels_1, vmax=300);plt.colorbar(); plt.savefig("nanoBragg_basic1.png")
 

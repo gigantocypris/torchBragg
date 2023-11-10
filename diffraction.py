@@ -61,8 +61,8 @@ def add_torchBragg_spots(spixels,
     pixel_linear_ind = -1
     for spixel in range(spixels):
         for fpixel in range(fpixels):
-            print("spixel is: ", spixel)
-            print("fpixel is: ", fpixel)
+            # print("spixel is: ", spixel)
+            # print("fpixel is: ", fpixel)
 
             pixel_linear_ind += 1
             # reset photon count for this pixel
