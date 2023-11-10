@@ -6,10 +6,12 @@ from main import add_torchBragg_spots
 import numpy as np
 import matplotlib.pyplot as plt
 
-def tst_nanoBragg_minimal():
+def tst_nanoBragg_minimal(randomize_orientation=True):
     # create the simulation object, all parameters have sensible defaults
     SIM = nanoBragg()
-
+    if randomize_orientation:
+      SIM.seed = 10
+      SIM.randomize_orientation()
     # dont bother with importing a structure, we just want spots
     SIM.default_F = 1
     SIM.F000 = 10
@@ -29,7 +31,6 @@ def tst_nanoBragg_minimal():
     SIM.show_params()
     # now actually run the simulation
     SIM.add_nanoBragg_spots()
-    breakpoint()
 
     # # write out a file on arbitrary scale, header contains beam center in various conventions
     # SIM.to_smv_format(fileout="intimage_001.img")
@@ -41,7 +42,7 @@ def tst_nanoBragg_minimal():
 
     return SIM.raw_pixels
 
-def tst_torchBragg_minimal():
+def tst_torchBragg_minimal(randomize_orientation=True):
     spixels = 1024
     fpixels = 1024
     phisteps = 1
@@ -78,41 +79,23 @@ def tst_torchBragg_minimal():
     dmin = 0.000000
     phi0 = 0.000000
     phistep = 0.000000
-    a0 = np.array([7.800000e-09, 6.484601e-09, 3.443972e-09, -2.632301e-09])
-    b0 = np.array([7.800000e-09, -2.431495e-09, 6.811206e-09, 2.921523e-09])
-    c0 = np.array([3.800000e-09, 1.748274e-09, -7.835150e-10, 3.281713e-09])
-    ap = np.array([7.800000e-09, 6.484601e-09, 3.443972e-09, -2.632301e-09])
-    bp = np.array([7.800000e-09, -2.431495e-09, 6.811206e-09, 2.921523e-09]) 
-    cp = np.array([3.800000e-09, 1.748274e-09, -7.835150e-10, 3.281713e-09])
 
-"""
-a0[0]= 7.8e-09
-b0[0]= 7.8e-09
-c0[0]= 3.8e-09
-ap[0]= 7.8e-09
-bp[0]= 7.8e-09
-cp[0]= 3.8e-09
-a0[1]= 7.8e-09
-b0[1]= -0
-c0[1]= 0
-ap[1]= 7.8e-09
-bp[1]= -0
-cp[1]= 0
-a0[2]= 4.77612e-25
-b0[2]= 7.8e-09
-c0[2]= -0
-ap[2]= 4.77612e-25
-bp[2]= 7.8e-09
-cp[2]= -0
-a0[3]= 4.77612e-25
-b0[3]= 4.77612e-25
-c0[3]= 3.8e-09
-ap[3]= 4.77612e-25
-bp[3]= 4.77612e-25
-cp[3]= 3.8e-09
-"""
-
-
+    if randomize_orientation:
+      # with randomize_orientation(), seed = 10
+      a0 = np.array([7.800000e-09, 6.02977e-09, -3.41442e-09, 3.581e-09])
+      b0 = np.array([7.800000e-09, 4.85875e-09, 5.15285e-09, -3.26813e-09])
+      c0 = np.array([3.800000e-09, -4.55546e-10, 2.31756e-09, 2.97681e-09])
+      ap = np.array([7.800000e-09, 6.02977e-09, -3.41442e-09, 3.581e-09])
+      bp = np.array([7.800000e-09, 4.85875e-09, 5.15285e-09, -3.26813e-09]) 
+      cp = np.array([3.800000e-09, -4.55546e-10, 2.31756e-09, 2.97681e-09])
+    else:
+      # without randomize_orientation()
+      a0 = np.array([7.800000e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
+      b0 = np.array([7.800000e-09, 0, 7.8e-09, 4.77612e-25])
+      c0 = np.array([3.800000e-09, 0, 0, 3.8e-09])
+      ap = np.array([7.800000e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
+      bp = np.array([7.800000e-09, 0, 7.8e-09, 4.77612e-25]) 
+      cp = np.array([3.800000e-09, 0, 0, 3.8e-09])
 
     spindle_vector = np.array([0,0,0,1])
     mosaic_spread = 0.000000
@@ -184,22 +167,20 @@ cp[3]= 3.8e-09
     return raw_pixels
 
 if __name__=="__main__":
-  raw_pixels_0 = tst_nanoBragg_minimal()
-
-  breakpoint()
-  
-  raw_pixels_1 = tst_torchBragg_minimal()
+  raw_pixels_0 = tst_nanoBragg_minimal().as_numpy_array()
+  raw_pixels_1 = tst_torchBragg_minimal().numpy()
 
   # figure with 2 subplots
   fig, axs = plt.subplots(1, 2)
-  axs[0].imshow(raw_pixels_0.as_numpy_array(), vmax=0.001)
+  axs[0].imshow(raw_pixels_0, vmax=0.001)
   axs[1].imshow(raw_pixels_1, vmax=0.001)
   plt.savefig("nanoBragg_vs_torchBragg.png")
 
   fig, axs = plt.subplots(1, 2)
-  axs[0].imshow(np.log(raw_pixels_0.as_numpy_array()))
+  axs[0].imshow(np.log(raw_pixels_0))
   axs[1].imshow(np.log(raw_pixels_1))
   plt.savefig("nanoBragg_vs_torchBragg_log.png")
 
   breakpoint()
+  assert(np.mean(raw_pixels_0-raw_pixels_1)/np.mean(raw_pixels_0) < 1e-9)
   print("OK")
