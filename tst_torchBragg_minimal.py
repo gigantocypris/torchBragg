@@ -7,9 +7,9 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
-def tst_nanoBragg_minimal(spixels,fpixels):
+def tst_nanoBragg_minimal():
     # create the simulation object, all parameters have sensible defaults
-    SIM = nanoBragg(detpixels_slowfast=(spixels,fpixels))
+    SIM = nanoBragg()
 
     # dont bother with importing a structure, we just want spots
     SIM.default_F = 1
@@ -40,7 +40,10 @@ def tst_nanoBragg_minimal(spixels,fpixels):
 
     return SIM.raw_pixels
 
-def tst_torchBragg_minimal(spixels,fpixels):
+def tst_torchBragg_minimal():
+    spixels = 1024    
+    fpixels = 1024
+
     phisteps = 1
     mosaic_domains = 1
     oversample = 2
@@ -55,34 +58,34 @@ def tst_torchBragg_minimal(spixels,fpixels):
     fluence = 125932015286227086360700780544.0
     detector_thickstep = 0.000000
     Odet = 0.000000
-    fdet_vector = torch.Tensor([0,0,0,1]) 
-    sdet_vector = torch.Tensor([0,0,-1,0]) 
-    odet_vector = torch.Tensor([0,1,0,0]) 
-    pix0_vector = torch.Tensor([0.000000, 0.100000, 0.051300, -0.051300])
+    fdet_vector = np.array([0,0,0,1]) 
+    sdet_vector = np.array([0,0,-1,0]) 
+    odet_vector = np.array([0,1,0,0]) 
+    pix0_vector = np.array([0.000000, 0.100000, 0.051300, -0.051300])
     curved_detector = False
     distance = 0.1 
-    beam_vector =  torch.Tensor([0,1,0,0]) 
+    beam_vector =  np.array([0,1,0,0]) 
     close_distance = 0.100000
     point_pixel = False
     detector_thick = 0.000000
     detector_attnlen = 0.000234
     sources = 1
-    source_X = torch.Tensor([-10.000000])
-    source_Y = torch.Tensor([0.000000])
-    source_Z  = torch.Tensor([0.000000])
-    source_lambda = torch.Tensor([1e-10])
+    source_X = np.array([-10.000000])
+    source_Y = np.array([0.000000])
+    source_Z  = np.array([0.000000])
+    source_lambda = np.array([1e-10])
     dmin = 0.000000
     phi0 = 0.000000
     phistep = 0.000000
 
-    a0 = torch.Tensor([7.8e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
-    b0 = torch.Tensor([7.8e-09, 0, 7.8e-09, 4.77612e-25])
-    c0 = torch.Tensor([3.8e-09, 0, 0, 3.8e-09])
-    ap = torch.Tensor([7.8e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
-    bp = torch.Tensor([7.8e-09, 0, 7.8e-09, 4.77612e-25]) 
-    cp = torch.Tensor([3.8e-09, 0, 0, 3.8e-09])
+    a0 = np.array([7.8e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
+    b0 = np.array([7.8e-09, 0, 7.8e-09, 4.77612e-25])
+    c0 = np.array([3.8e-09, 0, 0, 3.8e-09])
+    ap = np.array([7.8e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
+    bp = np.array([7.8e-09, 0, 7.8e-09, 4.77612e-25]) 
+    cp = np.array([3.8e-09, 0, 0, 3.8e-09])
+    spindle_vector = np.array([0,0,0,1])
 
-    spindle_vector = torch.Tensor([0,0,0,1])
     mosaic_spread = 0.000000
     mosaic_umats = torch.Tensor([1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0])
     xtal_shape = 'SQUARE'
@@ -105,9 +108,9 @@ def tst_torchBragg_minimal(spixels,fpixels):
     Fhkl_data = [10.0]
     default_F = 1.0
     nopolar = False
-    source_I = torch.Tensor([1.000000])
+    source_I = np.array([1.000000])
     polarization = 0
-    polar_vector = torch.Tensor([0,0,0,1])
+    polar_vector = np.array([0,0,0,1])
     verbose=9
 
     Fhkl = {h:v for h,v in zip(Fhkl_indices,Fhkl_data)}
@@ -150,22 +153,20 @@ def tst_torchBragg_minimal(spixels,fpixels):
     return raw_pixels
 
 if __name__=="__main__":
-  spixels = 100 #1024    
-  fpixels = 100 #1024
 
-  raw_pixels_0 = tst_nanoBragg_minimal(spixels, fpixels).as_numpy_array()
-  raw_pixels_1 = tst_torchBragg_minimal(spixels, fpixels).numpy()
+    raw_pixels_0 = tst_nanoBragg_minimal().as_numpy_array()
+    raw_pixels_1 = tst_torchBragg_minimal().numpy()
 
-  # figure with 2 subplots
-  fig, axs = plt.subplots(1, 2)
-  axs[0].imshow(raw_pixels_0, vmax=0.001)
-  axs[1].imshow(raw_pixels_1, vmax=0.001)
-  plt.savefig("nanoBragg_vs_torchBragg.png")
+    # figure with 2 subplots
+    fig, axs = plt.subplots(1, 2)
+    axs[0].imshow(raw_pixels_0, vmax=0.001)
+    axs[1].imshow(raw_pixels_1, vmax=0.001)
+    plt.savefig("nanoBragg_vs_torchBragg.png")
 
-  fig, axs = plt.subplots(1, 2)
-  axs[0].imshow(np.log(raw_pixels_0))
-  axs[1].imshow(np.log(raw_pixels_1))
-  plt.savefig("nanoBragg_vs_torchBragg_log.png")
+    fig, axs = plt.subplots(1, 2)
+    axs[0].imshow(np.log(raw_pixels_0))
+    axs[1].imshow(np.log(raw_pixels_1))
+    plt.savefig("nanoBragg_vs_torchBragg_log.png")
 
-  assert(np.mean(raw_pixels_0-raw_pixels_1)/np.mean(raw_pixels_0) < 1e-9)
-  print("OK")
+    assert(np.mean(raw_pixels_0-raw_pixels_1)/np.mean(raw_pixels_0) < 1e-9)
+    print("OK")
