@@ -11,7 +11,7 @@ from simtbx.nanoBragg import shapetype
 
 torch.set_default_dtype(torch.float64)
 
-def tst_nanoBragg_minimal(randomize_orientation=True, tophat=True):
+def tst_nanoBragg_minimal(randomize_orientation=True, tophat=False):
     # create the simulation object, all parameters have sensible defaults
     # SIM = nanoBragg(detpixels_slowfast=(spixels,fpixels))
     SIM = nanoBragg()
@@ -49,7 +49,7 @@ def tst_nanoBragg_minimal(randomize_orientation=True, tophat=True):
     # SIM.to_smv_format(fileout="noiseimage_001.img")
     return SIM.raw_pixels
 
-def tst_torchBragg_minimal(use_numpy=True, randomize_orientation=True, tophat=True):
+def tst_torchBragg_minimal(use_numpy=True, randomize_orientation=True, tophat=False):
     prefix, new_array = which_package(use_numpy)
 
     spixels = 1024   
@@ -181,7 +181,7 @@ def tst_torchBragg_minimal(use_numpy=True, randomize_orientation=True, tophat=Tr
 if __name__=="__main__":    
     
     use_numpy = True
-    
+
     raw_pixels_0 = tst_nanoBragg_minimal().as_numpy_array()
     raw_pixels_1 = tst_torchBragg_minimal(use_numpy=use_numpy)
     
