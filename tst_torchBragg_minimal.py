@@ -11,14 +11,14 @@ from simtbx.nanoBragg import shapetype
 
 torch.set_default_dtype(torch.float64)
 
-def tst_nanoBragg_minimal(spixels,fpixels, randomize_orientation=True, tophat=True):
+def tst_nanoBragg_minimal(randomize_orientation=True, tophat=True):
     # create the simulation object, all parameters have sensible defaults
     # SIM = nanoBragg(detpixels_slowfast=(spixels,fpixels))
     SIM = nanoBragg()
 
     if randomize_orientation:
-      SIM.seed = 10
-      SIM.randomize_orientation()
+        SIM.seed = 10
+        SIM.randomize_orientation()
 
     # don't bother with importing a structure, we just want spots
     SIM.default_F = 1
@@ -27,7 +27,7 @@ def tst_nanoBragg_minimal(spixels,fpixels, randomize_orientation=True, tophat=Tr
     # default is one unit cell, let's do 125
     SIM.Ncells_abc = (5,5,5)
     if tophat:
-      SIM.xtal_shape = shapetype.Tophat
+        SIM.xtal_shape = shapetype.Tophat
     # default orientation is with a axis down the beam, lets pick a random one
     # SIM.randomize_orientation()
 
@@ -49,9 +49,11 @@ def tst_nanoBragg_minimal(spixels,fpixels, randomize_orientation=True, tophat=Tr
     # SIM.to_smv_format(fileout="noiseimage_001.img")
     return SIM.raw_pixels
 
-def tst_torchBragg_minimal(spixels,fpixels, use_numpy=True, randomize_orientation=True, tophat=True):
+def tst_torchBragg_minimal(use_numpy=True, randomize_orientation=True, tophat=True):
     prefix, new_array = which_package(use_numpy)
 
+    spixels = 1024   
+    fpixels = 1024
     phisteps = 1
     mosaic_domains = 1
     oversample = 2
@@ -95,30 +97,30 @@ def tst_torchBragg_minimal(spixels,fpixels, use_numpy=True, randomize_orientatio
 
 
     if randomize_orientation:
-      # with randomize_orientation(), seed = 10
-      a0 = np.array([7.800000e-09, 6.02977e-09, -3.41442e-09, 3.581e-09])
-      b0 = np.array([7.800000e-09, 4.85875e-09, 5.15285e-09, -3.26813e-09])
-      c0 = np.array([3.800000e-09, -4.55546e-10, 2.31756e-09, 2.97681e-09])
-      ap = np.array([7.800000e-09, 6.02977e-09, -3.41442e-09, 3.581e-09])
-      bp = np.array([7.800000e-09, 4.85875e-09, 5.15285e-09, -3.26813e-09]) 
-      cp = np.array([3.800000e-09, -4.55546e-10, 2.31756e-09, 2.97681e-09])
+        # with randomize_orientation(), seed = 10
+        a0 = np.array([7.800000e-09, 6.02977e-09, -3.41442e-09, 3.581e-09])
+        b0 = np.array([7.800000e-09, 4.85875e-09, 5.15285e-09, -3.26813e-09])
+        c0 = np.array([3.800000e-09, -4.55546e-10, 2.31756e-09, 2.97681e-09])
+        ap = np.array([7.800000e-09, 6.02977e-09, -3.41442e-09, 3.581e-09])
+        bp = np.array([7.800000e-09, 4.85875e-09, 5.15285e-09, -3.26813e-09]) 
+        cp = np.array([3.800000e-09, -4.55546e-10, 2.31756e-09, 2.97681e-09])
     else:
-      # without randomize_orientation()
-      a0 = np.array([7.800000e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
-      b0 = np.array([7.800000e-09, 0, 7.8e-09, 4.77612e-25])
-      c0 = np.array([3.800000e-09, 0, 0, 3.8e-09])
-      ap = np.array([7.800000e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
-      bp = np.array([7.800000e-09, 0, 7.8e-09, 4.77612e-25]) 
-      cp = np.array([3.800000e-09, 0, 0, 3.8e-09])
+        # without randomize_orientation()
+        a0 = np.array([7.800000e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
+        b0 = np.array([7.800000e-09, 0, 7.8e-09, 4.77612e-25])
+        c0 = np.array([3.800000e-09, 0, 0, 3.8e-09])
+        ap = np.array([7.800000e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
+        bp = np.array([7.800000e-09, 0, 7.8e-09, 4.77612e-25]) 
+        cp = np.array([3.800000e-09, 0, 0, 3.8e-09])
 
     spindle_vector = np.array([0,0,0,1])
     mosaic_spread = 0.000000
     # mosaic_umats = new_array([[1.0, 0, 0],[0, 1.0, 0],[0, 0, 1.0]])
     mosaic_umats = np.array([1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0])
     if tophat:
-      xtal_shape = 'TOPHAT' 
+       xtal_shape = 'TOPHAT' 
     else:
-      xtal_shape = 'SQUARE'
+        xtal_shape = 'SQUARE'
 
     Na = 5.0
     Nb = 5.0
@@ -185,28 +187,25 @@ def tst_torchBragg_minimal(spixels,fpixels, use_numpy=True, randomize_orientatio
     return raw_pixels
 
 if __name__=="__main__":
-  spixels = 1024    
-  fpixels = 1024
-  use_numpy = True
 
-  raw_pixels_0 = tst_nanoBragg_minimal(spixels, fpixels).as_numpy_array()
-  raw_pixels_1 = tst_torchBragg_minimal(spixels, fpixels, use_numpy=use_numpy)
+    use_numpy = True
 
-  raw_pixels_1 = raw_pixels_1.numpy()
-  
-  if not(use_numpy):
-    raw_pixels_1 = raw_pixels_1.numpy()
+    raw_pixels_0 = tst_nanoBragg_minimal().as_numpy_array()
+    raw_pixels_1 = tst_torchBragg_minimal(use_numpy=use_numpy)
+    
+    if not(use_numpy):
+        raw_pixels_1 = raw_pixels_1.numpy()
 
-  # figure with 2 subplots
-  fig, axs = plt.subplots(1, 2)
-  axs[0].imshow(raw_pixels_0, vmax=0.001)
-  axs[1].imshow(raw_pixels_1, vmax=0.001)
-  plt.savefig("nanoBragg_vs_torchBragg2.png")
+    # figure with 2 subplots
+    fig, axs = plt.subplots(1, 2)
+    axs[0].imshow(raw_pixels_0, vmax=0.001)
+    axs[1].imshow(raw_pixels_1, vmax=0.001)
+    plt.savefig("nanoBragg_vs_torchBragg2.png")
 
-  fig, axs = plt.subplots(1, 2)
-  axs[0].imshow(np.log(raw_pixels_0))
-  axs[1].imshow(np.log(raw_pixels_1))
-  plt.savefig("nanoBragg_vs_torchBragg_log2.png")
+    fig, axs = plt.subplots(1, 2)
+    axs[0].imshow(np.log(raw_pixels_0))
+    axs[1].imshow(np.log(raw_pixels_1))
+    plt.savefig("nanoBragg_vs_torchBragg_log2.png")
 
-  assert(np.mean(raw_pixels_0-raw_pixels_1)/np.mean(raw_pixels_0) < 1e-9)
-  print("OK")
+    assert(np.mean(raw_pixels_0-raw_pixels_1)/np.mean(raw_pixels_0) < 1e-9)
+    print("OK")
