@@ -41,7 +41,7 @@ def add_torchBragg_spots(spixels,
                         polarization,
                         polar_vector,
                         verbose=9,
-                        use_numpy=False):
+                        use_numpy=True):
     
     prefix, new_array = which_package(use_numpy)
 
