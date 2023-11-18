@@ -157,15 +157,15 @@ def polarization_factor(kahn_factor, incident, diffracted, axis, use_numpy):
         # here we assume it is closest to the "axis" defined above
 
         # cross product to get "vertical" axis that is orthogonal to the cannonical "polarization"
-        B_in = cross_product(axis,incident)
+        B_in = cross_product(axis,incident, use_numpy)
         # make it a unit vector
-        _, B_in = unitize(B_in)
+        _, B_in = unitize(B_in, use_numpy)
 
         # cross product with incident beam to get E-vector direction
-        E_in = cross_product(incident,B_in)
+        E_in = cross_product(incident,B_in, use_numpy)
 
         # make it a unit vector
-        E_in_mag, E_in = unitize(E_in)
+        E_in_mag, E_in = unitize(E_in, use_numpy)
 
         # get components of diffracted ray projected onto the E-B plane
         E_out[0] = dot_product(diffracted,E_in)

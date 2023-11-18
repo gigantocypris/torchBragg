@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from utils import rotate_axis, unitize, dot_product, magnitude, polint, polarization_factor, r_e_sqr
+from utils import rotate_axis, unitize, dot_product, magnitude, polint, polarization_factor, r_e_sqr, which_package
 
 def add_background(oversample, 
                    override_source,
@@ -18,15 +18,16 @@ def add_background(oversample,
                    close_distance, point_pixel, detector_thick, detector_attnlen,
                    source_I, source_X, source_Y, source_Z, source_wavelength,
                    stol_of, stols, Fbg_of, nopolar, polarization, polar_vector,
-                   verbose,
+                   verbose, use_numpy,
                    ):
     
+    prefix, new_array = which_package(use_numpy)
     source_start = 0
     orig_sources = sources
     end_sources = sources
     max_I = 0.0
-    raw_pixels = torch.zeros((spixels,fpixels))
-    invalid_pixel = torch.zeros((spixels,fpixels),dtype=bool)
+    raw_pixels = prefix.zeros((spixels,fpixels))
+    invalid_pixel = prefix.zeros((spixels,fpixels),dtype=bool)
     have_single_source = False
 
     if override_source>=0:
@@ -85,7 +86,7 @@ def add_background(oversample,
                                                                 have_single_source, source_I,
                                                                 orig_sources, source_X, source_Y, source_Z,
                                                                 source_wavelength, nearest, stol_of, stols, Fbg_of,
-                                                                nopolar, polarization, polar_vector, verbose, i)
+                                                                nopolar, polarization, polar_vector, verbose, i, use_numpy)
                             Ibg += Ibg_contribution
                 
                 # save photons/pixel (if fluence specified), or F^2/omega if no fluence given
@@ -135,13 +136,14 @@ def get_thickness_contribution(thick_tic,
                                 have_single_source, source_I,
                                 orig_sources, source_X, source_Y, source_Z,
                                 source_wavelength, nearest, stol_of, stols, Fbg_of,
-                                nopolar, polarization, polar_vector, verbose, i
+                                nopolar, polarization, polar_vector, verbose, i, use_numpy,
                                 ):
-    
+    prefix, new_array = which_package(use_numpy)
+
     Ibg = 0
     # assume "distance" is to the front of the detector sensor layer
     Odet = thick_tic*detector_thickstep
-    pixel_pos = torch.zeros([4,])
+    pixel_pos = prefix.zeros([4,])
 
     # construct detector pixel position in 3D space
     pixel_pos[1] = Fdet*fdet_vector[1]+Sdet*sdet_vector[1]+Odet*odet_vector[1]+pix0_vector[1]
@@ -150,17 +152,17 @@ def get_thickness_contribution(thick_tic,
 
     if curved_detector:
         # construct detector pixel that is always "distance" from the sample
-        vector = torch.zeros([4,])
+        vector = prefix.zeros([4,])
         vector[1] = distance*beam_vector[1]
         vector[2] = distance*beam_vector[2]
         vector[3] = distance*beam_vector[3]
 
         # treat detector pixel coordinates as radians
-        newvector = rotate_axis(vector,sdet_vector,pixel_pos[2]/distance)
-        pixel_pos = rotate_axis(newvector,fdet_vector,pixel_pos[3]/distance)
+        newvector = rotate_axis(vector,sdet_vector,pixel_pos[2]/distance, use_numpy)
+        pixel_pos = rotate_axis(newvector,fdet_vector,pixel_pos[3]/distance, use_numpy)
 
     # construct the diffracted-beam unit vector to this pixel
-    airpath, diffracted = unitize(pixel_pos)
+    airpath, diffracted = unitize(pixel_pos, use_numpy)
     
     # solid angle subtended by a pixel: (pix/airpath)^2*cos(2theta)
     omega_pixel = pixel_size*pixel_size/airpath/airpath*close_distance/airpath
@@ -173,7 +175,7 @@ def get_thickness_contribution(thick_tic,
     if detector_thick > 0.0:
         # inverse of effective thickness increase
         parallax = dot_product(diffracted,odet_vector)
-        capture_fraction = torch.exp(-thick_tic*detector_thickstep/detector_attnlen/parallax) - torch.exp(-(thick_tic+1)*detector_thickstep/detector_attnlen/parallax)
+        capture_fraction = prefix.exp(-thick_tic*detector_thickstep/detector_attnlen/parallax) - prefix.exp(-(thick_tic+1)*detector_thickstep/detector_attnlen/parallax)
     else:
         capture_fraction = 1.0
 
@@ -188,6 +190,7 @@ def get_thickness_contribution(thick_tic,
                             nearest, stol_of, stols, Fbg_of,
                             nopolar, polarization, polar_vector,
                             omega_pixel, capture_fraction, verbose, i,
+                            use_numpy,
                             )
         Ibg += Ibg_contribution
     return(Ibg, Fbg)
@@ -201,13 +204,16 @@ def get_source_contribution(source,
                             nearest, stol_of, stols, Fbg_of,
                             nopolar, polarization, polar_vector,
                             omega_pixel, capture_fraction, verbose, i,
+                            use_numpy,
                            ):    
+    prefix, new_array = which_package(use_numpy)
+
     if have_single_source:
         n_source_scale = orig_sources
     else:
         n_source_scale = source_I[source]
 
-    incident = torch.zeros([4,])
+    incident = prefix.zeros([4,])
     incident[1] = -source_X[source]
     incident[2] = -source_Y[source]
     incident[3] = -source_Z[source]
@@ -216,20 +222,20 @@ def get_source_contribution(source,
     wavelength = source_wavelength[source]
 
     # construct the incident beam unit vector while recovering source distance
-    source_path, incident = unitize(incident)
+    source_path, incident = unitize(incident, use_numpy)
 
     # construct the scattering vector for this pixel
-    scattering = torch.zeros([4,])
+    scattering = prefix.zeros([4,])
     scattering[1] = (diffracted[1]-incident[1])/wavelength
     scattering[2] = (diffracted[2]-incident[2])/wavelength
     scattering[3] = (diffracted[3]-incident[3])/wavelength
 
     # sin(theta)/lambda is half the scattering vector length
-    stol = 0.5*magnitude(scattering)
+    stol = 0.5*magnitude(scattering, use_numpy)
 
     # now we need to find the nearest four "stol file" points
     dist = stol_of[2:-3]-stol
-    nearest = torch.argmin(torch.abs(dist[dist<0]))+2
+    nearest = prefix.argmin(prefix.abs(dist[dist<0]))+2
 
     # cubic spline interpolation
     Fbg = polint(stol_of[nearest-1:nearest+3], Fbg_of[nearest-1:nearest+3], stol)
@@ -244,7 +250,7 @@ def get_source_contribution(source,
     # polarization factor
     if(not(nopolar)):
         # need to compute polarization factor
-        polar = polarization_factor(polarization,incident,diffracted,polar_vector)
+        polar = polarization_factor(polarization,incident,diffracted,polar_vector, use_numpy)
     else:
         polar = 1.0
     
