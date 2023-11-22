@@ -41,17 +41,36 @@ def add_torchBragg_spots(spixels,
                         polarization,
                         polar_vector,
                         verbose=9,
-                        use_numpy=False):
+                        use_numpy=True):
     
     prefix, new_array = which_package(use_numpy)
 
     max_I = 0.0
-    raw_pixels = prefix.zeros((spixels,fpixels))
-    raw_pixels_subpixel_thickness_source_phi_mosaic = prefix.zeros((spixels*oversample,fpixels*oversample,detector_thicksteps,sources,phisteps,mosaic_domains))
+    subpixel_size = pixel_size/oversample
+    # raw_pixels = prefix.zeros((spixels,fpixels))
+    raw_pixels = prefix.zeros((spixels*oversample,fpixels*oversample, detector_thicksteps, sources, phisteps, mosaic_domains))
+
+    # Get Fdet and Sdet (detector coordinates) for every subpixel
+    s_vec = prefix.arange(spixels*oversample)
+    f_vec = prefix.arange(fpixels*oversample)
+    s_mat, f_mat = prefix.meshgrid(s_vec, f_vec, indexing='ij')
+
+    Fdet_mat = subpixel_size*f_mat + subpixel_size/2.0 # function of index 0 and 1
+    Sdet_mat = subpixel_size*s_mat + subpixel_size/2.0 # function of index 0 and 1
+
+    # assume "distance" is to the front of the detector sensor layer
+    Odet = prefix.arange(detector_thicksteps)*detector_thickstep # function of index 2
+
+    # STOPPED HERE
     
+    # construct detector subpixel position in 3D space
+    pixel_pos = find_pixel_pos(Fdet, Sdet, Odet, fdet_vector, sdet_vector, odet_vector, pix0_vector,
+                   curved_detector, distance, beam_vector, use_numpy)
+    # PREVIOUS CODE
+
     # make sure we are normalizing with the right number of sub-steps
     steps = phisteps*mosaic_domains*oversample*oversample
-    subpixel_size = pixel_size/oversample
+    
 
     sum = 0.0
     sumsqr = 0.0
@@ -62,8 +81,8 @@ def add_torchBragg_spots(spixels,
     pixel_linear_ind = -1
     for spixel in range(spixels):
         for fpixel in range(fpixels):
-            print("spixel is: ", spixel)
-            print("fpixel is: ", fpixel)
+            # print("spixel is: ", spixel)
+            # print("fpixel is: ", fpixel)
 
             pixel_linear_ind += 1
             # reset photon count for this pixel

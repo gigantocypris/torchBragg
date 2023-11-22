@@ -368,8 +368,8 @@ def tst_torchBragg_basic(spixels, fpixels, params, use_numpy):
 
 
 if __name__=="__main__":
-  spixels = 200
-  fpixels = 200
+  spixels = 256
+  fpixels = 256
   use_numpy = False
 
   raw_pixels_0, params = tst_nanoBragg_basic(spixels,fpixels)
@@ -390,6 +390,6 @@ if __name__=="__main__":
   # cbar2 = fig.colorbar(im2, ax=axs[1])
   plt.savefig("nanoBragg_vs_torchBragg_basic.png")
 
-  breakpoint()
+  assert(np.mean(np.abs(raw_pixels_0-raw_pixels_1))/np.mean(raw_pixels_0) < 1e-10)
 
   print("OK")

@@ -11,9 +11,9 @@ from simtbx.nanoBragg import shapetype
 
 torch.set_default_dtype(torch.float64)
 
-def tst_nanoBragg_minimal(spixels, fpixels, randomize_orientation=True, tophat=False):
+def tst_nanoBragg_minimal(spixels, fpixels, randomize_orientation=True, tophat=True):
     # create the simulation object, all parameters have sensible defaults
-    SIM = nanoBragg(detpixels_slowfast=(spixels,fpixels))
+    SIM = nanoBragg(detpixels_slowfast=(spixels,fpixels),pixel_size_mm=0.1,Ncells_abc=(5,5,5),verbose=9)
     # SIM = nanoBragg()
 
     if randomize_orientation:
@@ -47,13 +47,11 @@ def tst_nanoBragg_minimal(spixels, fpixels, randomize_orientation=True, tophat=F
     # SIM.raw_pixels*=2000
     # SIM.add_noise()
     # SIM.to_smv_format(fileout="noiseimage_001.img")
-    return SIM.raw_pixels
+    return SIM.raw_pixels, SIM.pix0_vector_mm
 
-def tst_torchBragg_minimal(spixels, fpixels, use_numpy=True, randomize_orientation=True, tophat=False):
+def tst_torchBragg_minimal(spixels, fpixels, pix0_vector_mm, use_numpy=True, randomize_orientation=True, tophat=True):
     prefix, new_array = which_package(use_numpy)
 
-    # spixels = 1024
-    # fpixels = 1024
     phisteps = 1
     mosaic_domains = 1
     oversample = 2
@@ -71,7 +69,7 @@ def tst_torchBragg_minimal(spixels, fpixels, use_numpy=True, randomize_orientati
     fdet_vector = new_array([0,0,0,1]) 
     sdet_vector = new_array([0,0,-1,0]) 
     odet_vector = new_array([0,1,0,0]) 
-    pix0_vector = new_array([0.000000, 0.100000, 0.051300, -0.051300])
+    pix0_vector = new_array([0.000000, pix0_vector_mm[0]/1e3, pix0_vector_mm[1]/1e3, pix0_vector_mm[2]/1e3])
     curved_detector = False
     distance = 0.1 
     beam_vector =  new_array([0,1,0,0]) 
@@ -180,15 +178,18 @@ def tst_torchBragg_minimal(spixels, fpixels, use_numpy=True, randomize_orientati
 
 if __name__=="__main__":    
     
-    use_numpy = True
+    use_numpy = False
+    randomize_orientation = False
+    tophat = False
 
     # does not work for modified sizes
-    spixels = 1024
-    fpixels = 1024
+    spixels = 128
+    fpixels = 128
 
-    raw_pixels_0 = tst_nanoBragg_minimal(spixels,fpixels).as_numpy_array()
-    raw_pixels_1 = tst_torchBragg_minimal(spixels,fpixels,use_numpy=use_numpy)
+    raw_pixels_0, pix0_vector_mm = tst_nanoBragg_minimal(spixels,fpixels, randomize_orientation=randomize_orientation, tophat=tophat)
+    raw_pixels_1 = tst_torchBragg_minimal(spixels,fpixels, pix0_vector_mm, randomize_orientation=randomize_orientation, tophat=tophat, use_numpy=use_numpy)
     
+    raw_pixels_0 = raw_pixels_0.as_numpy_array()
     if not(use_numpy):
         raw_pixels_1 = raw_pixels_1.numpy()
 
@@ -203,5 +204,5 @@ if __name__=="__main__":
     axs[1].imshow(np.log(raw_pixels_1))
     plt.savefig("nanoBragg_vs_torchBragg_log.png")
 
-    assert(np.mean(raw_pixels_0-raw_pixels_1)/np.mean(raw_pixels_0) < 1e-9)
+    assert(np.mean(np.abs(raw_pixels_0-raw_pixels_1))/np.mean(raw_pixels_0) < 1e-10)
     print("OK")
