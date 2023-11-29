@@ -68,20 +68,40 @@ def add_torchBragg_spots(spixels,
 
     if curved_detector:
         raise NotImplementedError
-    
+
+    # construct the diffracted-beam unit vector to this sub-pixel
+    airpath_mat = prefix.sqrt(prefix.sum(pixel_pos_mat**2,axis=-1))
+    airpath_mat[airpath_mat==0] = -1
+
+    diffracted_mat = pixel_pos_mat/airpath_mat[:,:,:,None]
+    diffracted_mat[airpath_mat == -1] = 0
+    airpath_mat[airpath_mat==-1] = 0
+
+    # solid angle subtended by a pixel: (pix/airpath)^2*cos(2theta)
+    omega_pixel = (pixel_size/airpath_mat)**2*close_distance/airpath_mat
+    # option to turn off obliquity effect, inverse-square-law only
+    if(point_pixel):
+        omega_pixel = 1.0/airpath_mat/airpath_mat   
+
+    # now calculate detector thickness effects
+    if(detector_thick > 0.0 and detector_attnlen > 0.0):
+        thick_tic_vec = prefix.arange(detector_thicksteps)[None,None,:]
+        # inverse of effective thickness increase
+        parallax_mat = prefix.sum(diffracted_mat*odet_vector[None,None,None,:], axis=-1)
+
+        capture_fraction = prefix.exp(-thick_tic_vec*detector_thickstep/detector_attnlen/parallax_mat) \
+                            - prefix.exp(-(thick_tic_vec+1)*detector_thickstep/detector_attnlen/parallax_mat)
+    else:
+        capture_fraction = 1.0
+
     breakpoint()
     # STOPPED HERE
-    # PREVIOUS CODE
+
+
 
     # make sure we are normalizing with the right number of sub-steps
     steps = phisteps*mosaic_domains*oversample*oversample
-    
 
-    sum = 0.0
-    sumsqr = 0.0
-    sumn = 0
-    progress_pixel = 0
-    omega_sum = 0.0
 
     pixel_linear_ind = -1
     for spixel in range(spixels):
@@ -93,23 +113,13 @@ def add_torchBragg_spots(spixels,
             # reset photon count for this pixel
             I = 0
 
-            # allow for just one part of detector to be rendered
-            if(fpixel < roi_xmin or fpixel > roi_xmax or spixel < roi_ymin or spixel > roi_ymax):
-                # out-of-bounds, move on to next pixel
-                print("skipping pixel %d %d\n",spixel,fpixel)
-            # allow for the use of a mask
-            elif(maskimage != None):
-                # skip any flagged pixels in the mask
-                if(maskimage[pixel_linear_ind] == 0):
-                    print("skipping pixel %d %d\n",spixel,fpixel)
-            else: # render pixel
-                # loop over sub-pixels
-                for subS in range(oversample):
-                    for subF in range(oversample):
-                        Fdet, Sdet = detector_position(subpixel_size, oversample, fpixel, spixel, subF, subS)
-                        # loop over detector thickness
-                        for thick_tic in range(detector_thicksteps):
-                            I_contribution, polar = find_detector_thickstep_contribution(thick_tic,
+            # loop over sub-pixels
+            for subS in range(oversample):
+                for subF in range(oversample):
+                    Fdet, Sdet = detector_position(subpixel_size, oversample, fpixel, spixel, subF, subS)
+                    # loop over detector thickness
+                    for thick_tic in range(detector_thicksteps):
+                        I_contribution, polar, omega_sum = find_detector_thickstep_contribution(thick_tic,
                                                                                         detector_thickstep,
                                                                                         Fdet, Sdet, Odet,
                                                                                         fdet_vector, sdet_vector, odet_vector, pix0_vector,
@@ -140,26 +150,15 @@ def add_torchBragg_spots(spixels,
                                                                                         verbose,
                                                                                         use_numpy
                                                                                         )
-                            I += I_contribution
-                # end of sub-pixel loop
+                        I += I_contribution
+            # end of sub-pixel loop
 
-                raw_pixels[spixel,fpixel] += r_e_sqr*fluence*spot_scale*polar*I/steps
-                
-                if(raw_pixels[spixel,fpixel] > max_I):
-                    max_I = raw_pixels[spixel,fpixel]
-                    max_I_x = Fdet
-                    max_I_y = Sdet
-                
-                sum += raw_pixels[spixel,fpixel]
-                sumsqr += raw_pixels[spixel,fpixel]*raw_pixels[spixel,fpixel]
-                sumn += 1
+            raw_pixels[spixel,fpixel] += r_e_sqr*fluence*spot_scale*polar*I/steps
+            
 
-                # print_pixel_output()
     
     if(verbose):
         print("done with pixel loop")
-        print("solid angle subtended by detector = %g steradian ( %g%% sphere)" % (omega_sum/steps,100*omega_sum/steps/4/np.pi))
-        print("max_I= %g sum= %g avg= %g" % (max_I,sum,sum/sumn))
 
     return raw_pixels
 
@@ -228,6 +227,7 @@ def find_detector_thickstep_contribution(thick_tic,
     else:
         capture_fraction = 1.0
 
+    # STOPPED HERE
 
     # loop over sources now
     for source in range(sources):
