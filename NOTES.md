@@ -319,3 +319,9 @@ Testing apply_psf.py
 torchBragg minimal test:
 > cd $WORK/output_torchBragg
 > libtbx.python $MODULES/torchBragg/tst_torchBragg_minimal.py
+
+# November 28, 2023
+
+Testing diffraction_vectorized:
+> cd $WORK/output_torchBragg
+> libtbx.python $MODULES/torchBragg/tst_torchBragg_minimal_vectorized.py

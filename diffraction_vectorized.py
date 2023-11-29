@@ -1,4 +1,3 @@
-import torch
 import numpy as np
 from utils import rotate_axis, rotate_umat, dot_product, sincg, sinc3, \
     cross_product, vector_scale, magnitude, unitize, polarization_factor, \
@@ -59,13 +58,19 @@ def add_torchBragg_spots(spixels,
     Sdet_mat = subpixel_size*s_mat + subpixel_size/2.0 # function of index 0 and 1
 
     # assume "distance" is to the front of the detector sensor layer
-    Odet = prefix.arange(detector_thicksteps)*detector_thickstep # function of index 2
+    Odet_vec = prefix.arange(detector_thicksteps)*detector_thickstep # function of index 2
 
-    # STOPPED HERE
     
     # construct detector subpixel position in 3D space
-    pixel_pos = find_pixel_pos(Fdet, Sdet, Odet, fdet_vector, sdet_vector, odet_vector, pix0_vector,
-                   curved_detector, distance, beam_vector, use_numpy)
+    # pixel_pos_mat is [Fdet_mat.shape[0], Fdet_mat.shape[1], len(Odet_vec), 3]
+    pixel_pos_mat = Fdet_mat[:,:,None,None]*fdet_vector[None,None,None,:]+Sdet_mat[:,:,None,None]*sdet_vector[None,None,None,:]+Odet_vec[None,None,:,None]*odet_vector[None,None,None,:]+pix0_vector[None,None,None,:] 
+
+
+    if curved_detector:
+        raise NotImplementedError
+    
+    breakpoint()
+    # STOPPED HERE
     # PREVIOUS CODE
 
     # make sure we are normalizing with the right number of sub-steps
