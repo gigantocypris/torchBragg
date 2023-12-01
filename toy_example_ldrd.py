@@ -30,7 +30,7 @@ if __name__ == '__main__':
     # find the x that fits the observed z, given assumed coeff and operations
 
     # initial conditions
-    x_0 = (torch.ones([2, observed_z.shape[1]])*5
+    x_0 = torch.ones([2, observed_z.shape[1]])*5
 
     # allow the coefficients to vary
 
