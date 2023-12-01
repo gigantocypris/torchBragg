@@ -3,7 +3,7 @@ from utils import rotate_axis, rotate_umat, dot_product, sincg, sinc3, \
     cross_product, vector_scale, magnitude, unitize, polarization_factor, \
     detector_position, find_pixel_pos, r_e_sqr, which_package
 
-
+from utils_vectorized import sincg_vectorized, sinc3_vectorized
 
 def add_torchBragg_spots(spixels, 
                         fpixels,
@@ -109,6 +109,7 @@ def add_torchBragg_spots(spixels,
     # construct the scattering vector for each pixel
     # Add sources dimension to diffracted_mat --> diffracted_mat[:,:,:,None,:]
     scattering_mat = diffracted_mat[:,:,:,None,:] - incident_mat[None,None,None,:,:]/source_lambda[None,None,None,:,None]
+    # scattering_mat is subpixels_x, subpixels_y, detector_thicksteps, sources, 3
 
     # sin(theta)/lambda_0 is half the scattering vector length
     stol = 0.5*prefix.sqrt(prefix.sum(scattering_mat**2,axis=-1))
@@ -120,120 +121,64 @@ def add_torchBragg_spots(spixels,
     # reshape mosaic_umats to [mosaic_domains, 3, 3]
     mosaic_umats_reshape = mosaic_umats.reshape((mosaic_domains, 3, 3))
 
-    breakpoint()
+    
     # STOPPED HERE
-
-    a = rotate_umat(ap,mosaic_umats[mos_tic*9:mos_tic*9+9], use_numpy)
-    b = rotate_umat(bp,mosaic_umats[mos_tic*9:mos_tic*9+9], use_numpy)
-    c = rotate_umat(cp,mosaic_umats[mos_tic*9:mos_tic*9+9], use_numpy)
+    a = mosaic_umats_reshape @ ap # mosaic domains x 3
+    b = mosaic_umats_reshape @ bp # mosaic domains x 3
+    c = mosaic_umats_reshape @ cp # mosaic domains x 3
 
     # construct fractional Miller indicies
-    h = dot_product(a,scattering)
-    k = dot_product(b,scattering)
-    l = dot_product(c,scattering)
+    # scattering_mat --> scattering_mat[:,:,:,:,None,:] to add the mosaic domains dimension
+    h = prefix.sum(a[None,None,None,None,:,:]*scattering_mat[:,:,:,:,None,:], axis=-1)
+    k = prefix.sum(b[None,None,None,None,:,:]*scattering_mat[:,:,:,:,None,:], axis=-1)
+    l = prefix.sum(c[None,None,None,None,:,:]*scattering_mat[:,:,:,:,None,:], axis=-1)
+    # h,k,l are subpixels_x, subpixels_y, detector_thicksteps, sources, mosaic_domains
 
     # round off to nearest whole index
-    h0 = int(prefix.ceil(h-0.5))
-    k0 = int(prefix.ceil(k-0.5))
-    l0 = int(prefix.ceil(l-0.5))
+    h0 = prefix.ceil(h-0.5)
+    k0 = prefix.ceil(k-0.5)
+    l0 = prefix.ceil(l-0.5)
+
+    
 
     # structure factor of the lattice
-    F_latt = 1.0
+    
     if(xtal_shape == 'SQUARE'):
         # xtal is a paralelpiped
+        F_latt = prefix.ones_like(h)
         if(Na>1):
-            F_latt *= sincg(np.pi*h,Na, use_numpy)
+            F_latt *= sincg_vectorized(np.pi*h, Na, prefix)
         if(Nb>1):
-            F_latt *= sincg(np.pi*k,Nb, use_numpy)
+            F_latt *= sincg_vectorized(np.pi*k, Nb, prefix)
         if(Nc>1):
-            F_latt *= sincg(np.pi*l,Nc, use_numpy)
+            F_latt *= sincg_vectorized(np.pi*l, Nc, prefix)
+        breakpoint()
     else:
         #handy radius in reciprocal space, squared
         hrad_sqr = (h-h0)*(h-h0)*Na*Na + (k-k0)*(k-k0)*Nb*Nb + (l-l0)*(l-l0)*Nc*Nc
         
-    
-    if(xtal_shape == 'ROUND'):
-        # use sinc3 for elliptical xtal shape,
-        # correcting for sqrt of volume ratio between cube and sphere
-        F_latt = Na*Nb*Nc*0.723601254558268*sinc3(np.pi*prefix.sqrt(hrad_sqr * fudge), use_numpy)
-    if(xtal_shape == 'GAUSS'):
-        # fudge the radius so that volume and FWHM are similar to square_xtal spots
-        F_latt = Na*Nb*Nc*prefix.exp(-( hrad_sqr / 0.63 * fudge ))
-    if (xtal_shape == 'GAUSS_ARGCHK'):
-        # fudge the radius so that volume and FWHM are similar to square_xtal spots
-        my_arg = hrad_sqr / 0.63 * fudge # pre-calculate to check for no Bragg signal
-        if (my_arg<35.):
-            F_latt = Na * Nb * Nc * prefix.exp(-(my_arg))
+        if(xtal_shape == 'ROUND'):
+            # use sinc3 for elliptical xtal shape,
+            # correcting for sqrt of volume ratio between cube and sphere
+            F_latt = Na*Nb*Nc*0.723601254558268*sinc3_vectorized(np.pi*prefix.sqrt(hrad_sqr * fudge), prefix)
+        elif(xtal_shape == 'GAUSS'):
+            # fudge the radius so that volume and FWHM are similar to square_xtal spots
+            F_latt = Na*Nb*Nc*prefix.exp(-( hrad_sqr / 0.63 * fudge ))
+        elif (xtal_shape == 'GAUSS_ARGCHK'):
+            # fudge the radius so that volume and FWHM are similar to square_xtal spots
+            my_arg = hrad_sqr / 0.63 * fudge # pre-calculate to check for no Bragg signal
+            F_latt[my_arg<35.] = Na * Nb * Nc * prefix.exp(-(my_arg[my_arg<35.]))
+            F_latt[my_arg>=35.] = 0. # not expected to give performance gain on optimized C++, only on GPU
+        elif(xtal_shape == 'TOPHAT'):
+            # make a flat-top spot of same height and volume as square_xtal spots
+            F_latt = Na*Nb*Nc*(hrad_sqr*fudge < 0.3969 )
         else:
-            F_latt = 0. # not expected to give performance gain on optimized C++, only on GPU
-    if(xtal_shape == 'TOPHAT'):
-        # make a flat-top spot of same height and volume as square_xtal spots
-        F_latt = Na*Nb*Nc*(hrad_sqr*fudge < 0.3969 )
+            F_latt = prefix.ones_like(h)
 
-
-    # no need to go further if result will be zero
-    if(F_latt == 0.0):
-        return F_latt, 0
-
-
-    # find nearest point on Ewald sphere surface?
+    #  STOPPED HERE
+    # Experimental: find nearest point on Ewald sphere surface?
     if(integral_form):
-        if(phi != 0.0 or mos_tic > 0):
-            # need to re-calculate reciprocal matrix
-
-            # various cross products
-            a_cross_b = cross_product(a,b, use_numpy)
-            b_cross_c = cross_product(b,c, use_numpy)
-            c_cross_a = cross_product(c,a, use_numpy)
-
-            # new reciprocal-space cell vectors
-            a_star = vector_scale(b_cross_c,1e20/V_cell, use_numpy)
-            b_star = vector_scale(c_cross_a,1e20/V_cell, use_numpy)
-            c_star = vector_scale(a_cross_b,1e20/V_cell, use_numpy)
-
-        # reciprocal-space coordinates of nearest relp
-        relp = prefix.zeros(4)
-        relp[1] = h0*a_star[1] + k0*b_star[1] + l0*c_star[1]
-        relp[2] = h0*a_star[2] + k0*b_star[2] + l0*c_star[2]
-        relp[3] = h0*a_star[3] + k0*b_star[3] + l0*c_star[3]
-        # d_star = magnitude(relp, use_numpy)
-
-        # reciprocal-space coordinates of center of Ewald sphere
-        Ewald0 = prefix.zeros(4)
-        Ewald0[1] = -incident[1]/lambda_0/1e10
-        Ewald0[2] = -incident[2]/lambda_0/1e10
-        Ewald0[3] = -incident[3]/lambda_0/1e10
-        # 1/lambda = magnitude(Ewald0, use_numpy)
-
-        # distance from Ewald sphere in lambda=1 units
-        vector =prefix.zeros(4)
-        vector[1] = relp[1]-Ewald0[1]
-        vector[2] = relp[2]-Ewald0[2]
-        vector[3] = relp[3]-Ewald0[3]
-        d_r = magnitude(vector, use_numpy)-1.0
-
-        # unit vector of diffracted ray through relp
-        _, diffracted0 = unitize(vector, use_numpy)
-
-        # intersection with detector plane
-        xd = dot_product(fdet_vector,diffracted0)
-        yd = dot_product(sdet_vector,diffracted0)
-        zd = dot_product(odet_vector,diffracted0)
-
-        # where does the central direct-beam hit
-        xd0 = dot_product(fdet_vector,incident)
-        yd0 = dot_product(sdet_vector,incident)
-        zd0 = dot_product(odet_vector,incident)
-
-        # convert to mm coordinates
-        Fdet0 = distance*(xd/zd) + Xbeam
-        Sdet0 = distance*(yd/zd) + Ybeam
-
-        if(verbose>8):
-            print("integral_form: %g %g %g %g" % (Fdet,Sdet,Fdet0,Sdet0))
-        test = prefix.exp(-( (Fdet-Fdet0)*(Fdet-Fdet0)+(Sdet-Sdet0)*(Sdet-Sdet0) + d_r*d_r )/1e-8)
-    # end of integral form
-
+        raise NotImplementedError("Integral form not implemented")
 
     # structure factor of the unit cell
     if(interpolate):
