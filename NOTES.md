@@ -325,3 +325,7 @@ torchBragg minimal test:
 Testing diffraction_vectorized:
 > cd $WORK/output_torchBragg
 > libtbx.python $MODULES/torchBragg/tst_torchBragg_minimal_vectorized.py
+
+cd $MODULES
+conda install pytorch==2.0.1 torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia
+source ~/env_ecp

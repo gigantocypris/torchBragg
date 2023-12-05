@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 from utils import rotate_axis, rotate_umat, dot_product, sincg, sinc3, \
     cross_product, vector_scale, magnitude, unitize, polarization_factor, \
     detector_position, find_pixel_pos, r_e_sqr, which_package
@@ -108,7 +109,7 @@ def add_torchBragg_spots(spixels,
 
     # construct the scattering vector for each pixel
     # Add sources dimension to diffracted_mat --> diffracted_mat[:,:,:,None,:]
-    scattering_mat = diffracted_mat[:,:,:,None,:] - incident_mat[None,None,None,:,:]/source_lambda[None,None,None,:,None]
+    scattering_mat = (diffracted_mat[:,:,:,None,:] - incident_mat[None,None,None,:,:])/source_lambda[None,None,None,:,None]
     # scattering_mat is subpixels_x, subpixels_y, detector_thicksteps, sources, 3
 
     # sin(theta)/lambda_0 is half the scattering vector length
@@ -139,8 +140,6 @@ def add_torchBragg_spots(spixels,
     k0 = prefix.ceil(k-0.5)
     l0 = prefix.ceil(l-0.5)
 
-    
-
     # structure factor of the lattice
     
     if(xtal_shape == 'SQUARE'):
@@ -152,7 +151,6 @@ def add_torchBragg_spots(spixels,
             F_latt *= sincg_vectorized(np.pi*k, Nb, prefix)
         if(Nc>1):
             F_latt *= sincg_vectorized(np.pi*l, Nc, prefix)
-        breakpoint()
     else:
         #handy radius in reciprocal space, squared
         hrad_sqr = (h-h0)*(h-h0)*Na*Na + (k-k0)*(k-k0)*Nb*Nb + (l-l0)*(l-l0)*Nc*Nc
@@ -175,7 +173,7 @@ def add_torchBragg_spots(spixels,
         else:
             F_latt = prefix.ones_like(h)
 
-    #  STOPPED HERE
+    
     # Experimental: find nearest point on Ewald sphere surface?
     if(integral_form):
         raise NotImplementedError("Integral form not implemented")
@@ -185,7 +183,36 @@ def add_torchBragg_spots(spixels,
         raise NotImplementedError("Interpolation of structure factors not implemented")
         # F_cell = interpolate_unit_cell()
     else:
+
+        # STOPPED HERE
+        # Conver F_hkl to a matrix
         
+        # F_cell = prefix.zeros_like(h0)
+        # stacked_hkl = prefix.stack([h0,k0,l0], axis=0)
+
+        def Fhkl_lookup(h0,k0,l0):
+            if ((h0<=h_max) and (h0>=h_min) and (k0<=k_max) and (k0>=k_min) and (l0<=l_max) and (l0>=l_min)):
+                # just take nearest-neighbor
+                F_cell_i = Fhkl[(h0,k0,l0)]
+            
+            else:
+                F_cell_i = default_F # usually zero
+        
+            return F_cell_i
+        
+        breakpoint()
+
+        if use_numpy:
+            F_cell = np.vectorize(Fhkl_lookup)(h0,k0,l0)
+        else:
+            
+            # XXX update PyTorch
+            F_cell = torch.func.vmap(Fhkl_lookup, in_dims=(0,0,0,0,0), out_dims=(0,0,0,0,0))(h0,k0,l0)
+        
+
+        np.vectorize(Fhkl_lookup, signature='(),(),()->()')
+        
+        #  STOPPED HERE
         if ((h0<=h_max) and (h0>=h_min) and (k0<=k_max) and (k0>=k_min) and (l0<=l_max) and (l0>=l_min)):
             # just take nearest-neighbor
             F_cell = Fhkl[(h0,k0,l0)]
