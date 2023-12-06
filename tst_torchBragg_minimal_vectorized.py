@@ -2,12 +2,13 @@ from __future__ import absolute_import, division, print_function
 # absolute bare-minimum diffraction image simulation
 
 from simtbx.nanoBragg import nanoBragg
-from diffraction_vectorized import add_torchBragg_spots, Fhkl_remove
+from diffraction_vectorized import Fhkl_remove
 from utils import which_package
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
 from simtbx.nanoBragg import shapetype
+import time
 
 torch.set_default_dtype(torch.float64)
 
@@ -49,7 +50,7 @@ def tst_nanoBragg_minimal(spixels, fpixels, randomize_orientation=True, tophat=T
     # SIM.to_smv_format(fileout="noiseimage_001.img")
     return SIM.raw_pixels, SIM.pix0_vector_mm
 
-def tst_torchBragg_minimal(spixels, fpixels, pix0_vector_mm, use_numpy=True, randomize_orientation=True, tophat=True):
+def tst_torchBragg_minimal(spixels, fpixels, pix0_vector_mm, use_numpy=True, randomize_orientation=True, tophat=True, vectorize=True):
     prefix, new_array = which_package(use_numpy)
 
     phisteps = 1
@@ -139,6 +140,11 @@ def tst_torchBragg_minimal(spixels, fpixels, pix0_vector_mm, use_numpy=True, ran
     Fhkl = {h:v for h,v in zip(Fhkl_indices,Fhkl_data)}
     Fhkl = Fhkl_remove(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min)
 
+    if vectorize:
+        from diffraction_vectorized import add_torchBragg_spots
+    else:
+        from diffraction import add_torchBragg_spots
+
     raw_pixels = add_torchBragg_spots(spixels, 
                         fpixels,
                         phisteps,
@@ -157,8 +163,8 @@ def tst_torchBragg_minimal(spixels, fpixels, pix0_vector_mm, use_numpy=True, ran
                         detector_thick, detector_attnlen,
                         sources,
                         source_X, source_Y, source_Z, source_lambda,
-                        dmin,
-                        a0, b0, c0, ap, bp, cp,
+                        dmin, phi0, phistep,
+                        a0, b0, c0, ap, bp, cp, spindle_vector,
                         mosaic_spread,
                         mosaic_umats,
                         xtal_shape,
@@ -182,13 +188,14 @@ if __name__=="__main__":
     use_numpy = False
     randomize_orientation = False
     tophat = False
+    vectorize = True
 
     # does not work for modified sizes
     spixels = 128
     fpixels = 128
 
     raw_pixels_0, pix0_vector_mm = tst_nanoBragg_minimal(spixels,fpixels, randomize_orientation=randomize_orientation, tophat=tophat)
-    raw_pixels_1 = tst_torchBragg_minimal(spixels,fpixels, pix0_vector_mm, randomize_orientation=randomize_orientation, tophat=tophat, use_numpy=use_numpy)
+    raw_pixels_1 = tst_torchBragg_minimal(spixels,fpixels, pix0_vector_mm, randomize_orientation=randomize_orientation, tophat=tophat, use_numpy=use_numpy, vectorize=vectorize)
     
     raw_pixels_0 = raw_pixels_0.as_numpy_array()
     if not(use_numpy):
