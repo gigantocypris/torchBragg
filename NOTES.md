@@ -329,3 +329,26 @@ Testing diffraction_vectorized:
 cd $MODULES
 conda install pytorch==2.0.1 torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia
 source ~/env_ecp
+
+# December 6, 2023
+
+minimal test:
+4.20449883789953e-06 error with vectorized
+4.121356341627437e-06 error without vectorized
+
+With vectorized: (torch)
+nanoBragg time:  0.01756596565246582
+torchBragg time:  0.16237425804138184
+
+Without vectorized: (torch)
+nanoBragg time:  0.017308712005615234
+torchBragg time:  43.30310249328613
+
+
+With vectorized: (numpy)
+nanoBragg time:  0.016907691955566406
+torchBragg time:  0.029886722564697266
+
+Without vectorized: (numpy)
+nanoBragg time:  0.016527414321899414
+torchBragg time:  3.536445379257202

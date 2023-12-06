@@ -16,14 +16,14 @@ def Fhkl_remove(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min):
     
 
 def add_torchBragg_spots(spixels, 
-                        fpixels,
-                        phisteps,
-                        mosaic_domains,
-                        oversample,
-                        pixel_size,
-                        roi_xmin, roi_xmax, roi_ymin, roi_ymax,
-                        maskimage, 
-                        detector_thicksteps,
+                         fpixels,
+                         phisteps,
+                         mosaic_domains,
+                         oversample,
+                         pixel_size,
+                         roi_xmin, roi_xmax, roi_ymin, roi_ymax,
+                         maskimage, 
+                         detector_thicksteps,
                         spot_scale, fluence,
                         detector_thickstep,
                         Odet,
@@ -197,8 +197,6 @@ def add_torchBragg_spots(spixels,
             # just take nearest-neighbor
             F_cell[(h0==h0_key)*(k0==k0_key)*(l0==l0_key)]=Fhkl[key]
             
-        
-
     # polarization factor
     if(nopolar):
         polar = 1.0

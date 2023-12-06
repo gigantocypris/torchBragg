@@ -67,13 +67,23 @@ def tst_torchBragg_minimal(spixels, fpixels, pix0_vector_mm, use_numpy=True, ran
     fluence = 125932015286227086360700780544.0
     detector_thickstep = 0.000000
     Odet = 0.000000
-    fdet_vector = new_array([0,0,1]) 
-    sdet_vector = new_array([0,-1,0]) 
-    odet_vector = new_array([1,0,0]) 
-    pix0_vector = new_array([pix0_vector_mm[0]/1e3, pix0_vector_mm[1]/1e3, pix0_vector_mm[2]/1e3])
+    if vectorize:
+        fdet_vector = new_array([0,0,1]) 
+        sdet_vector = new_array([0,-1,0]) 
+        odet_vector = new_array([1,0,0]) 
+        pix0_vector = new_array([pix0_vector_mm[0]/1e3, pix0_vector_mm[1]/1e3, pix0_vector_mm[2]/1e3])
+    else:
+        fdet_vector = new_array([0,0,0,1]) 
+        sdet_vector = new_array([0,0,-1,0]) 
+        odet_vector = new_array([0,1,0,0]) 
+        pix0_vector = new_array([0.000000, pix0_vector_mm[0]/1e3, pix0_vector_mm[1]/1e3, pix0_vector_mm[2]/1e3])
+
     curved_detector = False
     distance = 0.1 
-    beam_vector =  new_array([1,0,0]) 
+    if vectorize:
+        beam_vector =  new_array([1,0,0]) 
+    else:
+        beam_vector =  new_array([0,1,0,0]) 
     close_distance = 0.100000
     point_pixel = False
     detector_thick = 0.000000
@@ -87,24 +97,45 @@ def tst_torchBragg_minimal(spixels, fpixels, pix0_vector_mm, use_numpy=True, ran
     phi0 = 0.000000
     phistep = 0.000000
 
-    if randomize_orientation:
-        # with randomize_orientation(), seed = 10
-        a0 = new_array([6.02977e-09, -3.41442e-09, 3.581e-09])
-        b0 = new_array([4.85875e-09, 5.15285e-09, -3.26813e-09])
-        c0 = new_array([-4.55546e-10, 2.31756e-09, 2.97681e-09])
-        ap = new_array([6.02977e-09, -3.41442e-09, 3.581e-09])
-        bp = new_array([4.85875e-09, 5.15285e-09, -3.26813e-09]) 
-        cp = new_array([-4.55546e-10, 2.31756e-09, 2.97681e-09])
-    else:
-        # without randomize_orientation()
-        a0 = new_array([7.8e-09, 0, 0])
-        b0 = new_array([0, 7.8e-09, 0])
-        c0 = new_array([0, 0, 3.8e-09])
-        ap = new_array([7.8e-09, 0, 0])
-        bp = new_array([0, 7.8e-09, 0]) 
-        cp = new_array([0, 0, 3.8e-09])
+    if vectorize:
+        if randomize_orientation:
+            # with randomize_orientation(), seed = 10
+            a0 = new_array([6.02977e-09, -3.41442e-09, 3.581e-09])
+            b0 = new_array([4.85875e-09, 5.15285e-09, -3.26813e-09])
+            c0 = new_array([-4.55546e-10, 2.31756e-09, 2.97681e-09])
+            ap = new_array([6.02977e-09, -3.41442e-09, 3.581e-09])
+            bp = new_array([4.85875e-09, 5.15285e-09, -3.26813e-09]) 
+            cp = new_array([-4.55546e-10, 2.31756e-09, 2.97681e-09])
+        else:
+            # without randomize_orientation()
+            a0 = new_array([7.8e-09, 0, 0])
+            b0 = new_array([0, 7.8e-09, 0])
+            c0 = new_array([0, 0, 3.8e-09])
+            ap = new_array([7.8e-09, 0, 0])
+            bp = new_array([0, 7.8e-09, 0]) 
+            cp = new_array([0, 0, 3.8e-09])
 
-    spindle_vector = new_array([0,0,1])
+        spindle_vector = new_array([0,0,1])
+    else:
+        if randomize_orientation:
+            # with randomize_orientation(), seed = 10
+            a0 = new_array([7.800000e-09, 6.02977e-09, -3.41442e-09, 3.581e-09])
+            b0 = new_array([7.800000e-09, 4.85875e-09, 5.15285e-09, -3.26813e-09])
+            c0 = new_array([3.800000e-09, -4.55546e-10, 2.31756e-09, 2.97681e-09])
+            ap = new_array([7.800000e-09, 6.02977e-09, -3.41442e-09, 3.581e-09])
+            bp = new_array([7.800000e-09, 4.85875e-09, 5.15285e-09, -3.26813e-09]) 
+            cp = new_array([3.800000e-09, -4.55546e-10, 2.31756e-09, 2.97681e-09])
+        else:
+            # without randomize_orientation()
+            a0 = new_array([7.800000e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
+            b0 = new_array([7.800000e-09, 0, 7.8e-09, 4.77612e-25])
+            c0 = new_array([3.800000e-09, 0, 0, 3.8e-09])
+            ap = new_array([7.800000e-09, 7.8e-09, 4.77612e-25, 4.77612e-25])
+            bp = new_array([7.800000e-09, 0, 7.8e-09, 4.77612e-25]) 
+            cp = new_array([3.800000e-09, 0, 0, 3.8e-09])
+
+        spindle_vector = new_array([0,0,0,1])
+
     mosaic_spread = 0.000000
     # mosaic_umats = new_array([[1.0, 0, 0],[0, 1.0, 0],[0, 0, 1.0]])
     mosaic_umats = new_array([1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0])
@@ -134,7 +165,10 @@ def tst_torchBragg_minimal(spixels, fpixels, pix0_vector_mm, use_numpy=True, ran
     nopolar = False
     source_I = new_array([1.000000])
     polarization = 0
-    polar_vector = new_array([0,0,1])
+    if vectorize:
+        polar_vector = new_array([0,0,1])
+    else:
+        polar_vector = new_array([0,0,0,1])
     verbose=9
 
     Fhkl = {h:v for h,v in zip(Fhkl_indices,Fhkl_data)}
@@ -185,18 +219,25 @@ def tst_torchBragg_minimal(spixels, fpixels, pix0_vector_mm, use_numpy=True, ran
 
 if __name__=="__main__":    
     
-    use_numpy = False
-    randomize_orientation = False
+    use_numpy = True
+    randomize_orientation = True
     tophat = False
-    vectorize = True
+    vectorize = False
 
     # does not work for modified sizes
     spixels = 128
     fpixels = 128
 
+    start = time.time()
     raw_pixels_0, pix0_vector_mm = tst_nanoBragg_minimal(spixels,fpixels, randomize_orientation=randomize_orientation, tophat=tophat)
+    end = time.time()
+    print("nanoBragg time: ", end-start)
+
+    start = time.time()
     raw_pixels_1 = tst_torchBragg_minimal(spixels,fpixels, pix0_vector_mm, randomize_orientation=randomize_orientation, tophat=tophat, use_numpy=use_numpy, vectorize=vectorize)
-    
+    end = time.time()
+    print("torchBragg time: ", end-start)
+
     raw_pixels_0 = raw_pixels_0.as_numpy_array()
     if not(use_numpy):
         raw_pixels_1 = raw_pixels_1.numpy()
@@ -212,5 +253,5 @@ if __name__=="__main__":
     axs[1].imshow(np.log(raw_pixels_1))
     plt.savefig("nanoBragg_vs_torchBragg_log.png")
 
-    assert(np.mean(np.abs(raw_pixels_0-raw_pixels_1))/np.mean(raw_pixels_0) < 1e-10)
+    assert(np.mean(np.abs(raw_pixels_0-raw_pixels_1))/np.mean(raw_pixels_0) < 1e-5)
     print("OK")

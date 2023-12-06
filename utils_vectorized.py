@@ -38,7 +38,7 @@ def polarization_factor_vectorized(kahn_factor, incident_mat, diffracted_mat, ax
     # unitize the vectors
     _, incident_mat = unitize_vectorized(incident_mat, prefix)
     _, diffracted_mat = unitize_vectorized(diffracted_mat, prefix)
-    _, axis = unitize_vectorized(axis, prefix)
+    _, axis = unitize_vectorized(axis[None,:], prefix)
 
     # component of diffracted unit vector along incident beam unit vector
     cos2theta = prefix.sum(incident_mat[None,None,None,:,:]*diffracted_mat[...,None,:], axis=-1)
@@ -50,11 +50,10 @@ def polarization_factor_vectorized(kahn_factor, incident_mat, diffracted_mat, ax
         # here we assume it is closest to the "axis" defined above
 
         # cross product to get "vertical" axis that is orthogonal to the cannonical "polarization"
-        B_in = prefix.cross(axis[None,:],incident_mat)
+        B_in = prefix.cross(axis,incident_mat)
         # make it a unit vector
         _, B_in = unitize_vectorized(B_in, prefix)
 
-        breakpoint()
         # cross product with incident beam to get E-vector direction
         E_in = prefix.cross(incident_mat,B_in)
 
