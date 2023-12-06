@@ -2,7 +2,7 @@ from __future__ import absolute_import, division, print_function
 # absolute bare-minimum diffraction image simulation
 
 from simtbx.nanoBragg import nanoBragg
-from diffraction_vectorized import add_torchBragg_spots
+from diffraction_vectorized import add_torchBragg_spots, Fhkl_remove
 from utils import which_package
 import numpy as np
 import torch
@@ -137,6 +137,7 @@ def tst_torchBragg_minimal(spixels, fpixels, pix0_vector_mm, use_numpy=True, ran
     verbose=9
 
     Fhkl = {h:v for h,v in zip(Fhkl_indices,Fhkl_data)}
+    Fhkl = Fhkl_remove(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min)
 
     raw_pixels = add_torchBragg_spots(spixels, 
                         fpixels,

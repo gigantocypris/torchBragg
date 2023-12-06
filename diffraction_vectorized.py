@@ -4,7 +4,18 @@ from utils import rotate_axis, rotate_umat, dot_product, sincg, sinc3, \
     cross_product, vector_scale, magnitude, unitize, polarization_factor, \
     detector_position, find_pixel_pos, r_e_sqr, which_package
 
-from utils_vectorized import sincg_vectorized, sinc3_vectorized
+from utils_vectorized import sincg_vectorized, sinc3_vectorized, unitize_vectorized, polarization_factor_vectorized
+
+def Fhkl_remove(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min):
+    for key in Fhkl.keys():
+        h0 = key[0]
+        k0 = key[1]
+        l0 = key[2]
+
+        if not((h0<=h_max) and (h0>=h_min) and (k0<=k_max) and (k0>=k_min) and (l0<=l_max) and (l0>=l_min)):
+            del Fhkl[key]
+    return(Fhkl)
+    
 
 def add_torchBragg_spots(spixels, 
                         fpixels,
@@ -70,12 +81,8 @@ def add_torchBragg_spots(spixels,
         raise NotImplementedError
 
     # construct the diffracted-beam unit vector to this sub-pixel
-    airpath_mat = prefix.sqrt(prefix.sum(pixel_pos_mat**2,axis=-1))
-    airpath_mat[airpath_mat==0] = -1
+    airpath_mat, diffracted_mat = unitize_vectorized(pixel_pos_mat, prefix)
 
-    diffracted_mat = pixel_pos_mat/airpath_mat[:,:,:,None]
-    diffracted_mat[airpath_mat == -1] = 0
-    airpath_mat[airpath_mat==-1] = 0
 
     # solid angle subtended by a pixel: (pix/airpath)^2*cos(2theta)
     omega_pixel = (pixel_size/airpath_mat)**2*close_distance/airpath_mat
@@ -102,10 +109,7 @@ def add_torchBragg_spots(spixels,
     lambda_0_vec = source_lambda # can remove later
 
     # construct the incident beam unit vector while recovering source distance
-    source_path_vec = prefix.sqrt(prefix.sum(incident_mat**2,axis=-1))
-    source_path_vec[source_path_vec==0] = -1
-    incident_mat = incident_mat/source_path_vec[:,None]
-    source_path_vec[source_path_vec==-1] = 0
+    source_path_vec, incident_mat = unitize_vectorized(incident_mat, prefix)
 
     # construct the scattering vector for each pixel
     # Add sources dimension to diffracted_mat --> diffracted_mat[:,:,:,None,:]
@@ -123,7 +127,6 @@ def add_torchBragg_spots(spixels,
     mosaic_umats_reshape = mosaic_umats.reshape((mosaic_domains, 3, 3))
 
     
-    # STOPPED HERE
     a = mosaic_umats_reshape @ ap # mosaic domains x 3
     b = mosaic_umats_reshape @ bp # mosaic domains x 3
     c = mosaic_umats_reshape @ cp # mosaic domains x 3
@@ -183,58 +186,36 @@ def add_torchBragg_spots(spixels,
         raise NotImplementedError("Interpolation of structure factors not implemented")
         # F_cell = interpolate_unit_cell()
     else:
+        # XXX vectorize
 
-        # STOPPED HERE
-        # Conver F_hkl to a matrix
-        
-        # F_cell = prefix.zeros_like(h0)
+        F_cell = prefix.ones_like(h0)*default_F
         # stacked_hkl = prefix.stack([h0,k0,l0], axis=0)
+        for key in Fhkl.keys():
+            h0_key = key[0]
+            k0_key = key[1]
+            l0_key = key[2]
 
-        def Fhkl_lookup(h0,k0,l0):
-            if ((h0<=h_max) and (h0>=h_min) and (k0<=k_max) and (k0>=k_min) and (l0<=l_max) and (l0>=l_min)):
-                # just take nearest-neighbor
-                F_cell_i = Fhkl[(h0,k0,l0)]
-            
-            else:
-                F_cell_i = default_F # usually zero
-        
-            return F_cell_i
-        
-        breakpoint()
-
-        if use_numpy:
-            F_cell = np.vectorize(Fhkl_lookup)(h0,k0,l0)
-        else:
-            
-            # XXX update PyTorch
-            F_cell = torch.func.vmap(Fhkl_lookup, in_dims=(0,0,0,0,0), out_dims=(0,0,0,0,0))(h0,k0,l0)
-        
-
-        np.vectorize(Fhkl_lookup, signature='(),(),()->()')
-        
-        #  STOPPED HERE
-        if ((h0<=h_max) and (h0>=h_min) and (k0<=k_max) and (k0>=k_min) and (l0<=l_max) and (l0>=l_min)):
             # just take nearest-neighbor
-            F_cell = Fhkl[(h0,k0,l0)]
+            F_cell[(h0==h0_key)*(k0==k0_key)*(l0==l0_key)]=Fhkl[key]
+            
         
-        else:
-            F_cell = default_F # usually zero
-
-    # now we have the structure factor for this pixel
 
     # polarization factor
-    if(not(nopolar)):
-        # need to compute polarization factor
-        polar = polarization_factor(polarization,incident,diffracted,polar_vector, use_numpy)
-    else:
+    if(nopolar):
         polar = 1.0
+    else:
+        # need to compute polarization factor
+        polar = polarization_factor_vectorized(polarization,incident_mat,diffracted_mat,polar_vector, use_numpy)
+    # polar is subpixels_x, subpixels_y, detector_thicksteps, sources
+    breakpoint()
+    # STOPPED HERE
 
     # convert amplitudes into intensity (photons per steradian)
     I_contribution_mosaic = F_cell*F_cell*F_latt*F_latt*source_I[source]*capture_fraction*omega_pixel
 
     # END HERE
     # make sure we are normalizing with the right number of sub-steps
-    steps = phisteps*mosaic_domains*oversample*oversample
+    steps = mosaic_domains*oversample*oversample
 
 
     pixel_linear_ind = -1
