@@ -370,3 +370,10 @@ torchBragg time:  156.15314769744873
 numpy not vectorized:
 nanoBragg time:  0.8134758472442627
 torchBragg time:  9.101328611373901
+
+# December 8, 2023
+
+Vectorizing add_background
+
+> cd $WORK/output_torchBragg
+> libtbx.python $MODULES/torchBragg/tst_torchBragg_basic_vectorized.py

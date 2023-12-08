@@ -4,6 +4,8 @@ from utils import r_e_sqr, which_package
 
 from utils_vectorized import sincg_vectorized, sinc3_vectorized, unitize_vectorized, polarization_factor_vectorized
 
+
+
 def add_torchBragg_spots(spixels, 
                          fpixels,
                          phisteps,
@@ -44,68 +46,13 @@ def add_torchBragg_spots(spixels,
     prefix, new_array = which_package(use_numpy)
 
     subpixel_size = pixel_size/oversample
-    
     raw_pixels = prefix.zeros((spixels*oversample,fpixels*oversample, detector_thicksteps, sources, mosaic_domains))
 
-    # Get Fdet and Sdet (detector coordinates) for every subpixel
-    s_vec = prefix.arange(spixels*oversample)
-    f_vec = prefix.arange(fpixels*oversample)
-    s_mat, f_mat = prefix.meshgrid(s_vec, f_vec, indexing='ij')
+    diffracted_mat, capture_fraction, omega_pixel, scattering_mat, incident_mat, stol = \
+    simulation_setup(prefix, spixels, fpixels, oversample, subpixel_size, detector_thicksteps, detector_thickstep,
+                     fdet_vector, sdet_vector, odet_vector, pix0_vector, curved_detector, pixel_size, close_distance,
+                     point_pixel, detector_thick, detector_attnlen, source_X, source_Y, source_Z, source_lambda)
 
-    Fdet_mat = subpixel_size*f_mat + subpixel_size/2.0 # function of index 0 and 1
-    Sdet_mat = subpixel_size*s_mat + subpixel_size/2.0 # function of index 0 and 1
-
-    # assume "distance" is to the front of the detector sensor layer
-    Odet_vec = prefix.arange(detector_thicksteps)*detector_thickstep # function of index 2
-
-    
-    # construct detector subpixel position in 3D space
-    # pixel_pos_mat is [Fdet_mat.shape[0], Fdet_mat.shape[1], len(Odet_vec), 3]
-    # pixel_pos_mat is subpixels_x, subpixels_y, detector_thicksteps, 3
-    pixel_pos_mat = Fdet_mat[:,:,None,None]*fdet_vector[None,None,None,:]+Sdet_mat[:,:,None,None]*sdet_vector[None,None,None,:]+Odet_vec[None,None,:,None]*odet_vector[None,None,None,:]+pix0_vector[None,None,None,:] 
-
-
-    if curved_detector:
-        raise NotImplementedError
-
-    # construct the diffracted-beam unit vector to this sub-pixel
-    airpath_mat, diffracted_mat = unitize_vectorized(pixel_pos_mat, prefix)
-
-
-    # solid angle subtended by a pixel: (pix/airpath)^2*cos(2theta)
-    # omega_pixel is subpixels_x, subpixels_y, detector_thicksteps
-    omega_pixel = (pixel_size/airpath_mat)**2*close_distance/airpath_mat
-    # option to turn off obliquity effect, inverse-square-law only
-    if(point_pixel):
-        omega_pixel = 1.0/airpath_mat/airpath_mat   
-
-    # now calculate detector thickness effects
-    if(detector_thick > 0.0 and detector_attnlen > 0.0):
-        thick_tic_vec = prefix.arange(detector_thicksteps)[None,None,:]
-        # inverse of effective thickness increase
-        parallax_mat = prefix.sum(diffracted_mat*odet_vector[None,None,None,:], axis=-1)
-
-        capture_fraction = prefix.exp(-thick_tic_vec*detector_thickstep/detector_attnlen/parallax_mat) - prefix.exp(-(thick_tic_vec+1)*detector_thickstep/detector_attnlen/parallax_mat)
-    else:
-        capture_fraction = prefix.ones_like(omega_pixel)
-    # capture_fraction is subpixels_x, subpixels_y, detector_thicksteps
-
-
-    # source_vec = prefix.arange(sources)
-
-    incident_mat = prefix.stack([-source_X, -source_Y, -source_Z], axis=-1)
-    lambda_0_vec = source_lambda # can remove later
-
-    # construct the incident beam unit vector while recovering source distance
-    source_path_vec, incident_mat = unitize_vectorized(incident_mat, prefix)
-
-    # construct the scattering vector for each pixel
-    # Add sources dimension to diffracted_mat --> diffracted_mat[:,:,:,None,:]
-    scattering_mat = (diffracted_mat[:,:,:,None,:] - incident_mat[None,None,None,:,:])/source_lambda[None,None,None,:,None]
-    # scattering_mat is subpixels_x, subpixels_y, detector_thicksteps, sources, 3
-
-    # sin(theta)/lambda_0 is half the scattering vector length
-    stol = 0.5*prefix.sqrt(prefix.sum(scattering_mat**2,axis=-1))
 
     mos_tic_vec = prefix.arange(mosaic_domains)
 
@@ -223,3 +170,65 @@ def add_torchBragg_spots(spixels,
     raw_pixels = raw_pixels*r_e_sqr*fluence*spot_scale/steps
 
     return(raw_pixels)
+
+def simulation_setup(prefix, spixels, fpixels, oversample, subpixel_size, detector_thicksteps, detector_thickstep,
+                     fdet_vector, sdet_vector, odet_vector, pix0_vector, curved_detector, pixel_size, close_distance,
+                     point_pixel, detector_thick, detector_attnlen, source_X, source_Y, source_Z, source_lambda):
+   # Get Fdet and Sdet (detector coordinates) for every subpixel
+    s_vec = prefix.arange(spixels*oversample)
+    f_vec = prefix.arange(fpixels*oversample)
+    s_mat, f_mat = prefix.meshgrid(s_vec, f_vec, indexing='ij')
+
+    Fdet_mat = subpixel_size*f_mat + subpixel_size/2.0 # function of index 0 and 1
+    Sdet_mat = subpixel_size*s_mat + subpixel_size/2.0 # function of index 0 and 1
+
+    # assume "distance" is to the front of the detector sensor layer
+    Odet_vec = prefix.arange(detector_thicksteps)*detector_thickstep # function of index 2
+
+    
+    # construct detector subpixel position in 3D space
+    # pixel_pos_mat is [Fdet_mat.shape[0], Fdet_mat.shape[1], len(Odet_vec), 3]
+    # pixel_pos_mat is subpixels_x, subpixels_y, detector_thicksteps, 3
+    pixel_pos_mat = Fdet_mat[:,:,None,None]*fdet_vector[None,None,None,:]+Sdet_mat[:,:,None,None]*sdet_vector[None,None,None,:]+Odet_vec[None,None,:,None]*odet_vector[None,None,None,:]+pix0_vector[None,None,None,:] 
+
+
+    if curved_detector:
+        raise NotImplementedError
+
+    # construct the diffracted-beam unit vector to this sub-pixel
+    airpath_mat, diffracted_mat = unitize_vectorized(pixel_pos_mat, prefix)
+
+
+    # solid angle subtended by a pixel: (pix/airpath)^2*cos(2theta)
+    # omega_pixel is subpixels_x, subpixels_y, detector_thicksteps
+    omega_pixel = (pixel_size/airpath_mat)**2*close_distance/airpath_mat
+    # option to turn off obliquity effect, inverse-square-law only
+    if(point_pixel):
+        omega_pixel = 1.0/airpath_mat/airpath_mat   
+
+    # now calculate detector thickness effects
+    if(detector_thick > 0.0 and detector_attnlen > 0.0):
+        thick_tic_vec = prefix.arange(detector_thicksteps)[None,None,:]
+        # inverse of effective thickness increase
+        parallax_mat = prefix.sum(diffracted_mat*odet_vector[None,None,None,:], axis=-1)
+
+        capture_fraction = prefix.exp(-thick_tic_vec*detector_thickstep/detector_attnlen/parallax_mat) - prefix.exp(-(thick_tic_vec+1)*detector_thickstep/detector_attnlen/parallax_mat)
+    else:
+        capture_fraction = prefix.ones_like(omega_pixel)
+    # capture_fraction is subpixels_x, subpixels_y, detector_thicksteps
+
+
+    incident_mat = prefix.stack([-source_X, -source_Y, -source_Z], axis=-1)
+
+    # construct the incident beam unit vector while recovering source distance
+    source_path_vec, incident_mat = unitize_vectorized(incident_mat, prefix)
+
+    # construct the scattering vector for each pixel
+    # Add sources dimension to diffracted_mat --> diffracted_mat[:,:,:,None,:]
+    scattering_mat = (diffracted_mat[:,:,:,None,:] - incident_mat[None,None,None,:,:])/source_lambda[None,None,None,:,None]
+    # scattering_mat is subpixels_x, subpixels_y, detector_thicksteps, sources, 3
+
+    # sin(theta)/lambda_0 is half the scattering vector length
+    stol = 0.5*prefix.sqrt(prefix.sum(scattering_mat**2,axis=-1))
+    
+    return(diffracted_mat, capture_fraction, omega_pixel, scattering_mat, incident_mat, stol)

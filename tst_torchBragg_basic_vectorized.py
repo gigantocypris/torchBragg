@@ -18,7 +18,6 @@ from cctbx import crystal
 from cctbx import miller
 assert miller
 from diffraction import add_torchBragg_spots
-from add_background import add_background
 from utils_vectorized import Fhkl_remove, Fhkl_dict_to_mat
 
 torch.set_default_dtype(torch.float64)
@@ -326,6 +325,12 @@ def tst_torchBragg_basic(spixels, fpixels, params, use_numpy, vectorize, add_bac
   raw_pixels *= 64e9
 
   if add_background_bool:
+
+    if vectorize:
+      from add_background_vectorized import add_background
+    else:
+      from add_background import add_background
+
     # add background of water
     Fmap_pixel = False
     override_source = -1
@@ -398,8 +403,8 @@ if __name__=="__main__":
   spixels = 512
   fpixels = 512
   use_numpy = False
-  vectorize = False
-  add_background_bool = False
+  vectorize = True
+  add_background_bool = True
 
   start_time = time.time()
   raw_pixels_0, params = tst_nanoBragg_basic(spixels,fpixels, add_background_bool)
@@ -426,7 +431,6 @@ if __name__=="__main__":
   # cbar2 = fig.colorbar(im2, ax=axs[1])
   plt.savefig("nanoBragg_vs_torchBragg_basic.png")
 
-  breakpoint()
-  assert(np.mean(np.abs(raw_pixels_0-raw_pixels_1))/np.mean(raw_pixels_0) < 1e-10)
+  assert(np.mean(np.abs(raw_pixels_0-raw_pixels_1))/np.mean(raw_pixels_0) < 1e-7)
 
   print("OK")

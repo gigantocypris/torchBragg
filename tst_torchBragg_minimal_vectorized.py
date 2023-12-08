@@ -221,7 +221,7 @@ def tst_torchBragg_minimal(spixels, fpixels, pix0_vector_mm, use_numpy=True, ran
 
 if __name__=="__main__":    
     
-    use_numpy = False
+    use_numpy = True
     randomize_orientation = True
     tophat = False
     vectorize = True
