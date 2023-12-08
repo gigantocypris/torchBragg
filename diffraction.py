@@ -562,7 +562,10 @@ def find_mosaic_domain_contribution(mosaic_spread,
         
         if ((h0<=h_max) and (h0>=h_min) and (k0<=k_max) and (k0>=k_min) and (l0<=l_max) and (l0>=l_min)):
             # just take nearest-neighbor
-            F_cell = Fhkl[(h0,k0,l0)]
+            try:
+                F_cell = Fhkl[(h0,k0,l0)]
+            except KeyError:
+                F_cell = default_F
         
         else:
             F_cell = default_F # usually zero

@@ -19,7 +19,7 @@ from cctbx import miller
 assert miller
 from diffraction import add_torchBragg_spots
 from add_background import add_background
-from diffraction_vectorized import Fhkl_remove
+from utils_vectorized import Fhkl_remove, Fhkl_dict_to_mat
 
 torch.set_default_dtype(torch.float64)
 
@@ -54,7 +54,7 @@ def fcalc_from_pdb(resolution,algorithm=None,wavelength=0.9):
     d_min=resolution, anomalous_flag=True, algorithm=algorithm).f_calc()
   return fcalc.amplitudes()
 
-def tst_nanoBragg_basic(spixels, fpixels):
+def tst_nanoBragg_basic(spixels, fpixels, add_background_bool):
   SIM = nanoBragg(detpixels_slowfast=(spixels,fpixels),pixel_size_mm=0.1,Ncells_abc=(5,5,5),verbose=9)
   SIM.seed = 10
   SIM.randomize_orientation()
@@ -165,28 +165,30 @@ def tst_nanoBragg_basic(spixels, fpixels):
   # amplify spot signal to simulate physical crystal of 4000x larger: 100 um (64e9 x the volume)
 
   SIM.raw_pixels *= 64e9
-  # rough approximation to water: interpolation points for sin(theta/lambda) vs structure factor
-  bg = flex.vec2_double([(0,2.57),(0.0365,2.58),(0.07,2.8),(0.12,5),(0.162,8),(0.2,6.75),(0.18,7.32),(0.216,6.75),(0.236,6.5),(0.28,4.5),(0.3,4.3),(0.345,4.36),(0.436,3.77),(0.5,3.17)])
-  SIM.Fbg_vs_stol = bg
-  SIM.amorphous_sample_thick_mm = 0.1
-  SIM.amorphous_density_gcm3 = 1
-  SIM.amorphous_molecular_weight_Da = 18
-  SIM.flux=1e12
-  SIM.beamsize_mm=0.1
-  SIM.exposure_s=0.1
-  SIM.add_background()
 
-  # rough approximation to air
-  bg = flex.vec2_double([(0,14.1),(0.045,13.5),(0.174,8.35),(0.35,4.78),(0.5,4.22)])
-  SIM.Fbg_vs_stol = bg
-  SIM.amorphous_sample_thick_mm = 35 # between beamstop and collimator
-  SIM.amorphous_density_gcm3 = 1.2e-3
-  SIM.amorphous_sample_molecular_weight_Da = 28 # nitrogen = N2
-  print("amorphous_sample_size_mm=",SIM.amorphous_sample_size_mm)
-  print("amorphous_sample_thick_mm=",SIM.amorphous_sample_thick_mm)
-  print("amorphous_density_gcm3=",SIM.amorphous_density_gcm3)
-  print("amorphous_molecular_weight_Da=",SIM.amorphous_molecular_weight_Da)
-  SIM.add_background()
+  if add_background_bool:
+    # rough approximation to water: interpolation points for sin(theta/lambda) vs structure factor
+    bg = flex.vec2_double([(0,2.57),(0.0365,2.58),(0.07,2.8),(0.12,5),(0.162,8),(0.2,6.75),(0.18,7.32),(0.216,6.75),(0.236,6.5),(0.28,4.5),(0.3,4.3),(0.345,4.36),(0.436,3.77),(0.5,3.17)])
+    SIM.Fbg_vs_stol = bg
+    SIM.amorphous_sample_thick_mm = 0.1
+    SIM.amorphous_density_gcm3 = 1
+    SIM.amorphous_molecular_weight_Da = 18
+    SIM.flux=1e12
+    SIM.beamsize_mm=0.1
+    SIM.exposure_s=0.1
+    SIM.add_background()
+
+    # rough approximation to air
+    bg = flex.vec2_double([(0,14.1),(0.045,13.5),(0.174,8.35),(0.35,4.78),(0.5,4.22)])
+    SIM.Fbg_vs_stol = bg
+    SIM.amorphous_sample_thick_mm = 35 # between beamstop and collimator
+    SIM.amorphous_density_gcm3 = 1.2e-3
+    SIM.amorphous_sample_molecular_weight_Da = 28 # nitrogen = N2
+    print("amorphous_sample_size_mm=",SIM.amorphous_sample_size_mm)
+    print("amorphous_sample_thick_mm=",SIM.amorphous_sample_thick_mm)
+    print("amorphous_density_gcm3=",SIM.amorphous_density_gcm3)
+    print("amorphous_molecular_weight_Da=",SIM.amorphous_molecular_weight_Da)
+    SIM.add_background()
   print("Value of pixel: ",SIM.raw_pixels[200])
 
   return(SIM.raw_pixels, params)
@@ -196,7 +198,7 @@ def convert_vector(tuple, use_numpy):
   return(new_array([0, tuple[0],tuple[1],tuple[2]]))
 
 
-def tst_torchBragg_basic(spixels, fpixels, params, use_numpy, vectorize):
+def tst_torchBragg_basic(spixels, fpixels, params, use_numpy, vectorize, add_background_bool):
   prefix, new_array = which_package(use_numpy)
   phisteps, mosaic_domains, oversample, pixel_size_mm, detector_thicksteps, spot_scale, fluence, \
   detector_thickstep_mm, fdet_vector, sdet_vector, odet_vector, pix0_vector_mm, curved_detector, \
@@ -224,7 +226,7 @@ def tst_torchBragg_basic(spixels, fpixels, params, use_numpy, vectorize):
     fdet_vector = convert_vector(fdet_vector, use_numpy)
     sdet_vector = convert_vector(sdet_vector, use_numpy)
     odet_vector = convert_vector(odet_vector, use_numpy)
-    pix0_vector_mm = convert_vector(pix0_vector_mm, use_numpy)/1000
+    pix0_vector = convert_vector(pix0_vector_mm, use_numpy)/1000
     beam_vector = convert_vector(beam_vector, use_numpy)
     polar_vector = convert_vector(polar_vector, use_numpy)
     spindle_vector = new_array([0,0,0,1])
@@ -277,11 +279,13 @@ def tst_torchBragg_basic(spixels, fpixels, params, use_numpy, vectorize):
   Fhkl_indices = [tuple(h) for h in Fhkl_indices]
   Fhkl = {h:v for h,v in zip(Fhkl_indices,Fhkl_data)}
   Fhkl = Fhkl_remove(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min)
-
+  Fhkl_mat = Fhkl_dict_to_mat(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min, default_F, prefix)
   if vectorize:
     from diffraction_vectorized import add_torchBragg_spots
+    Fhkl_input = Fhkl_mat
   else:
     from diffraction import add_torchBragg_spots
+    Fhkl_input = Fhkl
 
   raw_pixels = add_torchBragg_spots(spixels, 
                       fpixels,
@@ -313,7 +317,7 @@ def tst_torchBragg_basic(spixels, fpixels, params, use_numpy, vectorize):
                       Xbeam, Ybeam,
                       interpolate,
                       h_max, h_min, k_max, k_min, l_max, l_min,
-                      Fhkl, default_F,
+                      Fhkl_input, default_F,
                       nopolar,source_I,
                       polarization,
                       polar_vector,
@@ -321,88 +325,93 @@ def tst_torchBragg_basic(spixels, fpixels, params, use_numpy, vectorize):
                       use_numpy=use_numpy)
   raw_pixels *= 64e9
 
-  # add background of water
-  Fmap_pixel = False
-  override_source = -1
-  amorphous_molecules= 33456343277777776.000000
-  
+  if add_background_bool:
+    # add background of water
+    Fmap_pixel = False
+    override_source = -1
+    amorphous_molecules= 33456343277777776.000000
+    
 
-  stols = 18
+    stols = 18
 
-  stol_of = new_array([-1e+99, -1e+98, 0, 3.65e+08, 7e+08, 1.2e+09, 1.62e+09, 2e+09, 1.8e+09, 2.16e+09, 2.36e+09, 2.8e+09,
-            3e+09, 3.45e+09, 4.36e+09, 5e+09, 1e+98, 1e+99])
-  Fbg_of = new_array([2.57, 2.57, 2.57, 2.58, 2.8, 5, 8, 6.75, 7.32, 6.75, 6.5, 4.5, 4.3, 4.36, 3.77, 3.17, 3.17, 3.17])
-
-
-
-  background_pixels, invalid_pixel = add_background(oversample, 
-                                                    override_source,
-                                                    sources,
-                                                    spixels,
-                                                    fpixels,
-                                                    pixel_size,
-                                                    roi_xmin, roi_xmax, roi_ymin, roi_ymax,
-                                                    detector_thicksteps,
-                                                    fluence, amorphous_molecules, 
-                                                    Fmap_pixel, # bool override: just plot interpolated structure factor at every pixel, useful for making absorption masks
-                                                    detector_thickstep, Odet, 
-                                                    fdet_vector, sdet_vector, odet_vector, 
-                                                    pix0_vector, curved_detector, distance, beam_vector,
-                                                    close_distance, point_pixel, detector_thick, detector_attnlen,
-                                                    source_I, source_X, source_Y, source_Z, source_lambda,
-                                                    stol_of, stols, Fbg_of, nopolar, polarization, polar_vector,
-                                                    verbose, use_numpy,
-                                                    )
-  raw_pixels += background_pixels
+    stol_of = new_array([-1e+99, -1e+98, 0, 3.65e+08, 7e+08, 1.2e+09, 1.62e+09, 2e+09, 1.8e+09, 2.16e+09, 2.36e+09, 2.8e+09,
+              3e+09, 3.45e+09, 4.36e+09, 5e+09, 1e+98, 1e+99])
+    Fbg_of = new_array([2.57, 2.57, 2.57, 2.58, 2.8, 5, 8, 6.75, 7.32, 6.75, 6.5, 4.5, 4.3, 4.36, 3.77, 3.17, 3.17, 3.17])
 
 
-  # add background of air
-  Fmap_pixel = False
-  override_source = -1
 
-  amorphous_molecules = 14051664176666668.000000
-  stols = 9
-  
-  stol_of = new_array([-1e+99, -1e+98, 0, 4.5e+08, 1.74e+09, 3.5e+09, 5e+09, 1e+98, 1e+99])
-  Fbg_of = new_array([14.1, 14.1, 14.1, 13.5, 8.35, 4.78, 4.22, 4.22, 4.22])
-  
+    background_pixels, invalid_pixel = add_background(oversample, 
+                                                      override_source,
+                                                      sources,
+                                                      spixels,
+                                                      fpixels,
+                                                      pixel_size,
+                                                      roi_xmin, roi_xmax, roi_ymin, roi_ymax,
+                                                      detector_thicksteps,
+                                                      fluence, amorphous_molecules, 
+                                                      Fmap_pixel, # bool override: just plot interpolated structure factor at every pixel, useful for making absorption masks
+                                                      detector_thickstep, Odet, 
+                                                      fdet_vector, sdet_vector, odet_vector, 
+                                                      pix0_vector, curved_detector, distance, beam_vector,
+                                                      close_distance, point_pixel, detector_thick, detector_attnlen,
+                                                      source_I, source_X, source_Y, source_Z, source_lambda,
+                                                      stol_of, stols, Fbg_of, nopolar, polarization, polar_vector,
+                                                      verbose, use_numpy,
+                                                      )
+    raw_pixels += background_pixels
 
-  background_pixels, invalid_pixel = add_background(oversample, 
-                                                    override_source,
-                                                    sources,
-                                                    spixels,
-                                                    fpixels,
-                                                    pixel_size,
-                                                    roi_xmin, roi_xmax, roi_ymin, roi_ymax,
-                                                    detector_thicksteps,
-                                                    fluence, amorphous_molecules, 
-                                                    Fmap_pixel, # bool override: just plot interpolated structure factor at every pixel, useful for making absorption masks
-                                                    detector_thickstep, Odet, 
-                                                    fdet_vector, sdet_vector, odet_vector, 
-                                                    pix0_vector, curved_detector, distance, beam_vector,
-                                                    close_distance, point_pixel, detector_thick, detector_attnlen,
-                                                    source_I, source_X, source_Y, source_Z, source_lambda,
-                                                    stol_of, stols, Fbg_of, nopolar, polarization, polar_vector,
-                                                    verbose, use_numpy,
-                                                    )
-  raw_pixels += background_pixels
+
+    # add background of air
+    Fmap_pixel = False
+    override_source = -1
+
+    amorphous_molecules = 14051664176666668.000000
+    stols = 9
+    
+    stol_of = new_array([-1e+99, -1e+98, 0, 4.5e+08, 1.74e+09, 3.5e+09, 5e+09, 1e+98, 1e+99])
+    Fbg_of = new_array([14.1, 14.1, 14.1, 13.5, 8.35, 4.78, 4.22, 4.22, 4.22])
+    
+
+    background_pixels, invalid_pixel = add_background(oversample, 
+                                                      override_source,
+                                                      sources,
+                                                      spixels,
+                                                      fpixels,
+                                                      pixel_size,
+                                                      roi_xmin, roi_xmax, roi_ymin, roi_ymax,
+                                                      detector_thicksteps,
+                                                      fluence, amorphous_molecules, 
+                                                      Fmap_pixel, # bool override: just plot interpolated structure factor at every pixel, useful for making absorption masks
+                                                      detector_thickstep, Odet, 
+                                                      fdet_vector, sdet_vector, odet_vector, 
+                                                      pix0_vector, curved_detector, distance, beam_vector,
+                                                      close_distance, point_pixel, detector_thick, detector_attnlen,
+                                                      source_I, source_X, source_Y, source_Z, source_lambda,
+                                                      stol_of, stols, Fbg_of, nopolar, polarization, polar_vector,
+                                                      verbose, use_numpy,
+                                                      )
+    raw_pixels += background_pixels
 
   return(raw_pixels)
 
-
-
-
-
 if __name__=="__main__":
-  spixels = 256
-  fpixels = 256
+  spixels = 512
+  fpixels = 512
   use_numpy = False
-  vectorize = True
+  vectorize = False
+  add_background_bool = False
 
-  raw_pixels_0, params = tst_nanoBragg_basic(spixels,fpixels)
+  start_time = time.time()
+  raw_pixels_0, params = tst_nanoBragg_basic(spixels,fpixels, add_background_bool)
+  end_time = time.time()
+  print("nanoBragg time: ", end_time-start_time)
   raw_pixels_0 = raw_pixels_0.as_numpy_array()
-  raw_pixels_1 = tst_torchBragg_basic(spixels,fpixels, params, use_numpy, vectorize)
-  
+
+  start_time = time.time()
+  raw_pixels_1 = tst_torchBragg_basic(spixels,fpixels, params, use_numpy, vectorize, add_background_bool)
+  end_time = time.time()
+  print("torchBragg time: ", end_time-start_time)
+
   if not(use_numpy):
     raw_pixels_1 = raw_pixels_1.numpy()
   
@@ -417,6 +426,7 @@ if __name__=="__main__":
   # cbar2 = fig.colorbar(im2, ax=axs[1])
   plt.savefig("nanoBragg_vs_torchBragg_basic.png")
 
+  breakpoint()
   assert(np.mean(np.abs(raw_pixels_0-raw_pixels_1))/np.mean(raw_pixels_0) < 1e-10)
 
   print("OK")

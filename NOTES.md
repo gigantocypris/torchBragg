@@ -352,3 +352,21 @@ torchBragg time:  0.029886722564697266
 Without vectorized: (numpy)
 nanoBragg time:  0.016527414321899414
 torchBragg time:  3.536445379257202
+
+basic test without background:
+
+torch vectorized:
+nanoBragg time:  0.34217238426208496
+torchBragg time:  4.180469751358032
+
+numpy vectorized:
+nanoBragg time:  0.36388659477233887
+torchBragg time:  1.194868803024292
+
+torch not vectorized:
+nanoBragg time:  0.3216283321380615
+torchBragg time:  156.15314769744873
+
+numpy not vectorized:
+nanoBragg time:  0.8134758472442627
+torchBragg time:  9.101328611373901

@@ -2,6 +2,28 @@ from utils import which_package
 import numpy as np
 import torch
 
+def Fhkl_remove(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min):
+    for key in Fhkl.keys():
+        h0 = key[0]
+        k0 = key[1]
+        l0 = key[2]
+
+        if not((h0<=h_max) and (h0>=h_min) and (k0<=k_max) and (k0>=k_min) and (l0<=l_max) and (l0>=l_min)):
+            del Fhkl[key]
+    return(Fhkl)
+
+
+def Fhkl_dict_to_mat(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min, default_F, prefix):
+    Fhkl_mat = default_F*prefix.ones([h_max-h_min+1, k_max-k_min+1, l_max-l_min+1])
+    for key in Fhkl.keys():
+        if int(key[0]) != key[0] or int(key[1]) != key[1] or int(key[2]) != key[2]:
+            raise ValueError("hkl indices must be integers")
+        h0 = int(key[0])
+        k0 = int(key[1])
+        l0 = int(key[2])
+        Fhkl_mat[h0-h_min, k0-k_min, l0-l_min] = Fhkl[key]
+    return(Fhkl_mat)
+
 def sincg_vectorized(x, N, prefix):
     sincg_i = prefix.sin(x*N)/prefix.sin(x)
     sincg_i[x==0] = N

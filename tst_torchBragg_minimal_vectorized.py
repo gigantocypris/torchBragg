@@ -2,7 +2,7 @@ from __future__ import absolute_import, division, print_function
 # absolute bare-minimum diffraction image simulation
 
 from simtbx.nanoBragg import nanoBragg
-from diffraction_vectorized import Fhkl_remove
+from utils_vectorized import Fhkl_remove, Fhkl_dict_to_mat
 from utils import which_package
 import numpy as np
 import torch
@@ -40,7 +40,6 @@ def tst_nanoBragg_minimal(spixels, fpixels, randomize_orientation=True, tophat=T
     SIM.show_params()
     # now actually run the simulation
     SIM.add_nanoBragg_spots()
-
     # # write out a file on arbitrary scale, header contains beam center in various conventions
     # SIM.to_smv_format(fileout="intimage_001.img")
 
@@ -153,12 +152,12 @@ def tst_torchBragg_minimal(spixels, fpixels, pix0_vector_mm, use_numpy=True, ran
     Xbeam = 0.05125
     Ybeam = 0.05125
     interpolate = False
-    h_max = 0
-    h_min = 0
-    k_max = 0
-    k_min = 0
-    l_max = 0
-    l_min = 0
+    h_max = 4
+    h_min = -5
+    k_max = 5
+    k_min = -5
+    l_max = 3
+    l_min = -3
     Fhkl_indices = [(0,0,0)]
     Fhkl_data = [10.0]
     default_F = 1.0
@@ -174,10 +173,13 @@ def tst_torchBragg_minimal(spixels, fpixels, pix0_vector_mm, use_numpy=True, ran
     Fhkl = {h:v for h,v in zip(Fhkl_indices,Fhkl_data)}
     Fhkl = Fhkl_remove(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min)
 
+    Fhkl_mat = Fhkl_dict_to_mat(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min, default_F, prefix)
     if vectorize:
         from diffraction_vectorized import add_torchBragg_spots
+        Fhkl_input = Fhkl_mat
     else:
         from diffraction import add_torchBragg_spots
+        Fhkl_input = Fhkl
 
     raw_pixels = add_torchBragg_spots(spixels, 
                         fpixels,
@@ -209,7 +211,7 @@ def tst_torchBragg_minimal(spixels, fpixels, pix0_vector_mm, use_numpy=True, ran
                         Xbeam, Ybeam,
                         interpolate,
                         h_max, h_min, k_max, k_min, l_max, l_min,
-                        Fhkl, default_F,
+                        Fhkl_input, default_F,
                         nopolar,source_I,
                         polarization,
                         polar_vector,
@@ -219,10 +221,10 @@ def tst_torchBragg_minimal(spixels, fpixels, pix0_vector_mm, use_numpy=True, ran
 
 if __name__=="__main__":    
     
-    use_numpy = True
+    use_numpy = False
     randomize_orientation = True
     tophat = False
-    vectorize = False
+    vectorize = True
 
     # does not work for modified sizes
     spixels = 128

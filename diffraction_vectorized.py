@@ -4,17 +4,6 @@ from utils import r_e_sqr, which_package
 
 from utils_vectorized import sincg_vectorized, sinc3_vectorized, unitize_vectorized, polarization_factor_vectorized
 
-def Fhkl_remove(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min):
-    for key in Fhkl.keys():
-        h0 = key[0]
-        k0 = key[1]
-        l0 = key[2]
-
-        if not((h0<=h_max) and (h0>=h_min) and (k0<=k_max) and (k0>=k_min) and (l0<=l_max) and (l0>=l_min)):
-            del Fhkl[key]
-    return(Fhkl)
-    
-
 def add_torchBragg_spots(spixels, 
                          fpixels,
                          phisteps,
@@ -185,17 +174,20 @@ def add_torchBragg_spots(spixels,
         raise NotImplementedError("Interpolation of structure factors not implemented")
         # F_cell = interpolate_unit_cell()
     else:
-        # XXX Need to vectorize
+        # stack for 1 line conversion to int
+        stacked_hkl = prefix.stack([h0-h_min,k0-k_min,l0-l_min], axis=0)
+        if use_numpy:
+            stacked_hkl = stacked_hkl.astype(int)
+        else:
+            stacked_hkl = stacked_hkl.type(torch.int32)
 
-        F_cell = prefix.ones_like(h0)*default_F
-        # stacked_hkl = prefix.stack([h0,k0,l0], axis=0)
-        for key in Fhkl.keys():
-            h0_key = key[0]
-            k0_key = key[1]
-            l0_key = key[2]
-
+        try:
             # just take nearest-neighbor
-            F_cell[(h0==h0_key)*(k0==k0_key)*(l0==l0_key)]=Fhkl[key]
+            F_cell = Fhkl[stacked_hkl[0], stacked_hkl[1], stacked_hkl[2]]
+        except IndexError:
+            print("max h:", h0.max(), "max k:", k0.max(), "max l:", l0.max())
+            print("min h:", h0.min(), "min k:", k0.min(), "min l:", l0.min())
+            raise IndexError("hkl index not found in Fhkl, change hkl ranges when constructing Fhkl matrix.")
             
     # polarization factor
     if(nopolar):
