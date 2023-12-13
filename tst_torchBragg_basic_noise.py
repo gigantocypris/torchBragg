@@ -192,11 +192,11 @@ def tst_nanoBragg_basic(spixels, fpixels, add_background_bool, add_noise_bool):
   
   if add_noise_bool:
     # set this to 0 or -1 to trigger automatic radius.  could be very slow with bright images
-    SIM.detector_psf_kernel_radius_pixels=5;
-    SIM.detector_psf_fwhm_mm=0.08;
+    SIM.detector_psf_kernel_radius_pixels=5
+    SIM.detector_psf_fwhm_mm=0.08
     SIM.detector_psf_type=shapetype.Fiber
     print(SIM.raw_pixels[200])
-    SIM.to_smv_format(fileout="intimage_003.img")
+
     print("quantum_gain=",SIM.quantum_gain)
     print("adc_offset_adu=",SIM.adc_offset_adu)
     print("detector_calibration_noise_pct=",SIM.detector_calibration_noise_pct)
@@ -205,8 +205,8 @@ def tst_nanoBragg_basic(spixels, fpixels, add_background_bool, add_noise_bool):
     print("detector_psf_type=",SIM.detector_psf_type)
     print("detector_psf_fwhm_mm=",SIM.detector_psf_fwhm_mm)
     print("detector_psf_kernel_radius_pixels=",SIM.detector_psf_kernel_radius_pixels)
-    SIM.add_noise()
 
+    SIM.add_noise()    
     noise_params = (SIM.quantum_gain, SIM.adc_offset_adu, SIM.detector_calibration_noise_pct, 
                     SIM.flicker_noise_pct, SIM.readout_noise_adu, SIM.detector_psf_type, 
                     SIM.detector_psf_fwhm_mm, SIM.detector_psf_kernel_radius_pixels)
@@ -430,8 +430,8 @@ def tst_torchBragg_basic(spixels, fpixels, params, use_numpy, vectorize, add_bac
   return(raw_pixels)
 
 if __name__=="__main__":
-  spixels = 512
-  fpixels = 512
+  spixels = 1024
+  fpixels = 1024
   use_numpy = False
   vectorize = True
   add_background_bool = True

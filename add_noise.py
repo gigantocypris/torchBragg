@@ -38,6 +38,7 @@ def add_noise(raw_pixels,
 
     # add Poisson noise (Gaussian approximation to the Poisson distribution)
     # approximation to the original nanoBragg model because a Gaussian approximation
+
     if true_poisson:
         loc = Poisson(loc).sample()
     else:
@@ -49,6 +50,7 @@ def add_noise(raw_pixels,
         loc *= (1.0 + calibration_noise * calibration_noise_sample)
 
     # implement PSF by convolving loc with a kernel, scale is unchanged
+
     loc = apply_psf(loc,
                     psf_type,
                     psf_fwhm/pixel_size, # width of the actual psf
@@ -59,7 +61,7 @@ def add_noise(raw_pixels,
     # convert loc and scale to adu units
     scale *= quantum_gain
     loc *= quantum_gain
-    loc -= adc_offset
+    loc += adc_offset
 
     # add readout noise
     scale += readout_noise
