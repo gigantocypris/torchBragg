@@ -51,6 +51,8 @@ def fcalc_from_pdb(resolution,algorithm=None,wavelength=0.9):
   P1_primitive_xray_structure = primitive_xray_structure.expand_to_p1()
   fcalc = P1_primitive_xray_structure.structure_factors(
     d_min=resolution, anomalous_flag=True, algorithm=algorithm).f_calc()
+  breakpoint()
+  # fcalc._data.as_numpy_array()
   return fcalc.amplitudes()
 
 def tst_nanoBragg_basic(spixels, fpixels, add_background_bool):
@@ -74,6 +76,7 @@ def tst_nanoBragg_basic(spixels, fpixels, add_background_bool):
   print("calib_seed=",SIM.calib_seed)
   print("missets_deg =", SIM.missets_deg)
   sfall = fcalc_from_pdb(resolution=1.6,algorithm="direct",wavelength=SIM.wavelength_A)
+  breakpoint()
   # use crystal structure to initialize Fhkl array
   SIM.Fhkl=sfall
   # fastest option, least realistic
