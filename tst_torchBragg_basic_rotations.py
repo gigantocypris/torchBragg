@@ -20,7 +20,10 @@ assert miller
 from diffraction import add_torchBragg_spots
 from utils_vectorized import Fhkl_remove, Fhkl_dict_to_mat
 from add_noise import add_noise
-
+from LS49 import legacy_random_orientations
+from scitbx.matrix import sqr
+from diffraction_vectorized import add_torchBragg_spots
+from add_background_vectorized import add_background
 torch.set_default_dtype(torch.float64)
 
 pdb_lines = """HEADER TEST
@@ -55,14 +58,14 @@ def fcalc_from_pdb(resolution,algorithm=None,wavelength=0.9):
   # fcalc._data.as_numpy_array()
   return fcalc.amplitudes()
 
-def tst_nanoBragg_basic(spixels, fpixels, add_background_bool, add_noise_bool):
+def tst_nanoBragg_basic(Amatrix_rot, sfall, wavelength_A, spixels, fpixels, add_background_bool, add_noise_bool):
   SIM = nanoBragg(detpixels_slowfast=(spixels,fpixels),pixel_size_mm=0.1,Ncells_abc=(5,5,5),verbose=9)
   SIM.seed = 10
-  SIM.randomize_orientation()
+
   SIM.distance_mm=100
 
   SIM.oversample=1
-  SIM.wavelength_A=1
+  SIM.wavelength_A=wavelength_A
   SIM.polarization=1
   #SIM.unit_cell_tuple=(50,50,50,90,90,90)
   print("unit_cell_Adeg=",SIM.unit_cell_Adeg)
@@ -75,8 +78,7 @@ def tst_nanoBragg_basic(spixels, fpixels, add_background_bool, add_noise_bool):
   print("seed=",SIM.seed)
   print("calib_seed=",SIM.calib_seed)
   print("missets_deg =", SIM.missets_deg)
-  sfall = fcalc_from_pdb(resolution=1.6,algorithm="direct",wavelength=SIM.wavelength_A)
-  breakpoint()
+
   # use crystal structure to initialize Fhkl array
   SIM.Fhkl=sfall
   # fastest option, least realistic
@@ -93,32 +95,7 @@ def tst_nanoBragg_basic(spixels, fpixels, add_background_bool, add_noise_bool):
   SIM.beamsize_mm=0.1
   SIM.exposure_s=0.1
 
-  breakpoint()
-  ###
-  from LS49 import legacy_random_orientations
-  random_orientation = legacy_random_orientations(1)[0]
-  
-  from scitbx.matrix import sqr
-  breakpoint()
-  rand_ori = sqr(random_orientation) # np.reshape(random_orientation, (3,3))
-  Amatrix_rot = 1e-10*(rand_ori * sqr(sfall.unit_cell().orthogonalization_matrix())).transpose()
-
   SIM.Amatrix_RUB = Amatrix_rot
-  SIM.add_nanoBragg_spots()
-  breakpoint()
-
-  {{48.80161717822704, 10.360476040156952, -3.326063290304113},
- {-12.622975354583984, 49.2113052666039, -31.920337203022914},
- {-3.8973660336438027, 37.32747413087323, 59.08866399749438}}
-  
-#   a0
-#   b0
-#   c0
-#   ap
-#   bp
-#   cp
-  ###
-
 
   print("Ncells_abc=",SIM.Ncells_abc)
   print("xtal_size_mm=",SIM.xtal_size_mm)
@@ -183,7 +160,6 @@ def tst_nanoBragg_basic(spixels, fpixels, add_background_bool, add_noise_bool):
   print("integral_form=",SIM.integral_form)
   # now actually burn up some CPU
   SIM.add_nanoBragg_spots()
-  breakpoint()
 
   params = (SIM.phisteps, SIM.mosaic_domains, SIM.oversample, SIM.pixel_size_mm, SIM.detector_thicksteps,
             SIM.spot_scale, SIM.fluence, SIM.detector_thickstep_mm, SIM.fdet_vector, SIM.sdet_vector, SIM.odet_vector,
@@ -252,7 +228,7 @@ def convert_vector(tuple, use_numpy):
   return(new_array([0, tuple[0],tuple[1],tuple[2]]))
 
 
-def tst_torchBragg_basic(spixels, fpixels, params, use_numpy, vectorize, add_background_bool, noise_params, convolution_type='real_space'):
+def tst_torchBragg_basic(Amatrix_rot, spixels, fpixels, params, use_numpy, add_background_bool, noise_params, convolution_type='real_space'):
   prefix, new_array = which_package(use_numpy)
   phisteps, mosaic_domains, oversample, pixel_size_mm, detector_thicksteps, spot_scale, fluence, \
   detector_thickstep_mm, fdet_vector, sdet_vector, odet_vector, pix0_vector_mm, curved_detector, \
@@ -268,22 +244,15 @@ def tst_torchBragg_basic(spixels, fpixels, params, use_numpy, vectorize, add_bac
   maskimage = None
   detector_thickstep = detector_thickstep_mm/1000
   Odet = 0.000000
-  if vectorize:
-    spindle_vector = new_array([0,0,1])
-    pix0_vector = new_array(pix0_vector_mm)/1000
-    fdet_vector = new_array(fdet_vector)
-    sdet_vector = new_array(sdet_vector)
-    odet_vector = new_array(odet_vector)
-    beam_vector = new_array(beam_vector)
-    polar_vector = new_array(polar_vector)
-  else:
-    fdet_vector = convert_vector(fdet_vector, use_numpy)
-    sdet_vector = convert_vector(sdet_vector, use_numpy)
-    odet_vector = convert_vector(odet_vector, use_numpy)
-    pix0_vector = convert_vector(pix0_vector_mm, use_numpy)/1000
-    beam_vector = convert_vector(beam_vector, use_numpy)
-    polar_vector = convert_vector(polar_vector, use_numpy)
-    spindle_vector = new_array([0,0,0,1])
+
+  spindle_vector = new_array([0,0,1])
+  pix0_vector = new_array(pix0_vector_mm)/1000
+  fdet_vector = new_array(fdet_vector)
+  sdet_vector = new_array(sdet_vector)
+  odet_vector = new_array(odet_vector)
+  beam_vector = new_array(beam_vector)
+  polar_vector = new_array(polar_vector)
+
   distance = distance_mm/1000
   close_distance = close_distance_mm/1000
   detector_thick = detector_thick_mm/1000
@@ -300,20 +269,15 @@ def tst_torchBragg_basic(spixels, fpixels, params, use_numpy, vectorize, add_bac
   mosaic_spread = 0.000000
   mosaic_umats = new_array([1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0])
   xtal_shape = 'TOPHAT'
-  if vectorize:
-    a0 = new_array([3.86524e-09, -2.18873e-09, 2.29551e-09])
-    b0 = new_array([3.7375e-09, 3.96373e-09, -2.51395e-09])
-    c0 = new_array([-8.39164e-10, 4.26918e-09, 5.4836e-09])
-    ap = new_array([3.86524e-09, -2.18873e-09, 2.29551e-09])
-    bp = new_array([3.7375e-09, 3.96373e-09, -2.51395e-09]) 
-    cp = new_array([-8.39164e-10, 4.26918e-09, 5.4836e-09])
-  else:
-    a0 = new_array([5e-09, 3.86524e-09, -2.18873e-09, 2.29551e-09])
-    b0 = new_array([6e-09, 3.7375e-09, 3.96373e-09, -2.51395e-09])
-    c0 = new_array([7e-09, -8.39164e-10, 4.26918e-09, 5.4836e-09])
-    ap = new_array([5e-09, 3.86524e-09, -2.18873e-09, 2.29551e-09])
-    bp = new_array([6e-09, 3.7375e-09, 3.96373e-09, -2.51395e-09]) 
-    cp = new_array([7e-09, -8.39164e-10, 4.26918e-09, 5.4836e-09])
+
+  a0 = new_array([3.86524e-09, -2.18873e-09, 2.29551e-09]) # not used
+  b0 = new_array([3.7375e-09, 3.96373e-09, -2.51395e-09]) # not used
+  c0 = new_array([-8.39164e-10, 4.26918e-09, 5.4836e-09]) # not used
+
+  ap = new_array(Amatrix_rot[0:3])*1e-10
+  bp = new_array(Amatrix_rot[3:6])*1e-10
+  cp = new_array(Amatrix_rot[6:9])*1e-10
+
   Na = Ncells_abc[0]
   Nb = Ncells_abc[1]
   Nc = Ncells_abc[2]
@@ -334,12 +298,7 @@ def tst_torchBragg_basic(spixels, fpixels, params, use_numpy, vectorize, add_bac
   Fhkl = {h:v for h,v in zip(Fhkl_indices,Fhkl_data)}
   Fhkl = Fhkl_remove(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min)
   Fhkl_mat = Fhkl_dict_to_mat(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min, default_F, prefix)
-  if vectorize:
-    from diffraction_vectorized import add_torchBragg_spots
-    Fhkl_input = Fhkl_mat
-  else:
-    from diffraction import add_torchBragg_spots
-    Fhkl_input = Fhkl
+  Fhkl_input = Fhkl_mat
 
   raw_pixels = add_torchBragg_spots(spixels, 
                       fpixels,
@@ -380,11 +339,6 @@ def tst_torchBragg_basic(spixels, fpixels, params, use_numpy, vectorize, add_bac
   raw_pixels *= 64e9
 
   if add_background_bool:
-
-    if vectorize:
-      from add_background_vectorized import add_background
-    else:
-      from add_background import add_background
 
     # add background of water
     Fmap_pixel = False
@@ -461,28 +415,16 @@ def tst_torchBragg_basic(spixels, fpixels, params, use_numpy, vectorize, add_bac
   return(raw_pixels)
 
 if __name__=="__main__":
-#   from LS49 import legacy_random_orientations
-#   random_orientation = legacy_random_orientations(1)[0]
-  
-#   from scitbx.matrix import sqr
-#   breakpoint()
-#   rand_ori = sqr(random_orientation) # np.reshape(random_orientation, (3,3))
-#   Amatrix_rot = (rotation * sqr(sfall_channels[0].unit_cell().orthogonalization_matrix())).transpose()
+  wavelength_A = 1
+  sfall = fcalc_from_pdb(resolution=1.6,algorithm="direct",wavelength=wavelength_A)
 
-#   SIM.Amatrix_RUB = Amatrix_rot
-#   Amat = sqr(SIM.Amatrix).transpose() # recovered Amatrix from SIM # np.reshape(random_orientation, (3,3)).T
-
-#   a0
-#   b0
-#   c0
-#   ap
-#   bp
-#   cp
-
-  spixels = 1024
-  fpixels = 1024
+  # the next step is deterministic due to a seed in legacy_random_orientations
+  random_orientation = legacy_random_orientations(100)[10] # picks 10th orientation out of 100
+  rand_ori = sqr(random_orientation) # same as np.reshape(random_orientation, (3,3))
+  Amatrix_rot = (rand_ori * sqr(sfall.unit_cell().orthogonalization_matrix())).transpose()
+  spixels = 512
+  fpixels = 512
   use_numpy = False
-  vectorize = True
   add_background_bool = True
   add_noise_bool = True
 
@@ -491,13 +433,13 @@ if __name__=="__main__":
     print('Must use PyTorch for add_noise')
 
   start_time = time.time()
-  raw_pixels_0, params, noise_params = tst_nanoBragg_basic(spixels,fpixels, add_background_bool, add_noise_bool)
+  raw_pixels_0, params, noise_params = tst_nanoBragg_basic(Amatrix_rot, sfall, wavelength_A, spixels,fpixels, add_background_bool, add_noise_bool)
   end_time = time.time()
   print("nanoBragg time: ", end_time-start_time)
   raw_pixels_0 = raw_pixels_0.as_numpy_array()
 
   start_time = time.time()
-  raw_pixels_1 = tst_torchBragg_basic(spixels,fpixels, params, use_numpy, vectorize, add_background_bool, noise_params)
+  raw_pixels_1 = tst_torchBragg_basic(Amatrix_rot, spixels,fpixels, params, use_numpy, add_background_bool, noise_params)
   end_time = time.time()
   print("torchBragg time: ", end_time-start_time)
 
