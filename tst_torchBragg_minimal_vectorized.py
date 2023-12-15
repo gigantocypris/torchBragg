@@ -71,6 +71,7 @@ def tst_torchBragg_minimal(spixels, fpixels, pix0_vector_mm, use_numpy=True, ran
         sdet_vector = new_array([0,-1,0]) 
         odet_vector = new_array([1,0,0]) 
         pix0_vector = new_array([pix0_vector_mm[0]/1e3, pix0_vector_mm[1]/1e3, pix0_vector_mm[2]/1e3])
+        print("pix0_vector: ", pix0_vector)
     else:
         fdet_vector = new_array([0,0,0,1]) 
         sdet_vector = new_array([0,0,-1,0]) 
@@ -152,12 +153,20 @@ def tst_torchBragg_minimal(spixels, fpixels, pix0_vector_mm, use_numpy=True, ran
     Xbeam = 0.05125
     Ybeam = 0.05125
     interpolate = False
-    h_max = 4
-    h_min = -5
-    k_max = 5
-    k_min = -5
-    l_max = 3
-    l_min = -3
+    # h_max = 4
+    # h_min = -5
+    # k_max = 5
+    # k_min = -5
+    # l_max = 3
+    # l_min = -3
+
+    h_max = 100
+    h_min = -100
+    k_max = 100
+    k_min = -100
+    l_max = 100
+    l_min = -100
+
     Fhkl_indices = [(0,0,0)]
     Fhkl_data = [10.0]
     default_F = 1.0
@@ -222,13 +231,13 @@ def tst_torchBragg_minimal(spixels, fpixels, pix0_vector_mm, use_numpy=True, ran
 if __name__=="__main__":    
     
     use_numpy = True
-    randomize_orientation = True
+    randomize_orientation = False
     tophat = False
     vectorize = True
 
     # does not work for modified sizes
-    spixels = 128
-    fpixels = 128
+    spixels = 256
+    fpixels = 1024
 
     start = time.time()
     raw_pixels_0, pix0_vector_mm = tst_nanoBragg_minimal(spixels,fpixels, randomize_orientation=randomize_orientation, tophat=tophat)

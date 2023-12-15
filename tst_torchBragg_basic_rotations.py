@@ -247,6 +247,7 @@ def tst_torchBragg_basic(Amatrix_rot, spixels, fpixels, params, use_numpy, add_b
 
   spindle_vector = new_array([0,0,1])
   pix0_vector = new_array(pix0_vector_mm)/1000
+  print("pix0_vector=",pix0_vector)
   fdet_vector = new_array(fdet_vector)
   sdet_vector = new_array(sdet_vector)
   odet_vector = new_array(odet_vector)
