@@ -32,7 +32,7 @@ def tst_one_CPU(params):
     N = crystal.number_of_cells(sfall_channels[0].unit_cell())
 
     # detpixels_slowfast=PANEL.get_image_size()
-    SIM = nanoBragg(detpixels_slowfast=(512,512),pixel_size_mm=PANEL.get_pixel_size()[0],Ncells_abc=(N,N,N),
+    SIM = nanoBragg(detpixels_slowfast=PANEL.get_image_size(),pixel_size_mm=PANEL.get_pixel_size()[0],Ncells_abc=(N,N,N),
                     wavelength_A=shot_to_shot_wavelength_A,verbose=0)
     SIM.adc_offset_adu = 0 # Do not offset by 40
     SIM.mosaic_spread_deg = 0.05 # interpreted by UMAT_nm as a half-width stddev
@@ -164,4 +164,13 @@ if __name__ == "__main__":
     
     plt.figure(); plt.imshow(raw_pixels.as_numpy_array());plt.savefig("raw_pixels.png")
 
-#  libtbx.python $MODULES/torchBragg/tst_torchBragg_ferredoxin.py trial.phil
+    # open h5 file and write raw_pixels
+    import h5py
+
+    with h5py.File("image_rank_00000.h5", 'r') as f:
+        data = f['entry']['data']['data'][0,:,:]
+        plt.figure(); plt.imshow(data);plt.savefig("raw_pixels_ly99.png")
+    breakpoint()
+
+
+    #  libtbx.python $MODULES/torchBragg/tst_torchBragg_ferredoxin.py trial.phil
