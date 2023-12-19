@@ -15,7 +15,7 @@ from scitbx.matrix import sqr,col
 
 def tst_one_CPU(params):
     spectra = spectra_simulation()
-    crystal = microcrystal(Deff_A = 4000, length_um = params.crystal.length_um, beam_diameter_um = 1.0) # assume smaller than 10 um crystals
+    crystal = microcrystal(Deff_A = params.crystal.Deff_A, length_um = params.crystal.length_um, beam_diameter_um = 1.0) # assume smaller than 10 um crystals
     random_orientation = legacy_random_orientations(1)[0]
 
     DETECTOR = basic_detector_rayonix()
@@ -26,13 +26,14 @@ def tst_one_CPU(params):
     rand_ori = sqr(random_orientation)
 
     wavlen, flux, shot_to_shot_wavelength_A = next(iterator) # list of lambdas, list of fluxes, average wavelength
+
     assert shot_to_shot_wavelength_A > 0 # wavelength varies shot-to-shot
 
     # use crystal structure to initialize Fhkl array
     N = crystal.number_of_cells(sfall_channels[0].unit_cell())
 
     # detpixels_slowfast=PANEL.get_image_size()
-    SIM = nanoBragg(detpixels_slowfast=PANEL.get_image_size(),pixel_size_mm=PANEL.get_pixel_size()[0],Ncells_abc=(N,N,N),
+    SIM = nanoBragg(detpixels_slowfast=(512,512),pixel_size_mm=PANEL.get_pixel_size()[0],Ncells_abc=(N,N,N),
                     wavelength_A=shot_to_shot_wavelength_A,verbose=0)
     SIM.adc_offset_adu = 0 # Do not offset by 40
     SIM.mosaic_spread_deg = 0.05 # interpreted by UMAT_nm as a half-width stddev
@@ -107,7 +108,7 @@ def tst_one_CPU(params):
 
     # simulated crystal is only 125 unit cells (25 nm wide)
     # amplify spot signal to simulate physical crystal of 4000x larger: 100 um (64e9 x the volume)
-    SIM.raw_pixels *= crystal.domains_per_crystal; # must calculate the correct scale!
+    SIM.raw_pixels *= crystal.domains_per_crystal # must calculate the correct scale!
 
     SIM.wavelength_A = shot_to_shot_wavelength_A # return to canonical energy for subsequent background
     SIM.Amatrix_RUB = Amatrix_rot # return to canonical orientation
@@ -161,16 +162,16 @@ if __name__ == "__main__":
     params,options = parse_input()
     raw_pixels = tst_one_CPU(params)
 
-    
-    plt.figure(); plt.imshow(raw_pixels.as_numpy_array());plt.savefig("raw_pixels.png")
-
-    # open h5 file and write raw_pixels
-    import h5py
-
-    with h5py.File("image_rank_00000.h5", 'r') as f:
-        data = f['entry']['data']['data'][0,:,:]
-        plt.figure(); plt.imshow(data);plt.savefig("raw_pixels_ly99.png")
     breakpoint()
+    plt.figure(); plt.imshow(raw_pixels.as_numpy_array(),vmax=300);plt.savefig("raw_pixels.png")
+
+    # # open h5 file and write raw_pixels
+    # import h5py
+
+    # with h5py.File("image_rank_00000.h5", 'r') as f:
+    #     data = f['entry']['data']['data'][0,:,:]
+    #     plt.figure(); plt.imshow(data);plt.savefig("raw_pixels_ly99.png")
+    # breakpoint()
 
 
     #  libtbx.python $MODULES/torchBragg/tst_torchBragg_ferredoxin.py trial.phil
