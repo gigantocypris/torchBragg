@@ -6,21 +6,21 @@ from LS49.spectra.generate_spectra import spectra_simulation
 from LS49.sim.step4_pad import microcrystal
 from LS49 import ls49_big_data, legacy_random_orientations
 from exafel_project.kpp_utils.ferredoxin import basic_detector_rayonix
-from amplitudes_spread_ferredoxin_quick import amplitudes_spread_ferredoxin
+from torchBragg.amplitudes_spread_torchBragg import amplitudes_spread_psii
 from simtbx.nanoBragg import nanoBragg
 from simtbx.nanoBragg import shapetype
 from scitbx.array_family import flex
 import scitbx
 from scitbx.matrix import sqr,col
 
-def tst_one_CPU(params):
+def tst_one_CPU(params, use_background):
     spectra = spectra_simulation()
     crystal = microcrystal(Deff_A = params.crystal.Deff_A, length_um = params.crystal.length_um, beam_diameter_um = 1.0) # assume smaller than 10 um crystals
-    random_orientation = legacy_random_orientations(1)[0]
-
+    random_orientation = legacy_random_orientations(100)[10]
+    
     DETECTOR = basic_detector_rayonix()
     PANEL = DETECTOR[0]
-    sfall_channels = amplitudes_spread_ferredoxin(params)
+    sfall_channels = amplitudes_spread_psii(params, direct_algo_res_limit=10)
 
     iterator = spectra.generate_recast_renormalized_image_parameterized(image=0,params=params)
     rand_ori = sqr(random_orientation)
@@ -36,9 +36,9 @@ def tst_one_CPU(params):
     SIM = nanoBragg(detpixels_slowfast=(512,512),pixel_size_mm=PANEL.get_pixel_size()[0],Ncells_abc=(N,N,N),
                     wavelength_A=shot_to_shot_wavelength_A,verbose=0)
     SIM.adc_offset_adu = 0 # Do not offset by 40
-    SIM.mosaic_spread_deg = 0.05 # interpreted by UMAT_nm as a half-width stddev
+    SIM.mosaic_spread_deg = 0.0 # interpreted by UMAT_nm as a half-width stddev
                                 # mosaic_domains setter MUST come after mosaic_spread_deg setter
-    SIM.mosaic_domains = 25
+    SIM.mosaic_domains = int(os.environ.get("MOS_DOM"))
     print ("MOSAIC",SIM.mosaic_domains)
     SIM.distance_mm = PANEL.get_distance()
 
@@ -70,6 +70,7 @@ def tst_one_CPU(params):
     Amatrix_rot = (rand_ori*sqr(sfall_channels[0].unit_cell().orthogonalization_matrix())).transpose()
 
     SIM.Amatrix_RUB = Amatrix_rot
+    print("SIM.Amatrix.RUB", SIM.Amatrix_RUB)
     #workaround for failing init_cell, use custom written Amatrix setter
     print("unit_cell_Adeg=",SIM.unit_cell_Adeg)
     print("unit_cell_tuple=",SIM.unit_cell_tuple)
@@ -113,22 +114,23 @@ def tst_one_CPU(params):
     SIM.wavelength_A = shot_to_shot_wavelength_A # return to canonical energy for subsequent background
     SIM.Amatrix_RUB = Amatrix_rot # return to canonical orientation
 
-    SIM.Fbg_vs_stol = water_bg
-    SIM.amorphous_sample_thick_mm = 0.1
-    SIM.amorphous_density_gcm3 = 1
-    SIM.amorphous_molecular_weight_Da = 18
-    SIM.flux=params.beam.total_flux
-    SIM.beamsize_mm=0.003 # square (not user specified)
-    SIM.exposure_s=1.0 # multiplies flux x exposure
-    SIM.add_background()
-    SIM.Fbg_vs_stol = air_bg
-    SIM.amorphous_sample_thick_mm = 10 # between beamstop and collimator
-    SIM.amorphous_density_gcm3 = 1.2e-3
-    SIM.amorphous_sample_molecular_weight_Da = 28 # nitrogen = N2
-    SIM.add_background()
+    if use_background:
+        SIM.Fbg_vs_stol = water_bg
+        SIM.amorphous_sample_thick_mm = 0.1
+        SIM.amorphous_density_gcm3 = 1
+        SIM.amorphous_molecular_weight_Da = 18
+        SIM.flux=params.beam.total_flux
+        SIM.beamsize_mm=0.003 # square (not user specified)
+        SIM.exposure_s=1.0 # multiplies flux x exposure
+        SIM.add_background()
+        SIM.Fbg_vs_stol = air_bg
+        SIM.amorphous_sample_thick_mm = 10 # between beamstop and collimator
+        SIM.amorphous_density_gcm3 = 1.2e-3
+        SIM.amorphous_sample_molecular_weight_Da = 28 # nitrogen = N2
+        SIM.add_background()
 
     if params.psf:
-        SIM.detector_psf_kernel_radius_pixels=10;
+        SIM.detector_psf_kernel_radius_pixels=10
         SIM.detector_psf_type=shapetype.Fiber # for Rayonix
         SIM.detector_psf_fwhm_mm=0.08
         #SIM.apply_psf() # the actual application is called within the C++ SIM.add_noise()
@@ -160,18 +162,7 @@ def tst_one_CPU(params):
 
 if __name__ == "__main__":
     params,options = parse_input()
-    raw_pixels = tst_one_CPU(params)
+    use_background = False
+    raw_pixels = tst_one_CPU(params, use_background)
 
-    breakpoint()
-    plt.figure(); plt.imshow(raw_pixels.as_numpy_array(),vmax=300);plt.savefig("raw_pixels.png")
-
-    # # open h5 file and write raw_pixels
-    # import h5py
-
-    # with h5py.File("image_rank_00000.h5", 'r') as f:
-    #     data = f['entry']['data']['data'][0,:,:]
-    #     plt.figure(); plt.imshow(data);plt.savefig("raw_pixels_ly99.png")
-    # breakpoint()
-
-
-    #  libtbx.python $MODULES/torchBragg/tst_torchBragg_ferredoxin.py trial.phil
+    plt.figure(); plt.imshow(raw_pixels.as_numpy_array(), vmax=10e-5);plt.savefig("raw_pixels.png")
