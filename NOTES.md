@@ -377,3 +377,9 @@ Vectorizing add_background
 
 > cd $WORK/output_torchBragg
 > libtbx.python $MODULES/torchBragg/tst_torchBragg_basic_vectorized.py
+
+# January 4, 2023
+
+Kramer's Kronig:
+> cd $WORK/output_torchBragg
+> . $MODULES/torchBragg/tst_torchBragg_psii_script.sh

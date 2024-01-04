@@ -8,7 +8,7 @@ export LOG_BY_RANK=0 # Set to 1 to use Aaron's rank logger
 export RANK_PROFILE=0 # 0 or 1 Use cProfiler, default 1
 export N_SIM=1 # total number of images to simulate
 export ADD_BACKGROUND_ALGORITHM=cuda
-export MOS_DOM=26
+export MOS_DOM=6 # 26
 
 export CCTBX_NO_UUID=1
 export DIFFBRAGG_USE_KOKKOS=1
@@ -46,7 +46,7 @@ spectrum {
 detector {
   tiles=single
   #reference=${MODULES}/exafel_project/kpp-sim/t000_rg002_chunk000_reintegrated_000000.expt
-  offset_mm=1.4
+  offset_mm=0 #1.4
 }
 output {
   format=h5
@@ -55,4 +55,8 @@ output {
 
 echo "jobstart $(date)";pwd
 libtbx.python $MODULES/torchBragg/tst_torchBragg_psii.py trial.phil
+echo "jobend $(date)";pwd
+
+echo "jobstart $(date)";pwd
+libtbx.python $MODULES/exafel_project/kpp_utils/LY99_batch.py trial.phil
 echo "jobend $(date)";pwd

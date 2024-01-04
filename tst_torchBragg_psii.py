@@ -16,7 +16,8 @@ from scitbx.matrix import sqr,col
 def tst_one_CPU(params, use_background):
     spectra = spectra_simulation()
     crystal = microcrystal(Deff_A = params.crystal.Deff_A, length_um = params.crystal.length_um, beam_diameter_um = 1.0) # assume smaller than 10 um crystals
-    random_orientation = legacy_random_orientations(100)[10]
+    # random_orientation = legacy_random_orientations(100)[0]
+    random_orientation = legacy_random_orientations(1)[0]
     
     DETECTOR = basic_detector_rayonix()
     PANEL = DETECTOR[0]
@@ -32,11 +33,13 @@ def tst_one_CPU(params, use_background):
     # use crystal structure to initialize Fhkl array
     N = crystal.number_of_cells(sfall_channels[0].unit_cell())
 
-    # detpixels_slowfast=PANEL.get_image_size()
-    SIM = nanoBragg(detpixels_slowfast=(512,512),pixel_size_mm=PANEL.get_pixel_size()[0],Ncells_abc=(N,N,N),
+    detpixels_slowfast=PANEL.get_image_size()
+    # detpixels_slowfast=(512,512)
+
+    SIM = nanoBragg(detpixels_slowfast=detpixels_slowfast,pixel_size_mm=PANEL.get_pixel_size()[0],Ncells_abc=(N,N,N),
                     wavelength_A=shot_to_shot_wavelength_A,verbose=0)
     SIM.adc_offset_adu = 0 # Do not offset by 40
-    SIM.mosaic_spread_deg = 0.0 # interpreted by UMAT_nm as a half-width stddev
+    SIM.mosaic_spread_deg = 0.05 # interpreted by UMAT_nm as a half-width stddev
                                 # mosaic_domains setter MUST come after mosaic_spread_deg setter
     SIM.mosaic_domains = int(os.environ.get("MOS_DOM"))
     print ("MOSAIC",SIM.mosaic_domains)
@@ -75,7 +78,6 @@ def tst_one_CPU(params, use_background):
     print("unit_cell_Adeg=",SIM.unit_cell_Adeg)
     print("unit_cell_tuple=",SIM.unit_cell_tuple)
     Amat = sqr(SIM.Amatrix).transpose() # recovered Amatrix from SIM
-
     # fastest option, least realistic
     SIM.xtal_shape=shapetype.Gauss_argchk # both crystal & RLP are Gaussian
     # only really useful for long runs
@@ -99,13 +101,15 @@ def tst_one_CPU(params, use_background):
 
     # loop over energies
     for x in range(len(flux)):
+        print("SIM.Amatrix.RUB", SIM.Amatrix_RUB)
         print("Wavelength",x)
         # from channel_pixels function
         SIM.wavelength_A = wavlen[x]
         SIM.flux = flux[x]
         SIM.Fhkl=sfall_channels[x]
+        SIM.Amatrix_RUB = Amatrix_rot
+        print("SIM.Amatrix.RUB", SIM.Amatrix_RUB)
         SIM.add_nanoBragg_spots()
-    plt.figure(); plt.imshow(SIM.raw_pixels.as_numpy_array());plt.savefig("raw_pixels_0.png")
 
     # simulated crystal is only 125 unit cells (25 nm wide)
     # amplify spot signal to simulate physical crystal of 4000x larger: 100 um (64e9 x the volume)
@@ -113,6 +117,8 @@ def tst_one_CPU(params, use_background):
 
     SIM.wavelength_A = shot_to_shot_wavelength_A # return to canonical energy for subsequent background
     SIM.Amatrix_RUB = Amatrix_rot # return to canonical orientation
+    print("SIM.Amatrix.RUB", SIM.Amatrix_RUB)
+
 
     if use_background:
         SIM.Fbg_vs_stol = water_bg
@@ -162,7 +168,10 @@ def tst_one_CPU(params, use_background):
 
 if __name__ == "__main__":
     params,options = parse_input()
-    use_background = False
+    use_background = True
     raw_pixels = tst_one_CPU(params, use_background)
-
-    plt.figure(); plt.imshow(raw_pixels.as_numpy_array(), vmax=10e-5);plt.savefig("raw_pixels.png")
+    if use_background:
+        plt.figure(); plt.imshow(raw_pixels.as_numpy_array(), vmax=1e3);plt.savefig("raw_pixels_0.png")
+    else:
+        plt.figure(); plt.imshow(raw_pixels.as_numpy_array(), vmax=10e-5);plt.savefig("raw_pixels_0.png")
+    
