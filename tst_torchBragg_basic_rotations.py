@@ -17,7 +17,6 @@ import libtbx.load_env # possibly implicit
 from cctbx import crystal
 from cctbx import miller
 assert miller
-from diffraction import add_torchBragg_spots
 from utils_vectorized import Fhkl_remove, Fhkl_dict_to_mat
 from add_noise import add_noise
 from LS49 import legacy_random_orientations

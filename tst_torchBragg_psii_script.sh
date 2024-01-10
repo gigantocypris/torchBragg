@@ -21,7 +21,7 @@ export SIT_PSDM_DATA=/global/cfs/cdirs/lcls/psdm-sauter
 export MPI4PY_RC_RECV_MPROBE='False'
 
 echo "
-noise=False
+noise=True
 psf=False
 attenuation=True
 context=kokkos_gpu
@@ -57,6 +57,6 @@ echo "jobstart $(date)";pwd
 libtbx.python $MODULES/torchBragg/tst_torchBragg_psii.py trial.phil
 echo "jobend $(date)";pwd
 
-echo "jobstart $(date)";pwd
-libtbx.python $MODULES/exafel_project/kpp_utils/LY99_batch.py trial.phil
-echo "jobend $(date)";pwd
+# echo "jobstart $(date)";pwd
+# libtbx.python $MODULES/exafel_project/kpp_utils/LY99_batch.py trial.phil
+# echo "jobend $(date)";pwd

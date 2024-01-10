@@ -103,6 +103,7 @@ def add_torchBragg_spots(spixels,
         elif (xtal_shape == 'GAUSS_ARGCHK'):
             # fudge the radius so that volume and FWHM are similar to square_xtal spots
             my_arg = hrad_sqr / 0.63 * fudge # pre-calculate to check for no Bragg signal
+            F_latt = prefix.zeros_like(my_arg)
             F_latt[my_arg<35.] = Na * Nb * Nc * prefix.exp(-(my_arg[my_arg<35.]))
             F_latt[my_arg>=35.] = 0. # not expected to give performance gain on optimized C++, only on GPU
         elif(xtal_shape == 'TOPHAT'):
@@ -225,6 +226,7 @@ def simulation_setup(prefix, spixels, fpixels, oversample, subpixel_size, detect
 
     # construct the scattering vector for each pixel
     # Add sources dimension to diffracted_mat --> diffracted_mat[:,:,:,None,:]
+
     scattering_mat = (diffracted_mat[:,:,:,None,:] - incident_mat[None,None,None,:,:])/source_lambda[None,None,None,:,None]
     # scattering_mat is subpixels_x, subpixels_y, detector_thicksteps, sources, 3
 

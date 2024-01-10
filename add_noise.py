@@ -15,7 +15,7 @@ def add_noise(raw_pixels,
               pixel_size,
               psf_radius, # pixel width of the computed kernel
               convolution_type, # 'real_space' or 'fourier_space'
-              true_poisson = True,
+              true_poisson=True,
               ):
     
     """ Add noise to the raw_pixels image
@@ -51,12 +51,13 @@ def add_noise(raw_pixels,
 
     # implement PSF by convolving loc with a kernel, scale is unchanged
 
-    loc = apply_psf(loc,
-                    psf_type,
-                    psf_fwhm/pixel_size, # width of the actual psf
-                    psf_radius,
-                    convolution_type = convolution_type,
-                   )
+    if psf_type != 'unknown':
+        loc = apply_psf(loc,
+                        psf_type,
+                        psf_fwhm/pixel_size, # width of the actual psf
+                        psf_radius,
+                        convolution_type = convolution_type,
+                       )
 
     # convert loc and scale to adu units
     scale *= quantum_gain
