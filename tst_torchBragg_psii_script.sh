@@ -21,7 +21,7 @@ export SIT_PSDM_DATA=/global/cfs/cdirs/lcls/psdm-sauter
 export MPI4PY_RC_RECV_MPROBE='False'
 
 echo "
-noise=False
+noise=True
 psf=False
 attenuation=True
 context=kokkos_gpu

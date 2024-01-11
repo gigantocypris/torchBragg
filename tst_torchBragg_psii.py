@@ -484,8 +484,8 @@ if __name__ == "__main__":
     raw_pixels_pytorch = tst_one_pytorch(params, add_spots, nanoBragg_params, noise_params, fluence_background, use_background, hkl_ranges, direct_algo_res_limit=direct_algo_res_limit, num_pixels=num_pixels)
 
     if use_background:
-        plt.figure(); plt.imshow(raw_pixels.as_numpy_array(), vmax=3.05e2, cmap='Greys');plt.colorbar();plt.savefig("raw_pixels.png")
-        plt.figure(); plt.imshow(raw_pixels_pytorch.numpy(), vmax=3.05e2, cmap='Greys');plt.colorbar();plt.savefig("raw_pixels_torch.png")
+        plt.figure(); plt.imshow(raw_pixels.as_numpy_array(), vmax=5.0e2, cmap='Greys');plt.colorbar();plt.savefig("raw_pixels.png")
+        plt.figure(); plt.imshow(raw_pixels_pytorch.numpy(), vmax=5.0e2, cmap='Greys');plt.colorbar();plt.savefig("raw_pixels_torch.png")
     else:
         plt.figure(); plt.imshow(raw_pixels.as_numpy_array(), vmax=10e-5, cmap='Greys');plt.colorbar();plt.savefig("raw_pixels.png")
         plt.figure(); plt.imshow(raw_pixels_pytorch.numpy(), vmax=10e-5, cmap='Greys');plt.colorbar();plt.savefig("raw_pixels_torch.png")
