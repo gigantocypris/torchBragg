@@ -426,7 +426,7 @@ if __name__=="__main__":
   fpixels = 512
   use_numpy = False
   add_background_bool = True
-  add_noise_bool = True
+  add_noise_bool = False
 
   if add_noise_bool:
     use_numpy = False

@@ -21,7 +21,7 @@ export SIT_PSDM_DATA=/global/cfs/cdirs/lcls/psdm-sauter
 export MPI4PY_RC_RECV_MPROBE='False'
 
 echo "
-noise=True
+noise=False
 psf=False
 attenuation=True
 context=kokkos_gpu
@@ -33,14 +33,14 @@ crystal {
   #pdb.code=None
   #pdb.source=file
   #pdb.file=${MODULES}/ls49_big_data/7RF1_refine_030_Aa_refine_032_refine_034.pdb
-  length_um=1000000
+  length_um=2000000
 }
 beam {
   mean_energy=6550.
   #mean_energy=9500.
 }
 spectrum {
-  nchannels=4
+  nchannels=2
   channel_width=1.0
 }
 detector {

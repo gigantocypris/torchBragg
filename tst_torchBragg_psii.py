@@ -1,5 +1,6 @@
 import os
 import math
+import numpy as np
 import matplotlib.pyplot as plt
 import torch
 from exafel_project.kpp_utils.phil import parse_input
@@ -90,7 +91,7 @@ def set_basic_params(params):
 
     return basic_params
 
-def tst_one_CPU(params, use_background, direct_algo_res_limit=1.85, num_pixels=3840):
+def tst_one_CPU(params, add_spots, use_background, direct_algo_res_limit=1.85, num_pixels=3840):
     detpixels_slowfast=(num_pixels,num_pixels)
     basic_params = set_basic_params(params)
     pixel_size_mm, Ncells_abc, shot_to_shot_wavelength_A, adc_offset_adu, mosaic_spread_deg, mosaic_domains, \
@@ -150,9 +151,15 @@ def tst_one_CPU(params, use_background, direct_algo_res_limit=1.85, num_pixels=3
         SIM.Fhkl=sfall_channels[x]
         SIM.Amatrix_RUB = Amatrix_rot
         print("SIM.Amatrix.RUB", SIM.Amatrix_RUB)
-        SIM.add_nanoBragg_spots()
+        if add_spots:
+            SIM.add_nanoBragg_spots()
         fluence_vec.append(SIM.fluence)
 
+    nanoBragg_params = (SIM.phisteps, SIM.pix0_vector_mm, SIM.fdet_vector, SIM.sdet_vector, SIM.odet_vector, 
+                        SIM.beam_vector, SIM.polar_vector, SIM.close_distance_mm, fluence_vec, 
+                        SIM.beam_center_mm, SIM.spot_scale, SIM.curved_detector, SIM.point_pixel,
+                        SIM.integral_form, SIM.nopolar)
+    
     # simulated crystal is only 125 unit cells (25 nm wide)
     # amplify spot signal to simulate physical crystal of 4000x larger: 100 um (64e9 x the volume)
     SIM.raw_pixels *= crystal.domains_per_crystal # must calculate the correct scale!
@@ -161,10 +168,7 @@ def tst_one_CPU(params, use_background, direct_algo_res_limit=1.85, num_pixels=3
     SIM.Amatrix_RUB = Amatrix_rot # return to canonical orientation
     print("SIM.Amatrix.RUB", SIM.Amatrix_RUB)
     
-    nanoBragg_params = (SIM.phisteps, SIM.pix0_vector_mm, SIM.fdet_vector, SIM.sdet_vector, SIM.odet_vector, 
-                        SIM.beam_vector, SIM.polar_vector, SIM.close_distance_mm, fluence_vec, 
-                        SIM.beam_center_mm, SIM.spot_scale, SIM.curved_detector, SIM.point_pixel,
-                        SIM.integral_form, SIM.nopolar)
+
     if use_background:
         SIM.Fbg_vs_stol = water_bg
         SIM.amorphous_sample_thick_mm = 0.1
@@ -173,12 +177,15 @@ def tst_one_CPU(params, use_background, direct_algo_res_limit=1.85, num_pixels=3
         SIM.flux=params.beam.total_flux
         SIM.beamsize_mm=0.003 # square (not user specified)
         SIM.exposure_s=1.0 # multiplies flux x exposure
+        fluence_background = SIM.fluence
         SIM.add_background()
         SIM.Fbg_vs_stol = air_bg
         SIM.amorphous_sample_thick_mm = 10 # between beamstop and collimator
         SIM.amorphous_density_gcm3 = 1.2e-3
         SIM.amorphous_sample_molecular_weight_Da = 28 # nitrogen = N2
         SIM.add_background()
+    else:
+        fluence_background = None
 
     if params.psf:
         SIM.detector_psf_kernel_radius_pixels=10
@@ -212,9 +219,11 @@ def tst_one_CPU(params, use_background, direct_algo_res_limit=1.85, num_pixels=3
     else:
         noise_params = None
                 
-    return SIM.raw_pixels, nanoBragg_params, noise_params
+    return SIM.raw_pixels, nanoBragg_params, noise_params, fluence_background
 
-def tst_one_pytorch(params, nanoBragg_params, noise_params, use_background, direct_algo_res_limit=1.85, num_pixels=3840):
+def tst_one_pytorch(params, add_spots, nanoBragg_params, noise_params, fluence_background, use_background, hkl_ranges, direct_algo_res_limit=1.85, num_pixels=3840):
+    h_max, h_min, k_max, k_min, l_max, l_min = hkl_ranges
+    
     detpixels_slowfast=(num_pixels,num_pixels)
     basic_params = set_basic_params(params)
     pixel_size_mm, Ncells_abc, shot_to_shot_wavelength_A, adc_offset_adu, mosaic_spread_deg, mosaic_domains, \
@@ -268,9 +277,9 @@ def tst_one_pytorch(params, nanoBragg_params, noise_params, use_background, dire
 
     mosaic_umats = torch.tensor(UMAT_nm)
 
-    ap = torch.tensor(Amatrix_rot[0:3])
-    bp = torch.tensor(Amatrix_rot[3:6])
-    cp = torch.tensor(Amatrix_rot[6:9])
+    ap = torch.tensor(Amatrix_rot[0:3])*1e-10
+    bp = torch.tensor(Amatrix_rot[3:6])*1e-10
+    cp = torch.tensor(Amatrix_rot[6:9])*1e-10
 
     a0 = ap # not used
     b0 = bp # not used
@@ -287,20 +296,12 @@ def tst_one_pytorch(params, nanoBragg_params, noise_params, use_background, dire
     
     interpolate = False
 
-    # XXX this changes with the size of the detector
-    h_max= 14
-    h_min= -14
-    k_max= 27
-    k_min= -27
-    l_max= 38
-    l_min= -38
-
     # loop over energies
     raw_pixels = torch.zeros((num_pixels, num_pixels))
     for x in range(len(flux)):
         print("Wavelength",x)
         # from channel_pixels function
-        source_lambda = torch.tensor([wavlen[x]])
+        source_lambda = torch.tensor([wavlen[x]])*1e-10
         fluence = fluence_vec[x]
         Fhkl=sfall_channels[x]
         Fhkl_indices = Fhkl._indices.as_vec3_double().as_numpy_array()
@@ -312,42 +313,43 @@ def tst_one_pytorch(params, nanoBragg_params, noise_params, use_background, dire
         Fhkl_mat = Fhkl_dict_to_mat(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min, default_F, torch)
         Fhkl_input = Fhkl_mat
 
-        raw_pixels += add_torchBragg_spots(spixels, 
-                            fpixels,
-                            phisteps,
-                            mosaic_domains,
-                            oversample,
-                            pixel_size,
-                            roi_xmin, roi_xmax, roi_ymin, roi_ymax,
-                            maskimage, 
-                            detector_thicksteps,
-                            spot_scale, fluence,
-                            detector_thickstep,
-                            Odet,
-                            fdet_vector, sdet_vector, odet_vector, pix0_vector,
-                            curved_detector, distance, beam_vector, close_distance,
-                            point_pixel,
-                            detector_thick, detector_attnlen,
-                            sources,
-                            source_X, source_Y, source_Z, source_lambda,
-                            dmin,phi0, phistep,
-                            a0, b0, c0, ap, bp, cp, spindle_vector,
-                            mosaic_spread_deg*math.pi/180,
-                            mosaic_umats,
-                            xtal_shape,
-                            Na, Nb, Nc,
-                            fudge,
-                            integral_form,
-                            V_cell,
-                            Xbeam, Ybeam,
-                            interpolate,
-                            h_max, h_min, k_max, k_min, l_max, l_min,
-                            Fhkl_input, default_F,
-                            nopolar,source_I,
-                            polarization,
-                            polar_vector,
-                            verbose=True,
-                            use_numpy=False)
+        if add_spots:
+            raw_pixels += add_torchBragg_spots(spixels, 
+                                fpixels,
+                                phisteps,
+                                mosaic_domains,
+                                oversample,
+                                pixel_size,
+                                roi_xmin, roi_xmax, roi_ymin, roi_ymax,
+                                maskimage, 
+                                detector_thicksteps,
+                                spot_scale, fluence,
+                                detector_thickstep,
+                                Odet,
+                                fdet_vector, sdet_vector, odet_vector, pix0_vector,
+                                curved_detector, distance, beam_vector, close_distance,
+                                point_pixel,
+                                detector_thick, detector_attnlen,
+                                sources,
+                                source_X, source_Y, source_Z, source_lambda,
+                                dmin,phi0, phistep,
+                                a0, b0, c0, ap, bp, cp, spindle_vector,
+                                mosaic_spread_deg*math.pi/180,
+                                mosaic_umats,
+                                xtal_shape,
+                                Na, Nb, Nc,
+                                fudge,
+                                integral_form,
+                                V_cell,
+                                Xbeam, Ybeam,
+                                interpolate,
+                                h_max, h_min, k_max, k_min, l_max, l_min,
+                                Fhkl_input, default_F,
+                                nopolar,source_I,
+                                polarization,
+                                polar_vector,
+                                verbose=True,
+                                use_numpy=False)
 
 
 
@@ -355,11 +357,9 @@ def tst_one_pytorch(params, nanoBragg_params, noise_params, use_background, dire
     # amplify spot signal to simulate physical crystal of 4000x larger: 100 um (64e9 x the volume)
     raw_pixels *= crystal.domains_per_crystal # must calculate the correct scale!
 
-    source_lambda = torch.tensor([shot_to_shot_wavelength_A]) # return to canonical energy for subsequent background
-    # fluence is not changed in nanoBragg example before adding background
+    source_lambda = torch.tensor([shot_to_shot_wavelength_A])*1e-10 # return to canonical energy for subsequent background
 
     if use_background:
-
         # add background of water
         stol_of = [-1e+99, -1e+98] + [a[0]*1e10 for a in water_bg] + [1e+98, 1e+99]
         Fbg_of = [water_bg[0][1],water_bg[0][1]] + [a[1] for a in water_bg] + [water_bg[-1][1], water_bg[-1][1]]
@@ -372,7 +372,9 @@ def tst_one_pytorch(params, nanoBragg_params, noise_params, use_background, dire
         override_source = -1
         amorphous_molecules= 30110708950000.000000
 
-        background_pixels, invalid_pixel = add_background(oversample, 
+        detector_thickstep= 3.2e-05
+        Odet= 0.000000e+00
+        background_pixels_water, invalid_pixel = add_background(oversample, 
                                                             override_source,
                                                             sources,
                                                             spixels,
@@ -380,7 +382,7 @@ def tst_one_pytorch(params, nanoBragg_params, noise_params, use_background, dire
                                                             pixel_size,
                                                             roi_xmin, roi_xmax, roi_ymin, roi_ymax,
                                                             detector_thicksteps,
-                                                            fluence, amorphous_molecules, 
+                                                            fluence_background, amorphous_molecules, 
                                                             Fmap_pixel, # bool override: just plot interpolated structure factor at every pixel, useful for making absorption masks
                                                             detector_thickstep, Odet, 
                                                             fdet_vector, sdet_vector, odet_vector, 
@@ -390,7 +392,6 @@ def tst_one_pytorch(params, nanoBragg_params, noise_params, use_background, dire
                                                             stol_of, stols, Fbg_of, nopolar, polarization, polar_vector,
                                                             verbose=True, use_numpy=False,
                                                             )
-        raw_pixels += background_pixels
 
         # add background of air
 
@@ -405,7 +406,9 @@ def tst_one_pytorch(params, nanoBragg_params, noise_params, use_background, dire
         override_source = -1
         amorphous_molecules= 3613285074000.000488
 
-        background_pixels, invalid_pixel = add_background(oversample, 
+
+        Odet= 3.200000e-05
+        background_pixels_air, invalid_pixel = add_background(oversample, 
                                                             override_source,
                                                             sources,
                                                             spixels,
@@ -413,7 +416,7 @@ def tst_one_pytorch(params, nanoBragg_params, noise_params, use_background, dire
                                                             pixel_size,
                                                             roi_xmin, roi_xmax, roi_ymin, roi_ymax,
                                                             detector_thicksteps,
-                                                            fluence, amorphous_molecules, 
+                                                            fluence_background, amorphous_molecules, 
                                                             Fmap_pixel, # bool override: just plot interpolated structure factor at every pixel, useful for making absorption masks
                                                             detector_thickstep, Odet, 
                                                             fdet_vector, sdet_vector, odet_vector, 
@@ -423,7 +426,8 @@ def tst_one_pytorch(params, nanoBragg_params, noise_params, use_background, dire
                                                             stol_of, stols, Fbg_of, nopolar, polarization, polar_vector,
                                                             verbose=True, use_numpy=False,
                                                             )
-        raw_pixels += background_pixels
+
+        raw_pixels = raw_pixels + background_pixels_water + background_pixels_air
 
     if params.noise or params.psf:
         if seed is not None:
@@ -441,17 +445,53 @@ def tst_one_pytorch(params, nanoBragg_params, noise_params, use_background, dire
 
 if __name__ == "__main__":
     params,options = parse_input()
-    use_background = False
-    direct_algo_res_limit = 8.0 # need to make low enough to include all hkl on detector
-    num_pixels = 512 # change ranges for hkl if this is changed
+    use_background = True
+    add_spots = True
+    num_pixels = 128 # change ranges for hkl if this is changed
 
-    raw_pixels, nanoBragg_params, noise_params = tst_one_CPU(params, use_background, direct_algo_res_limit=direct_algo_res_limit, num_pixels=num_pixels)
-    raw_pixels_pytorch = tst_one_pytorch(params, nanoBragg_params, noise_params, use_background, direct_algo_res_limit=direct_algo_res_limit, num_pixels=num_pixels)
+    if num_pixels == 128:
+        direct_algo_res_limit = 10.0 # need to make low enough to include all hkl on detector
+        # the following changes with the size of the detector
+        h_max= 11
+        h_min= -11
+        k_max= 22
+        k_min= -22
+        l_max= 30
+        l_min= -30
+    elif num_pixels == 512:
+        direct_algo_res_limit = 8.0 # need to make low enough to include all hkl on detector
+        h_max= 14
+        h_min= -14
+        k_max= 27
+        k_min= -27
+        l_max= 38
+        l_min= -38
+    elif num_pixels == 3840:
+        direct_algo_res_limit = 1.85 # need to make low enough to include all hkl on detector
+        # the following changes with the size of the detector
+        h_max= 63
+        h_min= -63
+        k_max= 120
+        k_min= -120
+        l_max= 167
+        l_min= -167
+    else:
+        NotImplementedError("num_pixels=%d is not implemented"%num_pixels)
+
+    hkl_ranges = (h_max, h_min, k_max, k_min, l_max, l_min)
+
+    raw_pixels, nanoBragg_params, noise_params, fluence_background = tst_one_CPU(params, add_spots, use_background, direct_algo_res_limit=direct_algo_res_limit, num_pixels=num_pixels)
+    raw_pixels_pytorch = tst_one_pytorch(params, add_spots, nanoBragg_params, noise_params, fluence_background, use_background, hkl_ranges, direct_algo_res_limit=direct_algo_res_limit, num_pixels=num_pixels)
 
     if use_background:
-        plt.figure(); plt.imshow(raw_pixels.as_numpy_array(), vmax=3e2, cmap='Greys');plt.savefig("raw_pixels.png", dpi=600)
-        plt.figure(); plt.imshow(raw_pixels_pytorch.numpy(), vmax=3e2, cmap='Greys');plt.savefig("raw_pixels_torch.png", dpi=600)
+        plt.figure(); plt.imshow(raw_pixels.as_numpy_array(), vmax=3.05e2, cmap='Greys');plt.colorbar();plt.savefig("raw_pixels.png")
+        plt.figure(); plt.imshow(raw_pixels_pytorch.numpy(), vmax=3.05e2, cmap='Greys');plt.colorbar();plt.savefig("raw_pixels_torch.png")
     else:
-        plt.figure(); plt.imshow(raw_pixels.as_numpy_array(), vmax=10e-5, cmap='Greys');plt.savefig("raw_pixels.png")
-        plt.figure(); plt.imshow(raw_pixels_pytorch.numpy(), vmax=10e-5, cmap='Greys');plt.savefig("raw_pixels_torch.png")
+        plt.figure(); plt.imshow(raw_pixels.as_numpy_array(), vmax=10e-5, cmap='Greys');plt.colorbar();plt.savefig("raw_pixels.png")
+        plt.figure(); plt.imshow(raw_pixels_pytorch.numpy(), vmax=10e-5, cmap='Greys');plt.colorbar();plt.savefig("raw_pixels_torch.png")
+    
+    plt.figure(); plt.imshow(raw_pixels.as_numpy_array(), cmap='Greys');plt.colorbar();plt.savefig("raw_pixels_no_cap.png")
+    plt.figure(); plt.imshow(raw_pixels_pytorch.numpy(), cmap='Greys');plt.colorbar();plt.savefig("raw_pixels_torch_no_cap.png")
+
+    breakpoint()
     
