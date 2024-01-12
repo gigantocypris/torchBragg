@@ -21,7 +21,7 @@ from add_noise import add_noise
 torch.set_default_dtype(torch.float64)
 
 
-def set_basic_params(params):
+def set_basic_params(params, direct_algo_res_limit):
     spectra = spectra_simulation()
     crystal = microcrystal(Deff_A = params.crystal.Deff_A, length_um = params.crystal.length_um, beam_diameter_um = 1.0) # assume smaller than 10 um crystals
     # random_orientation = legacy_random_orientations(100)[0]
@@ -93,7 +93,7 @@ def set_basic_params(params):
 
 def tst_one_CPU(params, add_spots, use_background, direct_algo_res_limit=1.85, num_pixels=3840):
     detpixels_slowfast=(num_pixels,num_pixels)
-    basic_params = set_basic_params(params)
+    basic_params = set_basic_params(params, direct_algo_res_limit)
     pixel_size_mm, Ncells_abc, shot_to_shot_wavelength_A, adc_offset_adu, mosaic_spread_deg, mosaic_domains, \
     distance_mm, UMAT_nm, detector_thick_mm, detector_thicksteps, detector_attenuation_length_mm, seed, oversample, \
     polarization, default_F, sfall_channels, Amatrix_rot, xtal_shape, water_bg, air_bg, flux, wavlen, crystal \
@@ -225,7 +225,7 @@ def tst_one_pytorch(params, add_spots, nanoBragg_params, noise_params, fluence_b
     h_max, h_min, k_max, k_min, l_max, l_min = hkl_ranges
     
     detpixels_slowfast=(num_pixels,num_pixels)
-    basic_params = set_basic_params(params)
+    basic_params = set_basic_params(params, direct_algo_res_limit)
     pixel_size_mm, Ncells_abc, shot_to_shot_wavelength_A, adc_offset_adu, mosaic_spread_deg, mosaic_domains, \
     distance_mm, UMAT_nm, detector_thick_mm, detector_thicksteps, detector_attenuation_length_mm, seed, oversample, \
     polarization, default_F, sfall_channels, Amatrix_rot, xtal_shape, water_bg, air_bg, flux, wavlen, crystal \
@@ -493,5 +493,4 @@ if __name__ == "__main__":
     plt.figure(); plt.imshow(raw_pixels.as_numpy_array(), cmap='Greys');plt.colorbar();plt.savefig("raw_pixels_no_cap.png")
     plt.figure(); plt.imshow(raw_pixels_pytorch.numpy(), cmap='Greys');plt.colorbar();plt.savefig("raw_pixels_torch_no_cap.png")
 
-    breakpoint()
     

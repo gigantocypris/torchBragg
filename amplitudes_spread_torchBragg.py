@@ -1,9 +1,12 @@
 from __future__ import division, print_function
-from scitbx.array_family import flex
+import os
 
+from LS49 import ls49_big_data
+from scitbx.array_family import flex
 from LS49.sim.util_fmodel import gen_fmodel
 from exafel_project.kpp_utils.ferredoxin import data
 import exafel_project.kpp_utils.amplitudes_spread_psii as psii_fn
+from create_fp_fdp_dat_file import full_path
 
 from scipy import constants
 ENERGY_CONV = 1e10*constants.c*constants.h / constants.electron_volt
@@ -39,7 +42,23 @@ def amplitudes_spread_ferredoxin(params, direct_algo_res_limit=1.7):
 
   return sfall_channels
 
-def amplitudes_spread_psii(params, direct_algo_res_limit=1.85):
+
+
+def psii_data():
+  from LS49.sim.fdp_plot import george_sherrell
+  return dict(
+    pdb_lines=open(full_path("7RF1_refine_030_Aa_refine_032_refine_034.pdb"), "r").read(),
+    Mn_oxidized_model=george_sherrell(full_path("data_sherrell/MnO2_spliced.dat")),
+    Mn_reduced_model=george_sherrell(full_path("data_sherrell/Mn2O3_spliced.dat")),
+    Mn_metallic_model=george_sherrell(full_path("data_sherrell/Mn.dat")),
+    Mn_fp_0=george_sherrell("Mn_fp_0_fdp_-.dat"),
+    Mn_fp_1=george_sherrell("Mn_fp_1_fdp_-.dat"),
+    Mn_fdp_0=george_sherrell("Mn_fp_-_fdp_0.dat"),
+    Mn_fdp_1=george_sherrell("Mn_fp_-_fdp_1.dat"),
+
+  )
+
+def amplitudes_spread_psii(params, direct_algo_res_limit=1.85, MN_labels=["Mn_oxidized_model","Mn_oxidized_model","Mn_reduced_model","Mn_reduced_model"]):
 
   wavelength_A = ENERGY_CONV / params.beam.mean_energy
   # general ballpark X-ray wavelength in Angstroms, does not vary shot-to-shot
@@ -48,7 +67,7 @@ def amplitudes_spread_psii(params, direct_algo_res_limit=1.85):
                       ) * params.spectrum.channel_width + params.beam.mean_energy
   wavelengths = ENERGY_CONV/channel_mean_eV
 
-  local_data = psii_fn.data()  # later put this through broadcast
+  local_data = psii_data()  # later put this through broadcast
 
   # this is PDB 7RF1_refine_030_Aa_refine_032_refine_034
   GF = gen_fmodel(resolution=direct_algo_res_limit,
@@ -61,19 +80,18 @@ def amplitudes_spread_psii(params, direct_algo_res_limit=1.85):
   sfall_channels = {}
 
   for x in range(len(wavelengths)):
-
     GF.reset_wavelength(wavelengths[x])  # TODO: which to make 3+ and which 4+?
     GF.reset_specific_at_wavelength(label_has="MN1",
-                                    tables=local_data.get("Mn_oxidized_model"),
+                                    tables=local_data.get(MN_labels[0]),
                                     newvalue=wavelengths[x])
     GF.reset_specific_at_wavelength(label_has="MN2",
-                                    tables=local_data.get("Mn_oxidized_model"),
+                                    tables=local_data.get(MN_labels[1]),
                                     newvalue=wavelengths[x])
     GF.reset_specific_at_wavelength(label_has="MN3",
-                                    tables=local_data.get("Mn_reduced_model"),
+                                    tables=local_data.get(MN_labels[2]),
                                     newvalue=wavelengths[x])
     GF.reset_specific_at_wavelength(label_has="MN4",
-                                    tables=local_data.get("Mn_reduced_model"),
+                                    tables=local_data.get(MN_labels[3]),
                                     newvalue=wavelengths[x])
     sfall_channels[x] = GF.get_amplitudes()
 

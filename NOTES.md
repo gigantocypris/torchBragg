@@ -383,3 +383,5 @@ Vectorizing add_background
 Kramer's Kronig:
 > cd $WORK/output_torchBragg
 > . $MODULES/torchBragg/tst_torchBragg_psii_script.sh
+
+> . $MODULES/torchBragg/tst_sf_linearity_script.sh
