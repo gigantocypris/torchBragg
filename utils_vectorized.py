@@ -13,8 +13,12 @@ def Fhkl_remove(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min):
     return(Fhkl)
 
 
-def Fhkl_dict_to_mat(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min, default_F, prefix):
-    Fhkl_mat = default_F*prefix.ones([h_max-h_min+1, k_max-k_min+1, l_max-l_min+1])
+def Fhkl_dict_to_mat(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min, default_F, prefix, complex_output=False):
+    if complex_output:
+        dtype = prefix.complex128
+    else:
+        dtype = prefix.float64
+    Fhkl_mat = default_F*prefix.ones([h_max-h_min+1, k_max-k_min+1, l_max-l_min+1], dtype = dtype)
     for key in Fhkl.keys():
         if int(key[0]) != key[0] or int(key[1]) != key[1] or int(key[2]) != key[2]:
             raise ValueError("hkl indices must be integers")

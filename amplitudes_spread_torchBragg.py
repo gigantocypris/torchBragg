@@ -55,10 +55,13 @@ def psii_data():
     Mn_fp_1=george_sherrell("Mn_fp_1_fdp_-.dat"),
     Mn_fdp_0=george_sherrell("Mn_fp_-_fdp_0.dat"),
     Mn_fdp_1=george_sherrell("Mn_fp_-_fdp_1.dat"),
+    Mn_fp_0_fdp_0=george_sherrell("Mn_fp_0_fdp_0.dat"),
 
   )
 
-def amplitudes_spread_psii(params, direct_algo_res_limit=1.85, MN_labels=["Mn_oxidized_model","Mn_oxidized_model","Mn_reduced_model","Mn_reduced_model"]):
+def amplitudes_spread_psii(params, direct_algo_res_limit=1.85, 
+                           MN_labels=["Mn_oxidized_model","Mn_oxidized_model","Mn_reduced_model","Mn_reduced_model"],
+                           complex_output=False):
 
   wavelength_A = ENERGY_CONV / params.beam.mean_energy
   # general ballpark X-ray wavelength in Angstroms, does not vary shot-to-shot
@@ -93,6 +96,10 @@ def amplitudes_spread_psii(params, direct_algo_res_limit=1.85, MN_labels=["Mn_ox
     GF.reset_specific_at_wavelength(label_has="MN4",
                                     tables=local_data.get(MN_labels[3]),
                                     newvalue=wavelengths[x])
-    sfall_channels[x] = GF.get_amplitudes()
+
+    if complex_output:
+      sfall_channels[x] = GF.get_fmodel().f_model 
+    else:
+      sfall_channels[x] = GF.get_amplitudes()
 
   return sfall_channels

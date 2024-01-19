@@ -1,10 +1,12 @@
 """
 libtbx.python $MODULES/torchBragg/create_fp_fdp_dat_file.py
 
+Terminal output:
 New .dat file 'Mn_fp_0_fdp_-.dat' created.
 New .dat file 'Mn_fp_1_fdp_-.dat' created.
 New .dat file 'Mn_fp_-_fdp_0.dat' created.
 New .dat file 'Mn_fp_-_fdp_1.dat' created.
+New .dat file 'Mn_fp_0_fdp_0.dat' created.
 """
 
 import os
@@ -61,3 +63,9 @@ if __name__ =="__main__":
     change_col = 2
     new_value = 1
     create_new_dat(Mn_oxidized_model, output_filename, change_col, new_value)
+
+    input_filename = "Mn_fp_0_fdp_-.dat"
+    output_filename = "Mn_fp_0_fdp_0.dat"
+    change_col = 2
+    new_value = 0
+    create_new_dat(input_filename, output_filename, change_col, new_value)
