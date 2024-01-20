@@ -84,16 +84,16 @@ def construct_structure_factors(params,
         MN_labels_0[Mn] = "Mn_fp_1"
         sfall_channels = amplitudes_spread_psii(params, direct_algo_res_limit=direct_algo_res_limit, MN_labels=MN_labels_0, complex_output=True)
         Fhkl_mat_1 = get_Fhkl_mat(sfall_channels, num_wavelengths, hkl_limits)
-        Fhkl_mat_diff = Fhkl_mat_0 - Fhkl_mat_1
+        Fhkl_mat_diff = Fhkl_mat_1 - Fhkl_mat_0
 
-        MN_labels_0[Mn] = "Mn_fdp_0"
-        sfall_channels = amplitudes_spread_psii(params, direct_algo_res_limit=direct_algo_res_limit, MN_labels=MN_labels_0, complex_output=True)
-        Fhkl_mat_2 = get_Fhkl_mat(sfall_channels, num_wavelengths, hkl_limits)
+        # MN_labels_0[Mn] = "Mn_fdp_0"
+        # sfall_channels = amplitudes_spread_psii(params, direct_algo_res_limit=direct_algo_res_limit, MN_labels=MN_labels_0, complex_output=True)
+        # Fhkl_mat_2 = get_Fhkl_mat(sfall_channels, num_wavelengths, hkl_limits)
 
-        MN_labels_0[Mn] = "Mn_fdp_1"
-        sfall_channels = amplitudes_spread_psii(params, direct_algo_res_limit=direct_algo_res_limit, MN_labels=MN_labels_0, complex_output=True)
-        Fhkl_mat_3 = get_Fhkl_mat(sfall_channels, num_wavelengths, hkl_limits)
-        Fhkl_mat_diff_1 = Fhkl_mat_3 - Fhkl_mat_2
+        # MN_labels_0[Mn] = "Mn_fdp_1"
+        # sfall_channels = amplitudes_spread_psii(params, direct_algo_res_limit=direct_algo_res_limit, MN_labels=MN_labels_0, complex_output=True)
+        # Fhkl_mat_3 = get_Fhkl_mat(sfall_channels, num_wavelengths, hkl_limits)
+        # Fhkl_mat_diff_1 = Fhkl_mat_3 - Fhkl_mat_2
 
         Fhkl_mat_vec_all_Mn_diff.append(Fhkl_mat_diff)
     
@@ -157,7 +157,6 @@ def construct_structure_factors(params,
 
     fp_vec = fp_vec[:,:,None,None,None]
     fdp_vec = fdp_vec[:,:,None,None,None]
-    
     Fhkl_full = Fhkl_mat_0 + torch.sum((fp_vec + fdp_vec*1j)*Fhkl_mat_vec_all_Mn_diff, axis=0) # shape is (num_wavelengths, 2*h_max+1, 2*k_max+1, 2*l_max+1)
 
     return Fhkl_full
@@ -167,15 +166,18 @@ if __name__ == "__main__":
 
     hkl_limits=(11, -11, 22, -22, 30, -30)
     direct_algo_res_limit=10.0
-    MN_labels =["Mn_fp_0_fdp_0","Mn_fp_0_fdp_0","Mn_fp_0_fdp_0","Mn_fp_0_fdp_0"]
-    # MN_labels=["Mn_oxidized_model","Mn_oxidized_model","Mn_reduced_model","Mn_reduced_model"]
+    # MN_labels =["Mn_oxidized_model","Mn_fp_0_fdp_0","Mn_fp_0_fdp_0","Mn_fp_0_fdp_0"]
+    MN_labels=["Mn_oxidized_model","Mn_oxidized_model","Mn_reduced_model","Mn_reduced_model"]
     
     Fhkl_mat_vec_0 = get_reference_structure_factors(params, hkl_limits=hkl_limits, direct_algo_res_limit=direct_algo_res_limit, MN_labels=MN_labels)
     Fhkl_mat_vec_1 = construct_structure_factors(params, hkl_limits=hkl_limits, MN_labels=MN_labels)
 
     print(Fhkl_mat_vec_0[torch.abs(Fhkl_mat_vec_0)>=1e-10])
-    print(Fhkl_mat_vec_1[torch.abs(Fhkl_mat_vec_1)>=1e-10])
-    breakpoint()
+    print(Fhkl_mat_vec_1[torch.abs(Fhkl_mat_vec_0)>=1e-10])
+
+    print("Differences:")
+    print(Fhkl_mat_vec_1[torch.abs(Fhkl_mat_vec_0)>=1e-10]-Fhkl_mat_vec_0[torch.abs(Fhkl_mat_vec_0)>=1e-10])
+    assert torch.allclose(Fhkl_mat_vec_0[torch.abs(Fhkl_mat_vec_0)>=1e-10], Fhkl_mat_vec_1[torch.abs(Fhkl_mat_vec_0)>=1e-10], atol=2e-1)
 
     
     
