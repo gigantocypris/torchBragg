@@ -15,7 +15,7 @@ def add_noise(raw_pixels,
               pixel_size,
               psf_radius, # pixel width of the computed kernel
               convolution_type, # 'real_space' or 'fourier_space'
-              true_poisson=True,
+              true_poisson=False,
               ):
     
     """ Add noise to the raw_pixels image
@@ -67,5 +67,5 @@ def add_noise(raw_pixels,
     # add readout noise
     scale += readout_noise
 
-    return(Normal(loc, scale).sample())
+    return(Normal(loc, scale).rsample())
 

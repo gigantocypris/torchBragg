@@ -25,8 +25,8 @@ ENERGY_CONV = 1e10*constants.c*constants.h / constants.electron_volt
 torch.set_default_dtype(torch.float64)
 
 
-def get_Fhkl_mat(sfall_channels, num_wavelengths, hkl_limits, default_F=0):
-    h_max, h_min, k_max, k_min, l_max, l_min = hkl_limits
+def get_Fhkl_mat(sfall_channels, num_wavelengths, hkl_ranges, default_F=0, complex_output=True):
+    h_max, h_min, k_max, k_min, l_max, l_min = hkl_ranges
     Fhkl_mat_vec = []
     for ind in range(num_wavelengths):
         Fhkl=sfall_channels[ind] # 0th wavelength
@@ -36,73 +36,35 @@ def get_Fhkl_mat(sfall_channels, num_wavelengths, hkl_limits, default_F=0):
 
         Fhkl = {h:v for h,v in zip(Fhkl_indices,Fhkl_data)}
         Fhkl = Fhkl_remove(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min)
-        Fhkl_mat = Fhkl_dict_to_mat(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min, default_F, torch, complex_output=True)
+        Fhkl_mat = Fhkl_dict_to_mat(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min, default_F, torch, complex_output=complex_output)
         Fhkl_mat_vec.append(Fhkl_mat)
     Fhkl_mat_vec = torch.stack(Fhkl_mat_vec) # shape is (num_wavelengths, 2*h_max+1, 2*k_max+1, 2*l_max+1)
     return Fhkl_mat_vec
 
 
-
-
 def get_reference_structure_factors(params, 
-                                    hkl_limits=(63,-63,120,-120,167,-167),
+                                    hkl_ranges=(63,-63,120,-120,167,-167),
                                     direct_algo_res_limit=1.85,
                                     MN_labels=["Mn_oxidized_model","Mn_oxidized_model","Mn_reduced_model","Mn_reduced_model"]):
 
     num_wavelengths = params.spectrum.nchannels
-    h_max, h_min, k_max, k_min, l_max, l_min = hkl_limits
+    h_max, h_min, k_max, k_min, l_max, l_min = hkl_ranges
 
     sfall_channels = amplitudes_spread_psii(params, direct_algo_res_limit=direct_algo_res_limit, MN_labels=MN_labels, complex_output=True)
-    Fhkl_mat_vec = get_Fhkl_mat(sfall_channels, num_wavelengths, hkl_limits)
+    Fhkl_mat_vec = get_Fhkl_mat(sfall_channels, num_wavelengths, hkl_ranges)
     return Fhkl_mat_vec
 
-
-def construct_structure_factors(params, 
-                                hkl_limits=(63,-63,120,-120,167,-167),
-                                MN_labels=["Mn_oxidized_model","Mn_oxidized_model","Mn_reduced_model","Mn_reduced_model"]):
-
+def get_wavelengths(params):
     num_wavelengths = params.spectrum.nchannels
     centerline = float(params.spectrum.nchannels-1)/2.0
     channel_mean_eV = (flex.double(range(params.spectrum.nchannels)) - centerline
                     ) * params.spectrum.channel_width + params.beam.mean_energy
     wavelengths = ENERGY_CONV/channel_mean_eV
     wavelengths = wavelengths.as_numpy_array()
+    return wavelengths, num_wavelengths
 
-    h_max, h_min, k_max, k_min, l_max, l_min = hkl_limits
-    
-    Mn_atom_vec = range(4)
-    Fhkl_mat_vec_all_Mn_diff = []
-    
-    for Mn in Mn_atom_vec:
-        Fhkl_mat_vec = []
+def get_fp_fdp(wavelengths, num_wavelengths, MN_labels):
 
-        MN_labels_0 = MN_labels.copy()
-        MN_labels_0[Mn] = "Mn_fp_0"
-        sfall_channels = amplitudes_spread_psii(params, direct_algo_res_limit=direct_algo_res_limit, MN_labels=MN_labels_0, complex_output=True)
-        Fhkl_mat_0 = get_Fhkl_mat(sfall_channels, num_wavelengths, hkl_limits)
-
-        MN_labels_0[Mn] = "Mn_fp_1"
-        sfall_channels = amplitudes_spread_psii(params, direct_algo_res_limit=direct_algo_res_limit, MN_labels=MN_labels_0, complex_output=True)
-        Fhkl_mat_1 = get_Fhkl_mat(sfall_channels, num_wavelengths, hkl_limits)
-        Fhkl_mat_diff = Fhkl_mat_1 - Fhkl_mat_0
-
-        # MN_labels_0[Mn] = "Mn_fdp_0"
-        # sfall_channels = amplitudes_spread_psii(params, direct_algo_res_limit=direct_algo_res_limit, MN_labels=MN_labels_0, complex_output=True)
-        # Fhkl_mat_2 = get_Fhkl_mat(sfall_channels, num_wavelengths, hkl_limits)
-
-        # MN_labels_0[Mn] = "Mn_fdp_1"
-        # sfall_channels = amplitudes_spread_psii(params, direct_algo_res_limit=direct_algo_res_limit, MN_labels=MN_labels_0, complex_output=True)
-        # Fhkl_mat_3 = get_Fhkl_mat(sfall_channels, num_wavelengths, hkl_limits)
-        # Fhkl_mat_diff_1 = Fhkl_mat_3 - Fhkl_mat_2
-
-        Fhkl_mat_vec_all_Mn_diff.append(Fhkl_mat_diff)
-    
-    Fhkl_mat_vec_all_Mn_diff = torch.stack(Fhkl_mat_vec_all_Mn_diff) # shape is (num_Mn_atoms, num_wavelengths, 2*h_max+1, 2*k_max+1, 2*l_max+1)
-
-    MN_labels_0=["Mn_fp_0_fdp_0","Mn_fp_0_fdp_0","Mn_fp_0_fdp_0","Mn_fp_0_fdp_0"]
-    sfall_channels = amplitudes_spread_psii(params, direct_algo_res_limit=direct_algo_res_limit, MN_labels=MN_labels_0, complex_output=True)
-    Fhkl_mat_0 = get_Fhkl_mat(sfall_channels, num_wavelengths, hkl_limits) # shape is (num_wavelengths, 2*h_max+1, 2*k_max+1, 2*l_max+1)
-    
     # need to extrapolate the input data to the wavelength of interest
         
     fp_oxidized_vec = []
@@ -134,8 +96,6 @@ def construct_structure_factors(params,
     fdp_reduced_vec = torch.tensor(fdp_reduced_vec) # shape is (num_wavelengths)
     fp_0_vec = torch.tensor(fp_0_vec) # shape is (num_wavelengths)
     fdp_0_vec = torch.tensor(fdp_0_vec) # shape is (num_wavelengths)
-
-    # re-create the original sfall_channels
     
     fp_vec = []
     fdp_vec = []
@@ -157,6 +117,48 @@ def construct_structure_factors(params,
 
     fp_vec = fp_vec[:,:,None,None,None]
     fdp_vec = fdp_vec[:,:,None,None,None]
+    return fp_vec, fdp_vec
+
+def get_base_structure_factors(params, 
+                               direct_algo_res_limit=1.85,
+                               hkl_ranges=(63,-63,120,-120,167,-167),
+                               MN_labels=["Mn_oxidized_model","Mn_oxidized_model","Mn_reduced_model","Mn_reduced_model"]):
+    num_wavelengths = params.spectrum.nchannels
+    centerline = float(params.spectrum.nchannels-1)/2.0
+    channel_mean_eV = (flex.double(range(params.spectrum.nchannels)) - centerline
+                    ) * params.spectrum.channel_width + params.beam.mean_energy
+    wavelengths = ENERGY_CONV/channel_mean_eV
+    wavelengths = wavelengths.as_numpy_array()
+
+    h_max, h_min, k_max, k_min, l_max, l_min = hkl_ranges
+    
+    Mn_atom_vec = range(4)
+    Fhkl_mat_vec_all_Mn_diff = []
+    
+    for Mn in Mn_atom_vec:
+        Fhkl_mat_vec = []
+
+        MN_labels_0 = MN_labels.copy()
+        MN_labels_0[Mn] = "Mn_fp_0"
+        sfall_channels = amplitudes_spread_psii(params, direct_algo_res_limit=direct_algo_res_limit, MN_labels=MN_labels_0, complex_output=True)
+        Fhkl_mat_0 = get_Fhkl_mat(sfall_channels, num_wavelengths, hkl_ranges)
+
+        MN_labels_0[Mn] = "Mn_fp_1"
+        sfall_channels = amplitudes_spread_psii(params, direct_algo_res_limit=direct_algo_res_limit, MN_labels=MN_labels_0, complex_output=True)
+        Fhkl_mat_1 = get_Fhkl_mat(sfall_channels, num_wavelengths, hkl_ranges)
+        Fhkl_mat_diff = Fhkl_mat_1 - Fhkl_mat_0
+
+        Fhkl_mat_vec_all_Mn_diff.append(Fhkl_mat_diff)
+    
+    Fhkl_mat_vec_all_Mn_diff = torch.stack(Fhkl_mat_vec_all_Mn_diff) # shape is (num_Mn_atoms, num_wavelengths, 2*h_max+1, 2*k_max+1, 2*l_max+1)
+
+    MN_labels_0=["Mn_fp_0_fdp_0","Mn_fp_0_fdp_0","Mn_fp_0_fdp_0","Mn_fp_0_fdp_0"]
+    sfall_channels = amplitudes_spread_psii(params, direct_algo_res_limit=direct_algo_res_limit, MN_labels=MN_labels_0, complex_output=True)
+    Fhkl_mat_0 = get_Fhkl_mat(sfall_channels, num_wavelengths, hkl_ranges) # shape is (num_wavelengths, 2*h_max+1, 2*k_max+1, 2*l_max+1)
+    return Fhkl_mat_0, Fhkl_mat_vec_all_Mn_diff
+
+def construct_structure_factors(fp_vec, fdp_vec, Fhkl_mat_0, Fhkl_mat_vec_all_Mn_diff):
+
     Fhkl_full = Fhkl_mat_0 + torch.sum((fp_vec + fdp_vec*1j)*Fhkl_mat_vec_all_Mn_diff, axis=0) # shape is (num_wavelengths, 2*h_max+1, 2*k_max+1, 2*l_max+1)
 
     return Fhkl_full
@@ -164,13 +166,16 @@ def construct_structure_factors(params,
 if __name__ == "__main__":
     params,options = parse_input()
 
-    hkl_limits=(11, -11, 22, -22, 30, -30)
+    hkl_ranges=(11, -11, 22, -22, 30, -30)
     direct_algo_res_limit=10.0
-    # MN_labels =["Mn_oxidized_model","Mn_fp_0_fdp_0","Mn_fp_0_fdp_0","Mn_fp_0_fdp_0"]
     MN_labels=["Mn_oxidized_model","Mn_oxidized_model","Mn_reduced_model","Mn_reduced_model"]
     
-    Fhkl_mat_vec_0 = get_reference_structure_factors(params, hkl_limits=hkl_limits, direct_algo_res_limit=direct_algo_res_limit, MN_labels=MN_labels)
-    Fhkl_mat_vec_1 = construct_structure_factors(params, hkl_limits=hkl_limits, MN_labels=MN_labels)
+    Fhkl_mat_vec_0 = get_reference_structure_factors(params, hkl_ranges=hkl_ranges, direct_algo_res_limit=direct_algo_res_limit, MN_labels=MN_labels)
+    
+    wavelengths, num_wavelengths = get_wavelengths(params)
+    fp_vec, fdp_vec = get_fp_fdp(wavelengths,num_wavelengths, MN_labels)
+    Fhkl_mat_0, Fhkl_mat_vec_all_Mn_diff = get_base_structure_factors(params, direct_algo_res_limit=direct_algo_res_limit, hkl_ranges=hkl_ranges, MN_labels=MN_labels)
+    Fhkl_mat_vec_1 = construct_structure_factors(fp_vec, fdp_vec, Fhkl_mat_0, Fhkl_mat_vec_all_Mn_diff)
 
     print(Fhkl_mat_vec_0[torch.abs(Fhkl_mat_vec_0)>=1e-10])
     print(Fhkl_mat_vec_1[torch.abs(Fhkl_mat_vec_0)>=1e-10])

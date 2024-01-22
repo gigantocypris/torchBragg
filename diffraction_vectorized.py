@@ -46,7 +46,6 @@ def add_torchBragg_spots(spixels,
     prefix, new_array = which_package(use_numpy)
 
     subpixel_size = pixel_size/oversample
-    raw_pixels = prefix.zeros((spixels*oversample,fpixels*oversample, detector_thicksteps, sources, mosaic_domains))
 
     diffracted_mat, capture_fraction, omega_pixel, scattering_mat, incident_mat, stol = \
     simulation_setup(prefix, spixels, fpixels, oversample, subpixel_size, detector_thicksteps, detector_thickstep,

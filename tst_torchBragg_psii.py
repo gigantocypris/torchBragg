@@ -18,10 +18,11 @@ from diffraction_vectorized import add_torchBragg_spots
 from add_background_vectorized import add_background
 from utils_vectorized import Fhkl_remove, Fhkl_dict_to_mat
 from add_noise import add_noise
+from tst_sf_linearity import get_Fhkl_mat
 torch.set_default_dtype(torch.float64)
 
 
-def set_basic_params(params, direct_algo_res_limit):
+def set_basic_params(params, sfall_channels, direct_algo_res_limit):
     spectra = spectra_simulation()
     crystal = microcrystal(Deff_A = params.crystal.Deff_A, length_um = params.crystal.length_um, beam_diameter_um = 1.0) # assume smaller than 10 um crystals
     # random_orientation = legacy_random_orientations(100)[0]
@@ -29,8 +30,7 @@ def set_basic_params(params, direct_algo_res_limit):
     
     DETECTOR = basic_detector_rayonix()
     PANEL = DETECTOR[0]
-    sfall_channels = amplitudes_spread_psii(params, direct_algo_res_limit=direct_algo_res_limit)
-
+    
     iterator = spectra.generate_recast_renormalized_image_parameterized(image=0,params=params)
     rand_ori = sqr(random_orientation)
 
@@ -87,16 +87,16 @@ def set_basic_params(params, direct_algo_res_limit):
 
     basic_params = (pixel_size_mm, Ncells_abc, shot_to_shot_wavelength_A, adc_offset_adu, mosaic_spread_deg, mosaic_domains, \
     distance_mm, UMAT_nm, detector_thick_mm, detector_thicksteps, detector_attenuation_length_mm, seed, oversample, \
-    polarization, default_F, sfall_channels, Amatrix_rot, xtal_shape, water_bg, air_bg, flux, wavlen, crystal)
+    polarization, default_F, Amatrix_rot, xtal_shape, water_bg, air_bg, flux, wavlen, crystal)
 
     return basic_params
 
-def tst_one_CPU(params, add_spots, use_background, direct_algo_res_limit=1.85, num_pixels=3840):
+def tst_one_CPU(params, basic_params, sfall_channels, add_spots, use_background, direct_algo_res_limit=1.85, num_pixels=3840):
     detpixels_slowfast=(num_pixels,num_pixels)
-    basic_params = set_basic_params(params, direct_algo_res_limit)
+    
     pixel_size_mm, Ncells_abc, shot_to_shot_wavelength_A, adc_offset_adu, mosaic_spread_deg, mosaic_domains, \
     distance_mm, UMAT_nm, detector_thick_mm, detector_thicksteps, detector_attenuation_length_mm, seed, oversample, \
-    polarization, default_F, sfall_channels, Amatrix_rot, xtal_shape, water_bg, air_bg, flux, wavlen, crystal \
+    polarization, default_F, Amatrix_rot, xtal_shape, water_bg, air_bg, flux, wavlen, crystal \
     = basic_params
 
     SIM = nanoBragg(detpixels_slowfast=detpixels_slowfast,pixel_size_mm=pixel_size_mm,Ncells_abc=Ncells_abc,
@@ -221,14 +221,13 @@ def tst_one_CPU(params, add_spots, use_background, direct_algo_res_limit=1.85, n
                 
     return SIM.raw_pixels, nanoBragg_params, noise_params, fluence_background
 
-def tst_one_pytorch(params, add_spots, nanoBragg_params, noise_params, fluence_background, use_background, hkl_ranges, direct_algo_res_limit=1.85, num_pixels=3840):
+def tst_one_pytorch(params, basic_params, Fhkl_mat_vec, add_spots, nanoBragg_params, noise_params, fluence_background, use_background, hkl_ranges, direct_algo_res_limit=1.85, num_pixels=3840):
     h_max, h_min, k_max, k_min, l_max, l_min = hkl_ranges
     
     detpixels_slowfast=(num_pixels,num_pixels)
-    basic_params = set_basic_params(params, direct_algo_res_limit)
     pixel_size_mm, Ncells_abc, shot_to_shot_wavelength_A, adc_offset_adu, mosaic_spread_deg, mosaic_domains, \
     distance_mm, UMAT_nm, detector_thick_mm, detector_thicksteps, detector_attenuation_length_mm, seed, oversample, \
-    polarization, default_F, sfall_channels, Amatrix_rot, xtal_shape, water_bg, air_bg, flux, wavlen, crystal \
+    polarization, default_F, Amatrix_rot, xtal_shape, water_bg, air_bg, flux, wavlen, crystal \
     = basic_params
 
     if xtal_shape==shapetype.Gauss_argchk:
@@ -297,24 +296,17 @@ def tst_one_pytorch(params, add_spots, nanoBragg_params, noise_params, fluence_b
     interpolate = False
 
     # loop over energies
-    raw_pixels = torch.zeros((num_pixels, num_pixels))
+    # raw_pixels = torch.zeros((num_pixels, num_pixels), requires_grad=True)
+    raw_pixels_vec = []
     for x in range(len(flux)):
         print("Wavelength",x)
         # from channel_pixels function
         source_lambda = torch.tensor([wavlen[x]])*1e-10
         fluence = fluence_vec[x]
-        Fhkl=sfall_channels[x]
-        Fhkl_indices = Fhkl._indices.as_vec3_double().as_numpy_array()
-        Fhkl_data = Fhkl._data.as_numpy_array()
-        Fhkl_indices = [tuple(h) for h in Fhkl_indices]
-
-        Fhkl = {h:v for h,v in zip(Fhkl_indices,Fhkl_data)}
-        Fhkl = Fhkl_remove(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min)
-        Fhkl_mat = Fhkl_dict_to_mat(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min, default_F, torch)
-        Fhkl_input = Fhkl_mat
+        Fhkl_input = Fhkl_mat_vec[x]
 
         if add_spots:
-            raw_pixels += add_torchBragg_spots(spixels, 
+            raw_pixels_x = add_torchBragg_spots(spixels, 
                                 fpixels,
                                 phisteps,
                                 mosaic_domains,
@@ -350,6 +342,8 @@ def tst_one_pytorch(params, add_spots, nanoBragg_params, noise_params, fluence_b
                                 polar_vector,
                                 verbose=True,
                                 use_numpy=False)
+            raw_pixels_vec.append(raw_pixels_x)
+    raw_pixels = torch.sum(torch.stack(raw_pixels_vec,axis=0),axis=0)
 
 
 
@@ -479,9 +473,13 @@ if __name__ == "__main__":
         NotImplementedError("num_pixels=%d is not implemented"%num_pixels)
 
     hkl_ranges = (h_max, h_min, k_max, k_min, l_max, l_min)
+    sfall_channels = amplitudes_spread_psii(params, direct_algo_res_limit=direct_algo_res_limit)
+    basic_params = set_basic_params(params, sfall_channels, direct_algo_res_limit)
+    num_wavelengths = params.spectrum.nchannels
+    Fhkl_mat_vec = get_Fhkl_mat(sfall_channels, num_wavelengths, hkl_ranges, complex_output=False)
 
-    raw_pixels, nanoBragg_params, noise_params, fluence_background = tst_one_CPU(params, add_spots, use_background, direct_algo_res_limit=direct_algo_res_limit, num_pixels=num_pixels)
-    raw_pixels_pytorch = tst_one_pytorch(params, add_spots, nanoBragg_params, noise_params, fluence_background, use_background, hkl_ranges, direct_algo_res_limit=direct_algo_res_limit, num_pixels=num_pixels)
+    raw_pixels, nanoBragg_params, noise_params, fluence_background = tst_one_CPU(params, basic_params, sfall_channels, add_spots, use_background, direct_algo_res_limit=direct_algo_res_limit, num_pixels=num_pixels)    
+    raw_pixels_pytorch = tst_one_pytorch(params, basic_params, Fhkl_mat_vec, add_spots, nanoBragg_params, noise_params, fluence_background, use_background, hkl_ranges, direct_algo_res_limit=direct_algo_res_limit, num_pixels=num_pixels)
 
     if use_background:
         plt.figure(); plt.imshow(raw_pixels.as_numpy_array(), vmax=5.0e2, cmap='Greys');plt.colorbar();plt.savefig("raw_pixels.png")
