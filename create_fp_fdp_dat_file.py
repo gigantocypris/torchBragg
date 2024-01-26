@@ -15,9 +15,7 @@ from LS49 import ls49_big_data
 def full_path(filename):
   return os.path.join(ls49_big_data, filename)
 
-def create_new_dat(source_filename, output_filename, change_col, new_value):
-    # Open the source file for reading
-    # source_filename = 'source.dat'
+def read_dat_file(source_filename):
     with open(source_filename, 'r') as source_file:
         # Read data from the source file
         lines = source_file.readlines()
@@ -27,8 +25,14 @@ def create_new_dat(source_filename, output_filename, change_col, new_value):
     col_1 = [line.split()[1] for line in lines]
     col_2 = [line.split()[2] for line in lines]
 
+    return col_0, col_1, col_2
+
+
+def create_new_dat(source_filename, output_filename, change_col, new_value):
+    # Open the source file for reading
+    col_0, col_1, col_2 = read_dat_file(source_filename)
+
     # Create a new .dat file with the first column and two columns of zeros
-    # output_filename = 'output.dat'
     with open(output_filename, 'w') as output_file:
         # Write the data to the new file
         for value_0, value_1, value_2 in zip(col_0, col_1, col_2):
