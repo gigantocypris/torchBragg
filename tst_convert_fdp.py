@@ -27,11 +27,11 @@ plt.legend()
 plt.savefig("Mn_fdp_cs.png")
 
 
-# Split curve from start to 6500eV, from 6500 to 6600eV, 6600eV to end 
+# Split curve from start to 6499.5eV, from 6499.5eV to 6599.5, 6599.5eV to end 
 # 6550 eV is the bandedge of Mn
-interval_0 = np.array([energy_vec[0], 6500])
-interval_1 = np.array([6500, 6600]) 
-interval_2 = np.array([6600, energy_vec[-1]])
+interval_0 = np.array([energy_vec[0], 6499.5])
+interval_1 = np.array([6499.5, 6599.5]) 
+interval_2 = np.array([6599.5, energy_vec[-1]])
 
 # Fit interval_1 with a cubic spline
 step_size = 1
@@ -52,6 +52,37 @@ plt.savefig("Mn_fdp_cs_bandwidth.png")
 
 def func(x, shift, constant, a, b, c, d, e):
     return a*(x-shift)**3 + b*(x-shift)**2 + c*(x-shift) + d*(x)**(-1) - d*(shift)**(-1) + e*(x)**(-2) - e*(shift)**(-2) + constant
+
+def convert_coeff(shift, constant, a, b, c, d, e):
+    # convert to the form of f*x**(-2) + g*x**(-1) + h*x**0 + i*x**1 + j*x**2 + k*x**3
+    f = e
+    g = d
+    h = -c*shift + a*shift**2 - b*shift**3 - d*(shift)**(-1) - e*(shift)**(-2) + constant
+    i = c - a*2*shift + b*3*shift**2
+    j = a - b*3*shift
+    k = b
+    return np.array([f,g,h,i,j,k])
+
+"""
+coeff for x**3
+b*x**3
+
+coeff for x**2
+a*x**2 - b*3*shift*x**2
+
+coeff for x
+c*x - a*2*shift*x + b*3*shift**2*x
+
+coeff for x**(0)
+-c*shift + a*shift**2 - b*shift**3 - d*(shift)**(-1) - e*(shift)**(-2) + constant
+
+coeff for x**(-1)
+d*(x)**(-1)
+
+coeff for x**(-2)
+e*(x)**(-2)
+
+"""
 
 energy_vec_0 = energy_vec[energy_vec <= interval_0[1]]
 fdp_vec_0 = fdp_vec[energy_vec <= interval_0[1]]
@@ -105,3 +136,81 @@ plt.legend()
 plt.savefig("Mn_fdp_full.png")
 
 # Convert fdp to fp using the Kramers-Kronig relation
+
+def fdp_fp_easy_integral(energy, energy_start, energy_end, coeff, powers):
+    """
+    Get integral at energy for the term with the x+E denominator
+    """
+
+    # Check that powers is sorted in ascending order
+    assert all(powers[i] <= powers[i+1] for i in range(len(powers)-1))
+
+    integral = 0
+    for ind,n in enumerate(powers):
+        coeff_i = coeff[ind]
+        if n >= 0:
+            for k in range(1,n+2):
+                integral += coeff_i*(((-energy)**(n-k+1))/k)*(energy_start**k - energy_end**k)
+        integral += coeff_i*((-energy)**(n+1))*np.log((energy_end + energy)/(energy_start+energy))
+        if n <= -2:
+            integral += -coeff_i*((-energy)**(n+1))*np.log(energy_end/energy_start)
+        if n <= -3:
+            for k in range(n+2,0):
+                integral += coeff_i*(((-energy)**(n-k+1))/(-k))*(energy_end**k - energy_start**k)
+    return integral
+
+
+def fdp_fp_hard_integral(energy, energy_start, energy_end, coeff, powers):
+    """
+    Get integral at energy for the term with the x-E denominator
+    """
+
+    # Check that powers is sorted in ascending order
+    assert all(powers[i] <= powers[i+1] for i in range(len(powers)-1))
+
+    integral = 0
+    for ind,n in enumerate(powers):
+        coeff_i = coeff[ind]
+        if n >= 0:
+            for k in range(1,n+2):
+                integral += coeff_i*((energy**(n-k+1))/k)*(energy_start**k - energy_end**k)
+        integral += coeff_i*(energy**(n+1))*np.log((energy_end - energy)/(energy_start - energy)) ## Problem term here
+        if n <= -2:
+            integral += -coeff_i*(energy**(n+1))*np.log(energy_end/energy_start)
+        if n <= -3:
+            for k in range(n+2,0):
+                integral += coeff_i*((energy**(n-k+1))/(-k))*(energy_end**k - energy_start**k)
+    return integral
+
+def fdp_fp_integrate(energy, intervals_mat, coeff_mat, powers_mat):
+    """
+    Find fp from fdp using the Kramers-Kronig relation at energy
+    energy cannot be at the endpoints of any interval
+    powers must be sorted in ascending order
+
+    Use the analytical expressions for the integrals from Watts (2014)
+    Notation in Watts (2014):
+        E is the energy where we want to find fp (energy in this case)
+        Degree of polynomial starts at M, M can be negative
+        Degree of polynomial ends at N, assume N is positive
+        jth interval
+    """
+
+    for interval in intervals_mat:
+        pass
+
+
+# Create intervals_mat, coeff_mat, powers_mat
+
+# interval_1 is broken up into intervals depending on step size
+interval_1_starts = np.arange(interval_1[0], interval_1[1], step_size)
+interval_1_ends = np.arange(interval_1[0]+step_size, interval_1[1] + step_size, step_size)
+interval_1_all = np.array([interval_1_starts, interval_1_ends]).T
+
+intervals_mat = np.concatenate([np.expand_dims(interval_0,axis=0), interval_1_all, np.expand_dims(interval_2, axis=0)],axis=0)
+
+# XXX STOPPED HERE
+breakpoint()
+powers_mat = np.array([])
+coeff_mat
+
