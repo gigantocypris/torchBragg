@@ -4,9 +4,9 @@ from scipy.interpolate import CubicSpline
 from scipy.optimize import curve_fit
 from create_fp_fdp_dat_file import full_path, read_dat_file
 
-Mn_model=full_path("data_sherrell/MnO2_spliced.dat")
+# Mn_model=full_path("data_sherrell/MnO2_spliced.dat")
+Mn_model=full_path("data_sherrell/Mn.dat")
 energy_vec, fp_vec, fdp_vec = read_dat_file(Mn_model)
-
 energy_vec = np.array(energy_vec).astype(np.float64)
 fp_vec = np.array(fp_vec).astype(np.float64)
 fdp_vec = np.array(fdp_vec).astype(np.float64)
@@ -57,24 +57,25 @@ def convert_coeff(shift, constant, a, b, c, d, e):
     # convert to the form of f*x**(-2) + g*x**(-1) + h*x**0 + i*x**1 + j*x**2 + k*x**3
     f = e
     g = d
-    h = -c*shift + a*shift**2 - b*shift**3 - d*(shift)**(-1) - e*(shift)**(-2) + constant
-    i = c - a*2*shift + b*3*shift**2
-    j = a - b*3*shift
-    k = b
+    h = -c*shift + b*shift**2 - a*shift**3 - d*(shift)**(-1) - e*(shift)**(-2) + constant
+    i = c - b*2*shift + a*3*shift**2
+    j = b - a*3*shift
+    k = a
     return np.array([f,g,h,i,j,k])
+
 
 """
 coeff for x**3
-b*x**3
+a*x**3
 
 coeff for x**2
-a*x**2 - b*3*shift*x**2
+b*x**2 - a*3*shift*x**2
 
 coeff for x
-c*x - a*2*shift*x + b*3*shift**2*x
+c*x - b*2*shift*x + a*3*shift**2*x
 
 coeff for x**(0)
--c*shift + a*shift**2 - b*shift**3 - d*(shift)**(-1) - e*(shift)**(-2) + constant
+-c*shift + b*shift**2 - a*shift**3 - d*(shift)**(-1) - e*(shift)**(-2) + constant
 
 coeff for x**(-1)
 d*(x)**(-1)
@@ -135,6 +136,85 @@ plt.plot(energy_vec_full, fdp_vec_full, 'b', label="fdp fit")
 plt.legend()
 plt.savefig("Mn_fdp_full.png")
 
+def func_converted_coeff(x, power_vec, coeff_vec):
+    y = np.zeros_like(x)
+    for p, c in zip(power_vec,coeff_vec):
+            y += c*(x**p)
+    return y
+
+def find_fdp(energy, powers_mat, coeff_mat, intervals_mat):
+    # find what interval energy is in
+    interval_ind = intervals_mat - energy # the interval that energy is in has a change from negative to positive
+    interval_ind[interval_ind<=0] = 0 # equal sign should never be triggered!
+    interval_ind[interval_ind>0] = 1
+    interval_ind = interval_ind.astype(bool)
+    interval_ind = np.sum(interval_ind, axis=1)*(1-np.prod(interval_ind, axis=1)) # XOR
+    interval_ind = np.where(interval_ind)[0][0]
+
+    power = powers_mat[interval_ind]
+    coeff = coeff_mat[interval_ind]
+    interval = intervals_mat[interval_ind]
+    fdp_fit = func_converted_coeff(energy, power, coeff)
+    return fdp_fit
+
+
+def plot_fit(powers_mat, coeff_mat, intervals_mat, energy_vec, fdp_vec):
+    energy_points_vec = []
+    fdp_fit_vec = []
+    for i in range(len(powers_mat)):
+        power = powers_mat[i]
+        coeff = coeff_mat[i]
+        interval = intervals_mat[i]
+        energy_points = np.linspace(interval[0], interval[1], 100)
+        fdp_fit = func_converted_coeff(energy_points, power, coeff)
+        energy_points_vec.append(energy_points)
+        fdp_fit_vec.append(fdp_fit)
+
+    energy_points_vec = np.concatenate(energy_points_vec, axis=0)
+    fdp_fit_vec = np.concatenate(fdp_fit_vec, axis=0)
+
+    plt.figure(figsize=(20,10))
+    plt.plot(energy_vec, fdp_vec, 'r.', label="original")
+    plt.plot(energy_points_vec, fdp_fit_vec, 'b', label="fdp fit")
+    plt.xlim([6500,6700])
+    plt.legend()
+    plt.savefig("Mn_fdp_fit_check.png")
+
+# Create intervals_mat, coeff_mat, powers_mat
+
+# interval_1 is broken up into intervals depending on step size
+interval_1_starts = np.arange(interval_1[0], interval_1[1], step_size)
+interval_1_ends = np.arange(interval_1[0]+step_size, interval_1[1] + step_size, step_size)
+interval_1_all = np.array([interval_1_starts, interval_1_ends]).T
+
+intervals_mat = np.concatenate([np.expand_dims(interval_0,axis=0), interval_1_all, np.expand_dims(interval_2, axis=0)],axis=0) # intervals x endpoints
+
+
+powers_mat = np.array([-2,-1,0,1,2,3])
+powers_mat = np.repeat(np.expand_dims(powers_mat, axis=0), len(intervals_mat), axis=0) # intervals x powers
+
+coeff_vec_0 = np.expand_dims(convert_coeff(shift_0, constant_0, *popt_0), axis=0)
+
+
+plt.figure()
+plt.plot(energy_vec_0, fdp_vec_0, 'b.', label="fdp")
+plt.plot(energy_vec_0, func_converted_coeff(energy_vec_0, np.array([-2,-1,0,1,2,3]), convert_coeff(shift_0, constant_0, *popt_0)), 'g', label="fit2")
+plt.legend()
+plt.savefig("Mn_fdp_fit2_0.png")
+
+
+coeff_vec_1 = []
+for i in range(len(interval_1_all)):
+    coeff_vec_1.append(convert_coeff(interval_1_all[i,0], coeff_bandwidth[3,i], coeff_bandwidth[0,i], coeff_bandwidth[1,i], coeff_bandwidth[2,i], 0, 0))
+coeff_vec_1 = np.stack(coeff_vec_1, axis=0)
+coeff_vec_2 = np.expand_dims(convert_coeff(shift_2, constant_2, *popt_2), axis=0)
+
+coeff_mat = np.concatenate([coeff_vec_0, coeff_vec_1, coeff_vec_2], axis=0)
+
+plot_fit(powers_mat, coeff_mat, intervals_mat, energy_vec, fdp_vec)
+
+# Now convert fdp to fp, account for relativistic correction
+
 # Convert fdp to fp using the Kramers-Kronig relation
 
 def fdp_fp_easy_integral(energy, energy_start, energy_end, coeff, powers):
@@ -185,7 +265,7 @@ def fdp_fp_hard_integral(energy, energy_start, energy_end, coeff, powers):
 def fdp_fp_integrate(energy, intervals_mat, coeff_mat, powers_mat):
     """
     Find fp from fdp using the Kramers-Kronig relation at energy
-    energy cannot be at the endpoints of any interval
+    energy cannot be at the endpoints of any interval!!
     powers must be sorted in ascending order
 
     Use the analytical expressions for the integrals from Watts (2014)
@@ -195,22 +275,29 @@ def fdp_fp_integrate(energy, intervals_mat, coeff_mat, powers_mat):
         Degree of polynomial ends at N, assume N is positive
         jth interval
     """
+    fp = 0
+    for ind, interval in enumerate(intervals_mat):
+        energy_start = interval[0]
+        energy_end = interval[1]
+        coeff = coeff_mat[ind]
+        powers = powers_mat[ind]
+        fp += 1/(np.pi*energy)*fdp_fp_easy_integral(energy, energy_start, energy_end, coeff, powers)
+        fp += -1/(np.pi*energy)*fdp_fp_hard_integral(energy, energy_start, energy_end, coeff, powers)
+    return fp
 
-    for interval in intervals_mat:
-        pass
+energy_vec_bandwidth = np.arange(6500.,6600.,1.)
+fdp_calculate_bandwidth = []
+fp_calculate_bandwidth = []
 
+for energy in energy_vec_bandwidth:
+    fdp_calculate_bandwidth.append(find_fdp(energy, powers_mat, coeff_mat, intervals_mat))
+    # XXX STOPPED HERE
+    breakpoint()
+    fp = fdp_fp_integrate(energy, intervals_mat, coeff_mat, powers_mat)
+    breakpoint()
+    fp_calculate_bandwidth.append(fp)
+    
 
-# Create intervals_mat, coeff_mat, powers_mat
-
-# interval_1 is broken up into intervals depending on step size
-interval_1_starts = np.arange(interval_1[0], interval_1[1], step_size)
-interval_1_ends = np.arange(interval_1[0]+step_size, interval_1[1] + step_size, step_size)
-interval_1_all = np.array([interval_1_starts, interval_1_ends]).T
-
-intervals_mat = np.concatenate([np.expand_dims(interval_0,axis=0), interval_1_all, np.expand_dims(interval_2, axis=0)],axis=0)
-
-# XXX STOPPED HERE
-breakpoint()
-powers_mat = np.array([])
-coeff_mat
-
+plt.figure()
+plt.plot(energy_vec, fp_vec, 'r.', label="original")
+plt.plot(energy_vec, fp_calculate_bandwidth, 'b*', label="calculated")
