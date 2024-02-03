@@ -3,13 +3,24 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import CubicSpline
 from scipy.optimize import curve_fit
 from create_fp_fdp_dat_file import full_path, read_dat_file
+np.seterr(all='raise')
 
 # Mn_model=full_path("data_sherrell/MnO2_spliced.dat")
-Mn_model=full_path("data_sherrell/Mn.dat")
+Mn_model=full_path("data_sherrell/Fe.dat")
+relativistic_correction = 0.048 # 0.042 for Mn and 0.048 for Fe
+bandedge = 7112 # 6550 eV is the bandedge of Mn and 7112 is the bandedge of Fe
+
+
 energy_vec, fp_vec, fdp_vec = read_dat_file(Mn_model)
 energy_vec = np.array(energy_vec).astype(np.float64)
 fp_vec = np.array(fp_vec).astype(np.float64)
 fdp_vec = np.array(fdp_vec).astype(np.float64)
+
+# For Mn, split curve from start to 6499.5eV, from 6499.5eV to 6599.5, 6599.5eV to end 
+# 6550 eV is the bandedge of Mn
+interval_0 = np.array([energy_vec[0], bandedge - 50.5])
+interval_1 = np.array([bandedge - 50.5, bandedge + 49.5]) 
+interval_2 = np.array([bandedge + 49.5, energy_vec[-1]])
 
 
 plt.figure(figsize=(100,10))
@@ -27,11 +38,7 @@ plt.legend()
 plt.savefig("Mn_fdp_cs.png")
 
 
-# Split curve from start to 6499.5eV, from 6499.5eV to 6599.5, 6599.5eV to end 
-# 6550 eV is the bandedge of Mn
-interval_0 = np.array([energy_vec[0], 6499.5])
-interval_1 = np.array([6499.5, 6599.5]) 
-interval_2 = np.array([6599.5, energy_vec[-1]])
+
 
 # Fit interval_1 with a cubic spline
 step_size = 1
@@ -62,28 +69,6 @@ def convert_coeff(shift, constant, a, b, c, d, e):
     j = b - a*3*shift
     k = a
     return np.array([f,g,h,i,j,k])
-
-
-"""
-coeff for x**3
-a*x**3
-
-coeff for x**2
-b*x**2 - a*3*shift*x**2
-
-coeff for x
-c*x - b*2*shift*x + a*3*shift**2*x
-
-coeff for x**(0)
--c*shift + b*shift**2 - a*shift**3 - d*(shift)**(-1) - e*(shift)**(-2) + constant
-
-coeff for x**(-1)
-d*(x)**(-1)
-
-coeff for x**(-2)
-e*(x)**(-2)
-
-"""
 
 energy_vec_0 = energy_vec[energy_vec <= interval_0[1]]
 fdp_vec_0 = fdp_vec[energy_vec <= interval_0[1]]
@@ -215,8 +200,6 @@ plot_fit(powers_mat, coeff_mat, intervals_mat, energy_vec, fdp_vec)
 
 # Now convert fdp to fp, account for relativistic correction
 
-# Convert fdp to fp using the Kramers-Kronig relation
-
 def fdp_fp_easy_integral(energy, energy_start, energy_end, coeff, powers):
     """
     Get integral at energy for the term with the x+E denominator
@@ -231,9 +214,9 @@ def fdp_fp_easy_integral(energy, energy_start, energy_end, coeff, powers):
         if n >= 0:
             for k in range(1,n+2):
                 integral += coeff_i*(((-energy)**(n-k+1))/k)*(energy_start**k - energy_end**k)
-        integral += coeff_i*((-energy)**(n+1))*np.log((energy_end + energy)/(energy_start+energy))
+        integral += coeff_i*((-energy)**(n+1))*np.log(np.abs((energy_end + energy)/(energy_start+energy)))
         if n <= -2:
-            integral += -coeff_i*((-energy)**(n+1))*np.log(energy_end/energy_start)
+            integral += -coeff_i*((-energy)**(n+1))*np.log(np.abs(energy_end/energy_start))
         if n <= -3:
             for k in range(n+2,0):
                 integral += coeff_i*(((-energy)**(n-k+1))/(-k))*(energy_end**k - energy_start**k)
@@ -254,9 +237,13 @@ def fdp_fp_hard_integral(energy, energy_start, energy_end, coeff, powers):
         if n >= 0:
             for k in range(1,n+2):
                 integral += coeff_i*((energy**(n-k+1))/k)*(energy_start**k - energy_end**k)
-        integral += coeff_i*(energy**(n+1))*np.log((energy_end - energy)/(energy_start - energy)) ## Problem term here
+        try:
+            integral += coeff_i*(energy**(n+1))*np.log(np.abs((energy_end - energy)/(energy_start - energy))) ## Problem term here
+        except FloatingPointError as rw:
+            print("FloatingPointError:", rw)
+            print("Check that energy is not at the endpoints of any interval")
         if n <= -2:
-            integral += -coeff_i*(energy**(n+1))*np.log(energy_end/energy_start)
+            integral += -coeff_i*(energy**(n+1))*np.log(np.abs(energy_end/energy_start))
         if n <= -3:
             for k in range(n+2,0):
                 integral += coeff_i*((energy**(n-k+1))/(-k))*(energy_end**k - energy_start**k)
@@ -283,21 +270,28 @@ def fdp_fp_integrate(energy, intervals_mat, coeff_mat, powers_mat):
         powers = powers_mat[ind]
         fp += 1/(np.pi*energy)*fdp_fp_easy_integral(energy, energy_start, energy_end, coeff, powers)
         fp += -1/(np.pi*energy)*fdp_fp_hard_integral(energy, energy_start, energy_end, coeff, powers)
-    return fp
+    return fp + relativistic_correction
 
-energy_vec_bandwidth = np.arange(6500.,6600.,1.)
+# energy_vec_bandwidth = np.arange(bandedge-50, bandedge + 50, 1.)
+energy_vec_bandwidth = np.concatenate((np.arange(1100,bandedge-50,100.), np.arange(bandedge-50, bandedge + 50,1.), np.arange(bandedge + 50, 10000, 100.)))
 fdp_calculate_bandwidth = []
 fp_calculate_bandwidth = []
 
 for energy in energy_vec_bandwidth:
     fdp_calculate_bandwidth.append(find_fdp(energy, powers_mat, coeff_mat, intervals_mat))
-    # XXX STOPPED HERE
-    breakpoint()
     fp = fdp_fp_integrate(energy, intervals_mat, coeff_mat, powers_mat)
-    breakpoint()
     fp_calculate_bandwidth.append(fp)
-    
 
 plt.figure()
 plt.plot(energy_vec, fp_vec, 'r.', label="original")
-plt.plot(energy_vec, fp_calculate_bandwidth, 'b*', label="calculated")
+plt.plot(energy_vec_bandwidth, fp_calculate_bandwidth, 'b*', label="calculated")
+plt.xlim([energy_vec_bandwidth[0],energy_vec_bandwidth[-1]])
+plt.legend()
+plt.savefig("Mn_fp_calculated.png")
+
+plt.figure()
+plt.plot(energy_vec, fdp_vec, 'r', label="original")
+plt.plot(energy_vec_bandwidth, fdp_calculate_bandwidth, 'b*', label="calculated")
+plt.xlim([energy_vec_bandwidth[0],energy_vec_bandwidth[-1]])
+plt.legend()
+plt.savefig("Mn_fdp_calculated.png")
