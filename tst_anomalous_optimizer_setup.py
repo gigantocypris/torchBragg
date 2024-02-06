@@ -4,13 +4,11 @@ from tst_sf_linearity import get_wavelengths, get_fp_fdp, get_base_structure_fac
 from tst_torchBragg_psii import amplitudes_spread_psii, set_basic_params, tst_one_CPU, tst_one_pytorch
 torch.autograd.set_detect_anomaly(True)
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-breakpoint()
 # Define ground truth fp and fdp for each of the 4 Mn atoms and calculate base structure factors
 params,options = parse_input()
 
 hkl_ranges=(11, -11, 22, -22, 30, -30)
-direct_algo_res_limit=10.0
+direct_algo_res_limit=2.1
 MN_labels=["Mn_oxidized_model","Mn_oxidized_model","Mn_reduced_model","Mn_reduced_model"]
 
 wavelengths, num_wavelengths = get_wavelengths(params)

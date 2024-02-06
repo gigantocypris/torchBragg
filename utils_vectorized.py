@@ -25,7 +25,10 @@ def Fhkl_dict_to_mat(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min, default_F, 
         h0 = int(key[0])
         k0 = int(key[1])
         l0 = int(key[2])
-        Fhkl_mat[h0-h_min, k0-k_min, l0-l_min] = Fhkl[key]
+        if (h0<h_min) or (h0>h_max) or (k0<k_min) or (k0>k_max) or (l0<l_min) or (l0>l_max):
+            print("hkl indices out of range")
+        else:
+            Fhkl_mat[h0-h_min, k0-k_min, l0-l_min] = Fhkl[key]
     return(Fhkl_mat)
 
 def sincg_vectorized(x, N, prefix):

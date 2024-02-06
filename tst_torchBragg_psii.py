@@ -22,7 +22,7 @@ from tst_sf_linearity import get_Fhkl_mat
 torch.set_default_dtype(torch.float64)
 
 
-def set_basic_params(params, sfall_channels, direct_algo_res_limit):
+def set_basic_params(params, sfall_channels):
     spectra = spectra_simulation()
     crystal = microcrystal(Deff_A = params.crystal.Deff_A, length_um = params.crystal.length_um, beam_diameter_um = 1.0) # assume smaller than 10 um crystals
     # random_orientation = legacy_random_orientations(100)[0]
@@ -91,7 +91,7 @@ def set_basic_params(params, sfall_channels, direct_algo_res_limit):
 
     return basic_params
 
-def tst_one_CPU(params, basic_params, sfall_channels, add_spots, use_background, direct_algo_res_limit=1.85, num_pixels=3840):
+def tst_one_CPU(params, basic_params, sfall_channels, add_spots, use_background, num_pixels=3840):
     detpixels_slowfast=(num_pixels,num_pixels)
     
     pixel_size_mm, Ncells_abc, shot_to_shot_wavelength_A, adc_offset_adu, mosaic_spread_deg, mosaic_domains, \
@@ -221,7 +221,7 @@ def tst_one_CPU(params, basic_params, sfall_channels, add_spots, use_background,
                 
     return SIM.raw_pixels, nanoBragg_params, noise_params, fluence_background
 
-def tst_one_pytorch(params, basic_params, Fhkl_mat_vec, add_spots, nanoBragg_params, noise_params, fluence_background, use_background, hkl_ranges, direct_algo_res_limit=1.85, num_pixels=3840):
+def tst_one_pytorch(params, basic_params, Fhkl_mat_vec, add_spots, nanoBragg_params, noise_params, fluence_background, use_background, hkl_ranges, num_pixels=3840):
     h_max, h_min, k_max, k_min, l_max, l_min = hkl_ranges
     
     detpixels_slowfast=(num_pixels,num_pixels)
@@ -445,7 +445,6 @@ if __name__ == "__main__":
 
     if num_pixels == 128:
         direct_algo_res_limit = 10.0 # need to make low enough to include all hkl on detector
-        # the following changes with the size of the detector
         h_max= 11
         h_min= -11
         k_max= 22
@@ -462,7 +461,6 @@ if __name__ == "__main__":
         l_min= -38
     elif num_pixels == 3840:
         direct_algo_res_limit = 1.85 # need to make low enough to include all hkl on detector
-        # the following changes with the size of the detector
         h_max= 63
         h_min= -63
         k_max= 120
@@ -474,12 +472,12 @@ if __name__ == "__main__":
 
     hkl_ranges = (h_max, h_min, k_max, k_min, l_max, l_min)
     sfall_channels = amplitudes_spread_psii(params, direct_algo_res_limit=direct_algo_res_limit)
-    basic_params = set_basic_params(params, sfall_channels, direct_algo_res_limit)
+    basic_params = set_basic_params(params, sfall_channels)
     num_wavelengths = params.spectrum.nchannels
     Fhkl_mat_vec = get_Fhkl_mat(sfall_channels, num_wavelengths, hkl_ranges, complex_output=False)
 
-    raw_pixels, nanoBragg_params, noise_params, fluence_background = tst_one_CPU(params, basic_params, sfall_channels, add_spots, use_background, direct_algo_res_limit=direct_algo_res_limit, num_pixels=num_pixels)    
-    raw_pixels_pytorch = tst_one_pytorch(params, basic_params, Fhkl_mat_vec, add_spots, nanoBragg_params, noise_params, fluence_background, use_background, hkl_ranges, direct_algo_res_limit=direct_algo_res_limit, num_pixels=num_pixels)
+    raw_pixels, nanoBragg_params, noise_params, fluence_background = tst_one_CPU(params, basic_params, sfall_channels, add_spots, use_background, num_pixels=num_pixels)    
+    raw_pixels_pytorch = tst_one_pytorch(params, basic_params, Fhkl_mat_vec, add_spots, nanoBragg_params, noise_params, fluence_background, use_background, hkl_ranges, num_pixels=num_pixels)
 
     if use_background:
         plt.figure(); plt.imshow(raw_pixels.as_numpy_array(), vmax=5.0e2, cmap='Greys');plt.colorbar();plt.savefig("raw_pixels.png")

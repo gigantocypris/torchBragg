@@ -6,19 +6,10 @@ from utils_vectorized import sincg_vectorized, sinc3_vectorized, unitize_vectori
 
 
 
-def add_torchBragg_spots(spixels, 
-                         fpixels,
-                         phisteps,
-                         mosaic_domains,
-                         oversample,
-                         pixel_size,
-                         roi_xmin, roi_xmax, roi_ymin, roi_ymax,
-                         maskimage, 
-                         detector_thicksteps,
-                        spot_scale, fluence,
-                        detector_thickstep,
-                        Odet,
-                        fdet_vector, sdet_vector, odet_vector, pix0_vector,
+def add_torchBragg_spots(spixels, fpixels, phisteps, mosaic_domains, oversample, pixel_size,
+                         roi_xmin, roi_xmax, roi_ymin, roi_ymax, maskimage, detector_thicksteps,
+                         spot_scale, fluence, detector_thickstep, Odet,
+                         fdet_vector, sdet_vector, odet_vector, pix0_vector,
                         curved_detector, distance, beam_vector, close_distance,
                         point_pixel,
                         detector_thick, detector_attnlen,
@@ -181,7 +172,7 @@ def simulation_setup(prefix, spixels, fpixels, oversample, subpixel_size, detect
 
     Fdet_mat = subpixel_size*f_mat + subpixel_size/2.0 # function of index 0 and 1
     Sdet_mat = subpixel_size*s_mat + subpixel_size/2.0 # function of index 0 and 1
-
+    breakpoint()
     # assume "distance" is to the front of the detector sensor layer
     Odet_vec = prefix.arange(detector_thicksteps)*detector_thickstep # function of index 2
 

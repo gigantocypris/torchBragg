@@ -385,3 +385,16 @@ Kramer's Kronig:
 > . $MODULES/torchBragg/tst_torchBragg_psii_script.sh
 
 > . $MODULES/torchBragg/tst_sf_linearity_script.sh
+
+> . $MODULES/torchBragg/tst_anomalous_optimizer_script.sh
+
+> libtbx.python $MODULES/torchBragg/tst_convert_fdp.py
+> libtbx.python $MODULES/torchBragg/tst_convert_fdp_simple.py
+
+source ~/env_ecp
+module load pytorch/2.1.0-cu12
+salloc --nodes 1 --qos interactive --time 01:00:00 --constraint gpu --gpus 4 --account=m3562
+
+> libtbx.python
+> import torch
+> torch.cuda.is_available()

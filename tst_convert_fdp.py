@@ -6,9 +6,11 @@ from create_fp_fdp_dat_file import full_path, read_dat_file
 from tst_convert_fdp_helper import func, convert_coeff, func_converted_coeff, find_fdp, plot_fit, fdp_fp_integrate
 np.seterr(all='raise')
 
-Mn_model=full_path("data_sherrell/Mn.dat") # Mn, MnO2_spliced
+# Path to Sherrell data: $MODULES/ls49_big_data/data_sherrell
+# Mn_model=full_path("data_sherrell/Mn.dat") # Mn, MnO2_spliced
 # Mn_model=full_path("data_sherrell/Fe.dat")
-relativistic_correction = 0.042 # 0.042 for Mn and 0.048 for Fe
+Mn_model=full_path("data_sherrell/Mn.dat")
+relativistic_correction = 0 # 0.042 for Mn and 0.048 for Fe
 bandedge = 6550 # 6550 eV is the bandedge of Mn and 7112 is the bandedge of Fe
 
 
