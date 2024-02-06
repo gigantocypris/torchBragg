@@ -398,3 +398,7 @@ salloc --nodes 1 --qos interactive --time 01:00:00 --constraint gpu --gpus 4 --a
 > libtbx.python
 > import torch
 > torch.cuda.is_available()
+
+# Trying with kokkos 4
+source ~/env_kokkos_4
+cd $WORK/output_torchBragg
