@@ -172,7 +172,6 @@ def simulation_setup(prefix, spixels, fpixels, oversample, subpixel_size, detect
 
     Fdet_mat = subpixel_size*f_mat + subpixel_size/2.0 # function of index 0 and 1
     Sdet_mat = subpixel_size*s_mat + subpixel_size/2.0 # function of index 0 and 1
-    breakpoint()
     # assume "distance" is to the front of the detector sensor layer
     Odet_vec = prefix.arange(detector_thicksteps)*detector_thickstep # function of index 2
 

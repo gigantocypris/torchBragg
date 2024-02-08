@@ -402,3 +402,14 @@ salloc --nodes 1 --qos interactive --time 01:00:00 --constraint gpu --gpus 4 --a
 # Trying with kokkos 4
 source ~/env_kokkos_4
 cd $WORK/output_torchBragg
+
+# Re-installed CCTBX, pytorch is working with GPU support!!
+source ~/env_torch-update
+cd $WORK/output_torchBragg
+
+
+
+# Getting optimizer to work
+
+> libtbx.python $MODULES/torchBragg/create_fp_fdp_dat_file.py
+> . $MODULES/torchBragg/tst_anomalous_optimizer_script.sh

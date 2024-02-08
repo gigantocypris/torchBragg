@@ -71,29 +71,38 @@ def get_fp_fdp(wavelengths, num_wavelengths, MN_labels):
     fdp_oxidized_vec = []
     fp_reduced_vec = []
     fdp_reduced_vec = []
+    fp_ground_state_vec = []
+    fdp_ground_state_vec = []
     fp_0_vec = []
     fdp_0_vec = []
 
     Mn_oxidized_model = george_sherrell(full_path("data_sherrell/MnO2_spliced.dat"))
     Mn_reduced_model = george_sherrell(full_path("data_sherrell/Mn2O3_spliced.dat"))
+    Mn_ground_state = george_sherrell(full_path("data_sherrell/Mn.dat"))
     Mn_0 = george_sherrell("Mn_fp_0_fdp_0.dat")
 
     for ind in range(num_wavelengths):
         fp_oxidized, fdp_oxidized = Mn_oxidized_model.fp_fdp_at_wavelength(wavelengths[ind])
         fp_reduced, fdp_reduced = Mn_reduced_model.fp_fdp_at_wavelength(wavelengths[ind])
+        fp_ground_state, fdp_ground_state = Mn_ground_state.fp_fdp_at_wavelength(wavelengths[ind])
         fp_0, fdp_0 = Mn_0.fp_fdp_at_wavelength(wavelengths[ind])
 
         fp_oxidized_vec.append(fp_oxidized)
         fdp_oxidized_vec.append(fdp_oxidized)
         fp_reduced_vec.append(fp_reduced)
         fdp_reduced_vec.append(fdp_reduced)
+        fp_ground_state_vec.append(fp_ground_state)
+        fdp_ground_state_vec.append(fdp_ground_state)
         fp_0_vec.append(fp_0)
         fdp_0_vec.append(fdp_0)
+
 
     fp_oxidized_vec = torch.tensor(fp_oxidized_vec) # shape is (num_wavelengths)
     fdp_oxidized_vec = torch.tensor(fdp_oxidized_vec) # shape is (num_wavelengths)
     fp_reduced_vec = torch.tensor(fp_reduced_vec) # shape is (num_wavelengths)
     fdp_reduced_vec = torch.tensor(fdp_reduced_vec) # shape is (num_wavelengths)
+    fp_ground_state_vec = torch.tensor(fp_ground_state_vec) # shape is (num_wavelengths)
+    fdp_ground_state_vec = torch.tensor(fdp_ground_state_vec) # shape is (num_wavelengths)
     fp_0_vec = torch.tensor(fp_0_vec) # shape is (num_wavelengths)
     fdp_0_vec = torch.tensor(fdp_0_vec) # shape is (num_wavelengths)
     
@@ -106,6 +115,9 @@ def get_fp_fdp(wavelengths, num_wavelengths, MN_labels):
         elif label == "Mn_reduced_model":
             fp = fp_reduced_vec
             fdp = fdp_reduced_vec
+        elif label == "Mn_ground_state":
+            fp = fp_ground_state_vec
+            fdp = fdp_ground_state_vec
         else:
             fp = fp_0_vec
             fdp = fdp_0_vec

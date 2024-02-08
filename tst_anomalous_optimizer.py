@@ -1,11 +1,12 @@
 import torch
 from exafel_project.kpp_utils.phil import parse_input
+from simtbx.nanoBragg import shapetype
 from tst_sf_linearity import get_wavelengths, get_fp_fdp, get_base_structure_factors, construct_structure_factors, get_Fhkl_mat
 from tst_torchBragg_psii import amplitudes_spread_psii, set_basic_params, tst_one_CPU, tst_one_pytorch
 torch.autograd.set_detect_anomaly(True)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-breakpoint()
+
 # Define ground truth fp and fdp for each of the 4 Mn atoms and calculate base structure factors
 params,options = parse_input()
 
@@ -15,50 +16,70 @@ MN_labels=["Mn_oxidized_model","Mn_oxidized_model","Mn_reduced_model","Mn_reduce
 
 wavelengths, num_wavelengths = get_wavelengths(params)
 fp_vec, fdp_vec = get_fp_fdp(wavelengths,num_wavelengths, MN_labels)
-Fhkl_mat_0, Fhkl_mat_vec_all_Mn_diff = get_base_structure_factors(params, direct_algo_res_limit=direct_algo_res_limit, hkl_ranges=hkl_ranges, MN_labels=MN_labels)
+
+try:
+    Fhkl_mat_0 = torch.load('Fhkl_mat_0.pt')
+    Fhkl_mat_vec_all_Mn_diff = torch.load('Fhkl_mat_vec_all_Mn_diff.pt')
+except FileNotFoundError:
+    Fhkl_mat_0, Fhkl_mat_vec_all_Mn_diff = get_base_structure_factors(params, direct_algo_res_limit=direct_algo_res_limit, hkl_ranges=hkl_ranges, MN_labels=MN_labels)
+    torch.save(Fhkl_mat_0, 'Fhkl_mat_0.pt')
+    torch.save(Fhkl_mat_vec_all_Mn_diff, 'Fhkl_mat_vec_all_Mn_diff.pt')
 
 
-# Get parameters for the forward simulation with nanoBragg # XXX refactor this code to remove nanoBragg dependency
+# Get parameters for the forward simulation 
 sfall_channels = amplitudes_spread_psii(params, direct_algo_res_limit=direct_algo_res_limit)
-basic_params = set_basic_params(params, sfall_channels, direct_algo_res_limit)
-num_wavelengths = params.spectrum.nchannels
+basic_params = set_basic_params(params, sfall_channels)
 add_spots = True
 use_background = True
-num_pixels = 128
-raw_pixels, nanoBragg_params, noise_params, fluence_background = tst_one_CPU(params, basic_params, sfall_channels, add_spots, use_background, 
-                                                                             direct_algo_res_limit=direct_algo_res_limit, num_pixels=num_pixels)    
+num_pixels = 128 
 
-breakpoint()
+phisteps = 1
+pix0_vector_mm = (141.7, 5.72, -5.72) # detector origin, change to get different ROI #XXX
+fdet_vector = (0.0, 0.0, 1.0)
+sdet_vector = (0.0, -1.0, 0.0)
+odet_vector = (1.0, 0.0, 0.0)
+beam_vector = (1.0, 0.0, 0.0)
+polar_vector = (0.0, 0.0, 1.0)
+close_distance_mm = 141.7
+fluence_vec = [1.374132034195255e+19, 1.0686071593132872e+19]
+beam_center_mm = (5.675999999999999, 5.675999999999999)
+spot_scale = 1.0
+curved_detector = False
+point_pixel = False
+integral_form = False
+nopolar = False
 
-nanoBragg_params = (SIM.phisteps, SIM.pix0_vector_mm, SIM.fdet_vector, SIM.sdet_vector, SIM.odet_vector, 
-                        SIM.beam_vector, SIM.polar_vector, SIM.close_distance_mm, fluence_vec, 
-                        SIM.beam_center_mm, SIM.spot_scale, SIM.curved_detector, SIM.point_pixel,
-                        SIM.integral_form, SIM.nopolar)
+nanoBragg_params = (phisteps, pix0_vector_mm, fdet_vector, sdet_vector, odet_vector, beam_vector, polar_vector, 
+                    close_distance_mm, fluence_vec, beam_center_mm, spot_scale, curved_detector, point_pixel, 
+                    integral_form, nopolar)
 
-noise_params = (SIM.quantum_gain, SIM.detector_calibration_noise_pct, SIM.flicker_noise_pct, SIM.readout_noise_adu, \
-        SIM.detector_psf_type, SIM.detector_psf_fwhm_mm, SIM.detector_psf_kernel_radius_pixels)
+quantum_gain = 1.0
+detector_calibration_noise_pct = 1.0
+flicker_noise_pct = 0.0
+readout_noise_adu = 1.0
+detector_psf_type = shapetype.Unknown
+detector_psf_fwhm_mm = 0.0
+detector_psf_kernel_radius_pixels = 0
 
-noise_params = (quantum_gain, detector_calibration_noise_pct, flicker_noise_pct, readout_noise_adu, \
-        detector_psf_type, detector_psf_fwhm_mm, detector_psf_kernel_radius_pixels)
+noise_params = (quantum_gain, detector_calibration_noise_pct, flicker_noise_pct, readout_noise_adu, 
+                detector_psf_type, detector_psf_fwhm_mm, detector_psf_kernel_radius_pixels)
 
-fluence_background
-
-nanoBragg_params = phisteps, pix0_vector_mm, fdet_vector, sdet_vector, odet_vector, beam_vector, polar_vector, \
-    close_distance_mm, fluence_vec, beam_center_mm, spot_scale, curved_detector, point_pixel, \
-    integral_form, nopolar
+fluence_background = 1.1111111111111111e+23
 
 # Forward simulation with the fp and fdp of the 4 Mn atoms set to the ground truth values ("experimental" data)
 Fhkl_mat_vec = construct_structure_factors(fp_vec, fdp_vec, Fhkl_mat_0, Fhkl_mat_vec_all_Mn_diff) # shape is (num_wavelengths, 2*h_max+1, 2*k_max+1, 2*l_max+1)
 Fhkl_mat_vec = torch.abs(Fhkl_mat_vec)
-breakpoint()
 experimental_data = tst_one_pytorch(params, basic_params, Fhkl_mat_vec, add_spots, nanoBragg_params, noise_params, fluence_background, use_background, hkl_ranges, 
-                                    direct_algo_res_limit=direct_algo_res_limit, num_pixels=num_pixels)
+                                    num_pixels=num_pixels)
 
 
 # Initialize fp_guess and fdp_guess for each of the 4 Mn atoms
-# XXX initialize to ground state Mn
-fp_guess = torch.zeros_like(fp_vec, requires_grad=True).to(device)
-fdp_guess = torch.zeros_like(fdp_vec, requires_grad=True).to(device)
+# Initialize to ground state Mn
+breakpoint()
+fp_vec_ground_state, fdp_vec_ground_state = get_fp_fdp(wavelengths, num_wavelengths, ["Mn_ground_state","Mn_ground_state","Mn_ground_state","Mn_ground_state"]) # ground state
+
+fp_guess = torch.tensor(fp_vec_ground_state, requires_grad=True).to(device) # shape is (num_Mn_atoms, num_wavelengths)
+fdp_guess = torch.tensor(fdp_vec_ground_state, requires_grad=True).to(device) # shape is (num_Mn_atoms, num_wavelengths)
 
 optimizer = torch.optim.Adam([fp_guess, fdp_guess], lr=0.1)
 
