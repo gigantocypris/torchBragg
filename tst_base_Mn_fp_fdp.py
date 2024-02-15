@@ -33,15 +33,18 @@ This process was performed by Daniel Tchoń in March 2023.
 
 Resulting files featured f'' curves which were both complete and accurate
 around the edge, but now lacked f' component in the "Yachandra range".
+
+In order to reconstruct the f' component, the Kramers-Kronig dispersion
+is used in this script. We note that changing part of the f'' curve changes the entire
+f' curve (the change is predominately in the same region change by the f'' curve).
 '''
 
 sf_MnO2 = kramers_kronig_helper.parse_data(data_path + "/MnO2.dat") 
 sf_Mn2O3 = kramers_kronig_helper.parse_data(data_path + "/Mn2O3.dat")
+sf_Mn = kramers_kronig_helper.parse_data(data_path + "/Mn.dat")
 
-reference = MODULES + "/ls49_big_data/data_sherrell/Mn.dat" 
-sf_reference = kramers_kronig_helper.parse_data(reference)
 
-''' 
+
 plt.figure()
 plt.title("MnO2, fp")
 plt.plot(sf_MnO2[:,0],sf_MnO2[:,1])
@@ -50,6 +53,7 @@ plt.savefig("MnO2_fp.png")
 plt.figure()
 plt.title("MnO2, fdp")
 plt.plot(sf_MnO2[:,0],sf_MnO2[:,2])
+# plt.xlim(6550-100, 6550+100)
 plt.savefig("MnO2_fdp.png")
 
 
@@ -61,26 +65,29 @@ plt.savefig("Mn2O3_fp.png")
 plt.figure()
 plt.title("Mn2O3, fdp")
 plt.plot(sf_Mn2O3[:,0],sf_Mn2O3[:,2])
+# plt.xlim(6550-100, 6550+100)
 plt.savefig("Mn2O3_fdp.png")
-'''
+
+plt.figure()
+plt.title("Mn, fp")
+plt.plot(sf_Mn[:,0],sf_Mn[:,1])
+plt.savefig("Mn_fp.png")
+
+plt.figure()
+plt.title("Mn, fdp")
+plt.plot(sf_Mn[:,0],sf_Mn[:,2])
+plt.savefig("Mn_fdp.png")
+
 
 energy_0 = sf_MnO2[:,0]
 f_p = sf_MnO2[:,1]
 f_dp = sf_MnO2[:,2]
-denergy = energy_0[1:]-energy_0[:-1]
-if np.any(np.abs(denergy-denergy[0])>1e-3): # Energy spacing is not constant.
-    energy_interp_0, f_dp = kramers_kronig_helper.interpolate(torch.tensor(energy_0), torch.tensor(f_dp), mode="torch")
 
-energy_padded,f_p_pred,f_p_pred_padded,f_in = \
-kramers_kronig.get_f_p(energy_interp_0,
-            f_dp,
-            padn=10000,
-            trim=1000,
-            window_type='hamming',
-            known_response_energy=sf_reference[:,0],
-            known_response_f_p=sf_reference[:,1],
-            known_response_f_dp=sf_reference[:,2],
-            )
+breakpoint()
+
+
+
+
 
 # find break in f_p
 break_f_p = np.isnan(f_p)
