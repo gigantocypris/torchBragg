@@ -63,7 +63,7 @@ def get_wavelengths(params):
     wavelengths = wavelengths.as_numpy_array()
     return wavelengths, num_wavelengths
 
-def get_fp_fdp(wavelengths, num_wavelengths, MN_labels):
+def get_fp_fdp(wavelengths, num_wavelengths, MN_labels, use_updated_curves=True):
 
     # need to extrapolate the input data to the wavelength of interest
         
@@ -76,10 +76,14 @@ def get_fp_fdp(wavelengths, num_wavelengths, MN_labels):
     fp_0_vec = []
     fdp_0_vec = []
 
-    Mn_oxidized_model = george_sherrell(full_path("data_sherrell/MnO2_spliced.dat"))
-    Mn_reduced_model = george_sherrell(full_path("data_sherrell/Mn2O3_spliced.dat"))
     Mn_ground_state = george_sherrell(full_path("data_sherrell/Mn.dat"))
     Mn_0 = george_sherrell("Mn_fp_0_fdp_0.dat")
+    if use_updated_curves:
+        Mn_oxidized_model = george_sherrell("MnO2_spliced.dat")
+        Mn_reduced_model = george_sherrell("Mn2O3_spliced.dat")
+    else:
+        Mn_oxidized_model = george_sherrell(full_path("data_sherrell/MnO2_spliced.dat"))
+        Mn_reduced_model = george_sherrell(full_path("data_sherrell/Mn2O3_spliced.dat"))
 
     for ind in range(num_wavelengths):
         fp_oxidized, fdp_oxidized = Mn_oxidized_model.fp_fdp_at_wavelength(wavelengths[ind])

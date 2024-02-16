@@ -143,6 +143,7 @@ def add_torchBragg_spots(spixels, fpixels, phisteps, mosaic_domains, oversample,
 
     # convert amplitudes into intensity (photons per steradian)
     # raw_subpixels is subpixels_x, subpixels_y, detector_thicksteps, sources, mosaic_domains
+    breakpoint()
     raw_subpixels = F_cell*F_cell*F_latt*F_latt*source_I[None,None,None,:,None]*capture_fraction[:,:,:,None,None]*omega_pixel[:,:,:,None,None]*polar[:,:,:,:,None]
 
 

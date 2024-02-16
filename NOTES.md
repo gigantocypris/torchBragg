@@ -413,3 +413,6 @@ cd $WORK/output_torchBragg
 
 > libtbx.python $MODULES/torchBragg/create_fp_fdp_dat_file.py
 > . $MODULES/torchBragg/tst_anomalous_optimizer_script.sh
+
+# Get better fp curves with:
+> libtbx.python $MODULES/torchBragg/tst_convert_fdp.py

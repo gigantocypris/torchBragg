@@ -6,6 +6,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
+"""
+THIS FILE IS CANDIDATE FOR DELETION
+"""
+
 MODULES = os.getenv('MODULES')
 data_path = MODULES + "/psii_spread/merging/application/annulus"
 

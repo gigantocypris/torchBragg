@@ -75,12 +75,14 @@ experimental_data = tst_one_pytorch(params, basic_params, Fhkl_mat_vec, add_spot
 
 # Initialize fp_guess and fdp_guess for each of the 4 Mn atoms
 # Initialize to ground state Mn
-breakpoint()
+
 fp_vec_ground_state, fdp_vec_ground_state = get_fp_fdp(wavelengths, num_wavelengths, ["Mn_ground_state","Mn_ground_state","Mn_ground_state","Mn_ground_state"]) # ground state
 
-fp_guess = torch.tensor(fp_vec_ground_state, requires_grad=True).to(device) # shape is (num_Mn_atoms, num_wavelengths)
-fdp_guess = torch.tensor(fdp_vec_ground_state, requires_grad=True).to(device) # shape is (num_Mn_atoms, num_wavelengths)
+fp_guess = fp_vec_ground_state.clone().detach().to(device).requires_grad_(True) # shape is (num_Mn_atoms, num_wavelengths)
+fdp_guess = fdp_vec_ground_state.clone().detach().to(device).requires_grad_(True) # shape is (num_Mn_atoms, num_wavelengths)
 
+Fhkl_mat_0 = Fhkl_mat_0.to(device)
+Fhkl_mat_vec_all_Mn_diff = Fhkl_mat_vec_all_Mn_diff.to(device)
 optimizer = torch.optim.Adam([fp_guess, fdp_guess], lr=0.1)
 
 # Define the loss function as the distance between the "experimental" data and the forward simulation result
@@ -94,7 +96,7 @@ for i in range(num_iter):
     Fhkl_mat_vec_guess_amplitude = torch.abs(Fhkl_mat_vec_guess)
     
     simulated_data = tst_one_pytorch(params, basic_params, Fhkl_mat_vec_guess_amplitude, add_spots, nanoBragg_params, noise_params, fluence_background, use_background, hkl_ranges, 
-                                     direct_algo_res_limit=direct_algo_res_limit, num_pixels=num_pixels) # XXX modify to output a distribution
+                                     num_pixels=num_pixels) # XXX modify to output a distribution
     # Calculate loss
     loss = torch.sum((simulated_data - experimental_data)**2)
     # Print loss
