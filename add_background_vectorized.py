@@ -20,7 +20,7 @@ def add_background(oversample,
                    close_distance, point_pixel, detector_thick, detector_attnlen,
                    source_I, source_X, source_Y, source_Z, source_lambda,
                    stol_of, stols, Fbg_of, nopolar, polarization, polar_vector,
-                   verbose, use_numpy,
+                   verbose, use_numpy, device,
                    ):
     
     prefix, new_array = which_package(use_numpy)
@@ -38,7 +38,7 @@ def add_background(oversample,
     diffracted_mat, capture_fraction, omega_pixel, scattering_mat, incident_mat, stol = \
     simulation_setup(prefix, spixels, fpixels, oversample, subpixel_size, detector_thicksteps, detector_thickstep,
                      fdet_vector, sdet_vector, odet_vector, pix0_vector, curved_detector, pixel_size, close_distance,
-                     point_pixel, detector_thick, detector_attnlen, source_X, source_Y, source_Z, source_lambda)
+                     point_pixel, detector_thick, detector_attnlen, source_X, source_Y, source_Z, source_lambda, device)
 
     # now we need to find the nearest four "stol file" points
     dist = stol_of[2:-3][:,None,None,None,None]-stol[None,:,:,:,:] # add a 0th dimension to stol

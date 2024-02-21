@@ -416,3 +416,9 @@ cd $WORK/output_torchBragg
 
 # Get better fp curves with:
 > libtbx.python $MODULES/torchBragg/tst_convert_fdp.py
+
+# Getting optimizer to work with GPU:
+> source ~/env_torch-update
+> cd $WORK/output_torchBragg
+> salloc --nodes 1 --qos interactive --time 01:00:00 --constraint gpu --gpus 1 --account=m3562
+> . $MODULES/torchBragg/tst_anomalous_optimizer_script.sh

@@ -10,29 +10,13 @@ def add_torchBragg_spots(spixels, fpixels, phisteps, mosaic_domains, oversample,
                          roi_xmin, roi_xmax, roi_ymin, roi_ymax, maskimage, detector_thicksteps,
                          spot_scale, fluence, detector_thickstep, Odet,
                          fdet_vector, sdet_vector, odet_vector, pix0_vector,
-                        curved_detector, distance, beam_vector, close_distance,
-                        point_pixel,
-                        detector_thick, detector_attnlen,
-                        sources,
-                        source_X, source_Y, source_Z, source_lambda,
-                        dmin, phi0, phistep,
-                        a0, b0, c0, ap, bp, cp, spindle_vector,
-                        mosaic_spread,
-                        mosaic_umats,
-                        xtal_shape,
-                        Na, Nb, Nc,
-                        fudge,
-                        integral_form,
-                        V_cell,
-                        Xbeam, Ybeam,
-                        interpolate,
-                        h_max, h_min, k_max, k_min, l_max, l_min,
-                        Fhkl, default_F,
-                        nopolar,source_I,
-                        polarization,
-                        polar_vector,
-                        verbose=9,
-                        use_numpy=True):
+                         curved_detector, distance, beam_vector, close_distance,
+                         point_pixel, detector_thick, detector_attnlen, sources,
+                         source_X, source_Y, source_Z, source_lambda, dmin, phi0, phistep,
+                         a0, b0, c0, ap, bp, cp, spindle_vector, mosaic_spread, mosaic_umats,
+                         xtal_shape, Na, Nb, Nc, fudge, integral_form, V_cell, Xbeam, Ybeam,
+                         interpolate, h_max, h_min, k_max, k_min, l_max, l_min, Fhkl, default_F,
+                         nopolar,source_I, polarization, polar_vector, device, verbose=9, use_numpy=True):
     
     prefix, new_array = which_package(use_numpy)
 
@@ -41,10 +25,10 @@ def add_torchBragg_spots(spixels, fpixels, phisteps, mosaic_domains, oversample,
     diffracted_mat, capture_fraction, omega_pixel, scattering_mat, incident_mat, stol = \
     simulation_setup(prefix, spixels, fpixels, oversample, subpixel_size, detector_thicksteps, detector_thickstep,
                      fdet_vector, sdet_vector, odet_vector, pix0_vector, curved_detector, pixel_size, close_distance,
-                     point_pixel, detector_thick, detector_attnlen, source_X, source_Y, source_Z, source_lambda)
+                     point_pixel, detector_thick, detector_attnlen, source_X, source_Y, source_Z, source_lambda, device)
 
 
-    mos_tic_vec = prefix.arange(mosaic_domains)
+    mos_tic_vec = prefix.arange(mosaic_domains, device=device)
 
     # usually apply mosaic rotation after phi rotation, assume no phi rotation here because SFX
 
@@ -143,7 +127,6 @@ def add_torchBragg_spots(spixels, fpixels, phisteps, mosaic_domains, oversample,
 
     # convert amplitudes into intensity (photons per steradian)
     # raw_subpixels is subpixels_x, subpixels_y, detector_thicksteps, sources, mosaic_domains
-    breakpoint()
     raw_subpixels = F_cell*F_cell*F_latt*F_latt*source_I[None,None,None,:,None]*capture_fraction[:,:,:,None,None]*omega_pixel[:,:,:,None,None]*polar[:,:,:,:,None]
 
 
@@ -165,16 +148,16 @@ def add_torchBragg_spots(spixels, fpixels, phisteps, mosaic_domains, oversample,
 
 def simulation_setup(prefix, spixels, fpixels, oversample, subpixel_size, detector_thicksteps, detector_thickstep,
                      fdet_vector, sdet_vector, odet_vector, pix0_vector, curved_detector, pixel_size, close_distance,
-                     point_pixel, detector_thick, detector_attnlen, source_X, source_Y, source_Z, source_lambda):
+                     point_pixel, detector_thick, detector_attnlen, source_X, source_Y, source_Z, source_lambda, device):
    # Get Fdet and Sdet (detector coordinates) for every subpixel
-    s_vec = prefix.arange(spixels*oversample)
-    f_vec = prefix.arange(fpixels*oversample)
+    s_vec = prefix.arange(spixels*oversample, device=device)
+    f_vec = prefix.arange(fpixels*oversample, device=device)
     s_mat, f_mat = prefix.meshgrid(s_vec, f_vec, indexing='ij')
 
     Fdet_mat = subpixel_size*f_mat + subpixel_size/2.0 # function of index 0 and 1
     Sdet_mat = subpixel_size*s_mat + subpixel_size/2.0 # function of index 0 and 1
     # assume "distance" is to the front of the detector sensor layer
-    Odet_vec = prefix.arange(detector_thicksteps)*detector_thickstep # function of index 2
+    Odet_vec = prefix.arange(detector_thicksteps, device=device)*detector_thickstep # function of index 2
 
     
     # construct detector subpixel position in 3D space
@@ -199,7 +182,7 @@ def simulation_setup(prefix, spixels, fpixels, oversample, subpixel_size, detect
 
     # now calculate detector thickness effects
     if(detector_thick > 0.0 and detector_attnlen > 0.0):
-        thick_tic_vec = prefix.arange(detector_thicksteps)[None,None,:]
+        thick_tic_vec = prefix.arange(detector_thicksteps, device=device)[None,None,:]
         # inverse of effective thickness increase
         parallax_mat = prefix.sum(diffracted_mat*odet_vector[None,None,None,:], axis=-1)
 

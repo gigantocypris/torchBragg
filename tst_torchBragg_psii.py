@@ -221,7 +221,8 @@ def tst_one_CPU(params, basic_params, sfall_channels, add_spots, use_background,
                 
     return SIM.raw_pixels, nanoBragg_params, noise_params, fluence_background
 
-def tst_one_pytorch(params, basic_params, Fhkl_mat_vec, add_spots, nanoBragg_params, noise_params, fluence_background, use_background, hkl_ranges, num_pixels=3840):
+def tst_one_pytorch(params, basic_params, Fhkl_mat_vec, add_spots, nanoBragg_params, noise_params, 
+                    fluence_background, use_background, hkl_ranges, num_pixels=3840):
     h_max, h_min, k_max, k_min, l_max, l_min = hkl_ranges
     
     detpixels_slowfast=(num_pixels,num_pixels)

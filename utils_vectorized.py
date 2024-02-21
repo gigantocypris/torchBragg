@@ -79,12 +79,19 @@ def polarization_factor_vectorized(kahn_factor, incident_mat, diffracted_mat, ax
         # here we assume it is closest to the "axis" defined above
 
         # cross product to get "vertical" axis that is orthogonal to the cannonical "polarization"
-        B_in = prefix.cross(axis,incident_mat)
+        if prefix == torch:
+            B_in = prefix.linalg.cross(axis,incident_mat)
+        else:
+            B_in = prefix.cross(axis,incident_mat)
+
         # make it a unit vector
         _, B_in = unitize_vectorized(B_in, prefix)
 
         # cross product with incident beam to get E-vector direction
-        E_in = prefix.cross(incident_mat,B_in)
+        if prefix == torch:
+            E_in = prefix.linalg.cross(incident_mat,B_in)
+        else:
+            E_in = prefix.cross(incident_mat,B_in)
 
         # make it a unit vector
         E_in_mag, E_in = unitize_vectorized(E_in, prefix)
