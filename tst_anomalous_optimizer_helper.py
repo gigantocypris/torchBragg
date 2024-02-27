@@ -208,7 +208,7 @@ def forward_sim(params, all_params, Fhkl_mat_vec, add_spots,
     for x in range(len(flux)):
         print("Wavelength",x)
         # from channel_pixels function
-        source_lambda = wavlen[x]*1e-10 # XXX change me
+        source_lambda = wavlen[x]*1e-10
         fluence = fluence_vec[x]
         Fhkl_input = Fhkl_mat_vec[x]
 

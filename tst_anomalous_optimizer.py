@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import torch
 from exafel_project.kpp_utils.phil import parse_input
 from tst_sf_linearity import get_wavelengths, get_fp_fdp, get_base_structure_factors, construct_structure_factors, get_Fhkl_mat
@@ -42,8 +43,9 @@ experimental_data = forward_sim(params, all_params, Fhkl_mat_vec, add_spots,
 
 # Initialize fp_guess and fdp_guess for each of the 4 Mn atoms
 # Initialize to ground state Mn
-fp_vec_ground_state, fdp_vec_ground_state = get_fp_fdp(wavelengths, num_wavelengths, ["Mn_ground_state","Mn_ground_state","Mn_ground_state","Mn_ground_state"]) # ground state
-
+fp_vec_ground_state, fdp_vec_ground_state = get_fp_fdp(wavelengths, num_wavelengths,
+                                                       ["Mn_ground_state","Mn_ground_state","Mn_ground_state","Mn_ground_state"])
+                                                    #    ["Mn_oxidized_model","Mn_oxidized_model","Mn_reduced_model","Mn_reduced_model"])
 fp_guess = fp_vec_ground_state.clone().detach().to(device).requires_grad_(True) # shape is (num_Mn_atoms, num_wavelengths)
 fdp_guess = fdp_vec_ground_state.clone().detach().to(device).requires_grad_(True) # shape is (num_Mn_atoms, num_wavelengths)
 
@@ -54,6 +56,7 @@ optimizer = torch.optim.Adam([fp_guess, fdp_guess], lr=0.1)
 # Define the loss function as the distance between the "experimental" data and the forward simulation result
 # Either MSE or negative log-likelihood
 num_iter = 100
+loss_vec = []
 for i in range(num_iter):
     # Zero out gradients
     optimizer.zero_grad()
@@ -62,11 +65,12 @@ for i in range(num_iter):
     Fhkl_mat_vec_guess_amplitude = torch.abs(Fhkl_mat_vec_guess).to(device)
     simulated_data = forward_sim(params, all_params, Fhkl_mat_vec_guess_amplitude, add_spots, 
                                  use_background, hkl_ranges, device, num_pixels) # XXX modify to output a distribution
-    
+    breakpoint()
     # Calculate loss
     loss = torch.sum((simulated_data - experimental_data)**2)
     # Print loss
     print(loss)
+    loss_vec.append(loss.detach().cpu().numpy())
     # Backpropagate loss
     loss.backward()
     # Update fp_guess and fdp_guess
@@ -82,6 +86,24 @@ print(torch.squeeze(fdp_vec))
 print("fdp_guess:")
 print(torch.squeeze(fdp_guess))
 
-# XXX make plots of predicted vs. actual curves
+plt.figure()
+plt.plot(loss_vec)
+plt.title('Loss')
+plt.savefig('loss.png')
+
+for mn in range(len(MN_labels)):
+    plt.figure()
+    plt.plot(torch.squeeze(fp_vec[mn]).cpu().detach().numpy(), '.', label='ground truth')
+    plt.plot(torch.squeeze(fp_guess[mn]).cpu().detach().numpy(), '.', label='predicted')
+    plt.legend()
+    plt.title('fp ' + str(mn))
+    plt.savefig('fp_optimized' + str(mn) + '.png')
+
+    plt.figure()
+    plt.plot(torch.squeeze(fdp_vec[mn]).cpu().detach().numpy(), '.', label='ground truth')
+    plt.plot(torch.squeeze(fdp_guess[mn]).cpu().detach().numpy(), '.', label='predicted')
+    plt.legend()
+    plt.title('fdp')
+    plt.savefig('fdp_optimized' + str(mn) + '.png')
 
 breakpoint()
