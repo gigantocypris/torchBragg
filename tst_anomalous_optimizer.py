@@ -51,11 +51,12 @@ fdp_guess = fdp_vec_ground_state.clone().detach().to(device).requires_grad_(True
 
 Fhkl_mat_0 = Fhkl_mat_0.to(device)
 Fhkl_mat_vec_all_Mn_diff = Fhkl_mat_vec_all_Mn_diff.to(device)
-optimizer = torch.optim.Adam([fp_guess, fdp_guess], lr=0.1)
+optimizer = torch.optim.Adam([fp_guess, fdp_guess], lr=0.1) 
+# 
 
 # Define the loss function as the distance between the "experimental" data and the forward simulation result
 # Either MSE or negative log-likelihood
-num_iter = 100
+num_iter = 10
 loss_vec = []
 for i in range(num_iter):
     # Zero out gradients
@@ -65,7 +66,6 @@ for i in range(num_iter):
     Fhkl_mat_vec_guess_amplitude = torch.abs(Fhkl_mat_vec_guess).to(device)
     simulated_data = forward_sim(params, all_params, Fhkl_mat_vec_guess_amplitude, add_spots, 
                                  use_background, hkl_ranges, device, num_pixels) # XXX modify to output a distribution
-    breakpoint()
     # Calculate loss
     loss = torch.sum((simulated_data - experimental_data)**2)
     # Print loss
@@ -105,5 +105,20 @@ for mn in range(len(MN_labels)):
     plt.legend()
     plt.title('fdp')
     plt.savefig('fdp_optimized' + str(mn) + '.png')
+
+# figure with experimental and simulated data side by side as subplots
+plt.figure()
+plt.subplot(1,2,1)
+plt.imshow(experimental_data.cpu().detach().numpy(), cmap='Greys')
+plt.title('Experimental data')
+plt.colorbar()
+vmin = experimental_data.cpu().detach().numpy().min()
+vmax = experimental_data.cpu().detach().numpy().max()
+
+plt.subplot(1,2,2)
+plt.imshow(simulated_data.cpu().detach().numpy(), cmap='Greys', vmin=vmin, vmax=vmax/10)
+plt.title('Simulated data')
+plt.colorbar()
+plt.savefig('experimental_simulated.png')
 
 breakpoint()
