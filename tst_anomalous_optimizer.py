@@ -107,16 +107,18 @@ for mn in range(len(MN_labels)):
     plt.savefig('fdp_optimized' + str(mn) + '.png')
 
 # figure with experimental and simulated data side by side as subplots
+vmin = experimental_data.cpu().detach().numpy().min()
+vmax = 5.0e2 # experimental_data.cpu().detach().numpy().max()
+
 plt.figure()
 plt.subplot(1,2,1)
-plt.imshow(experimental_data.cpu().detach().numpy(), cmap='Greys')
+plt.imshow(experimental_data.cpu().detach().numpy(), cmap='Greys', vmin=vmin, vmax=vmax)
 plt.title('Experimental data')
 plt.colorbar()
-vmin = experimental_data.cpu().detach().numpy().min()
-vmax = experimental_data.cpu().detach().numpy().max()
+
 
 plt.subplot(1,2,2)
-plt.imshow(simulated_data.cpu().detach().numpy(), cmap='Greys', vmin=vmin, vmax=vmax/10)
+plt.imshow(simulated_data.cpu().detach().numpy(), cmap='Greys', vmin=vmin, vmax=vmax)
 plt.title('Simulated data')
 plt.colorbar()
 plt.savefig('experimental_simulated.png')

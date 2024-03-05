@@ -21,6 +21,7 @@ from add_noise import add_noise
 from tst_sf_linearity import get_Fhkl_mat
 torch.set_default_dtype(torch.float64)
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def set_basic_params(params, sfall_channels):
     spectra = spectra_simulation()
@@ -223,6 +224,9 @@ def tst_one_CPU(params, basic_params, sfall_channels, add_spots, use_background,
 
 def tst_one_pytorch(params, basic_params, Fhkl_mat_vec, add_spots, nanoBragg_params, noise_params, 
                     fluence_background, use_background, hkl_ranges, num_pixels=3840):
+    
+    Fhkl_mat_vec = Fhkl_mat_vec.to(device)
+
     h_max, h_min, k_max, k_min, l_max, l_min = hkl_ranges
     
     detpixels_slowfast=(num_pixels,num_pixels)
@@ -239,7 +243,6 @@ def tst_one_pytorch(params, basic_params, Fhkl_mat_vec, add_spots, nanoBragg_par
     phisteps, pix0_vector_mm, fdet_vector, sdet_vector, odet_vector, beam_vector, polar_vector, \
     close_distance_mm, fluence_vec, beam_center_mm, spot_scale, curved_detector, point_pixel, \
     integral_form, nopolar = nanoBragg_params
-
     spixels = num_pixels
     fpixels = num_pixels
 
@@ -253,33 +256,33 @@ def tst_one_pytorch(params, basic_params, Fhkl_mat_vec, add_spots, nanoBragg_par
     detector_thickstep = detector_thickstep_mm/1000
     Odet = 3.200000e-05
 
-    spindle_vector = torch.tensor([0,0,1]) # not used
-    pix0_vector = torch.tensor(pix0_vector_mm)/1000
-    fdet_vector = torch.tensor(fdet_vector)
-    sdet_vector = torch.tensor(sdet_vector)
-    odet_vector = torch.tensor(odet_vector)
-    beam_vector = torch.tensor(beam_vector)
-    polar_vector = torch.tensor(polar_vector)
+    spindle_vector = torch.tensor([0,0,1], device=device) # not used
+    pix0_vector = torch.tensor(pix0_vector_mm, device=device)/1000
+    fdet_vector = torch.tensor(fdet_vector, device=device)
+    sdet_vector = torch.tensor(sdet_vector, device=device)
+    odet_vector = torch.tensor(odet_vector, device=device)
+    beam_vector = torch.tensor(beam_vector, device=device)
+    polar_vector = torch.tensor(polar_vector, device=device)
 
     distance = distance_mm/1000
     close_distance = close_distance_mm/1000
     detector_thick = detector_thick_mm/1000
     detector_attnlen = detector_attenuation_length_mm/1000
     sources = 1
-    source_X = torch.tensor([-10.000000])
-    source_Y = torch.tensor([0.000000])
-    source_Z  = torch.tensor([0.000000])
-    source_I = torch.tensor([1.000000])
+    source_X = torch.tensor([-10.000000], device=device)
+    source_Y = torch.tensor([0.000000], device=device)
+    source_Z  = torch.tensor([0.000000], device=device)
+    source_I = torch.tensor([1.000000], device=device)
     dmin = 0.000000
     phi0 = 0.000000
     phistep = 0.000000
     phisteps = 1
 
-    mosaic_umats = torch.tensor(UMAT_nm)
+    mosaic_umats = torch.tensor(UMAT_nm, device=device)
 
-    ap = torch.tensor(Amatrix_rot[0:3])*1e-10
-    bp = torch.tensor(Amatrix_rot[3:6])*1e-10
-    cp = torch.tensor(Amatrix_rot[6:9])*1e-10
+    ap = torch.tensor(Amatrix_rot[0:3], device=device)*1e-10
+    bp = torch.tensor(Amatrix_rot[3:6], device=device)*1e-10
+    cp = torch.tensor(Amatrix_rot[6:9], device=device)*1e-10
 
     a0 = ap # not used
     b0 = bp # not used
@@ -302,7 +305,7 @@ def tst_one_pytorch(params, basic_params, Fhkl_mat_vec, add_spots, nanoBragg_par
     for x in range(len(flux)):
         print("Wavelength",x)
         # from channel_pixels function
-        source_lambda = torch.tensor([wavlen[x]])*1e-10
+        source_lambda = torch.tensor([wavlen[x]], device=device)*1e-10
         fluence = fluence_vec[x]
         Fhkl_input = Fhkl_mat_vec[x]
 
@@ -341,6 +344,7 @@ def tst_one_pytorch(params, basic_params, Fhkl_mat_vec, add_spots, nanoBragg_par
                                 nopolar,source_I,
                                 polarization,
                                 polar_vector,
+                                device,
                                 verbose=True,
                                 use_numpy=False)
             raw_pixels_vec.append(raw_pixels_x)
@@ -352,7 +356,7 @@ def tst_one_pytorch(params, basic_params, Fhkl_mat_vec, add_spots, nanoBragg_par
     # amplify spot signal to simulate physical crystal of 4000x larger: 100 um (64e9 x the volume)
     raw_pixels *= crystal.domains_per_crystal # must calculate the correct scale!
 
-    source_lambda = torch.tensor([shot_to_shot_wavelength_A])*1e-10 # return to canonical energy for subsequent background
+    source_lambda = torch.tensor([shot_to_shot_wavelength_A], device=device)*1e-10 # return to canonical energy for subsequent background
 
     if use_background:
         # add background of water
@@ -360,8 +364,8 @@ def tst_one_pytorch(params, basic_params, Fhkl_mat_vec, add_spots, nanoBragg_par
         Fbg_of = [water_bg[0][1],water_bg[0][1]] + [a[1] for a in water_bg] + [water_bg[-1][1], water_bg[-1][1]]
 
         stols = len(stol_of)
-        stol_of = torch.tensor(stol_of)
-        Fbg_of = torch.tensor(Fbg_of)
+        stol_of = torch.tensor(stol_of, device=device)
+        Fbg_of = torch.tensor(Fbg_of, device=device)
     
         Fmap_pixel = False
         override_source = -1
@@ -385,7 +389,7 @@ def tst_one_pytorch(params, basic_params, Fhkl_mat_vec, add_spots, nanoBragg_par
                                                             close_distance, point_pixel, detector_thick, detector_attnlen,
                                                             source_I, source_X, source_Y, source_Z, source_lambda,
                                                             stol_of, stols, Fbg_of, nopolar, polarization, polar_vector,
-                                                            verbose=True, use_numpy=False,
+                                                            verbose=True, use_numpy=False, device=device,
                                                             )
 
         # add background of air
@@ -394,8 +398,8 @@ def tst_one_pytorch(params, basic_params, Fhkl_mat_vec, add_spots, nanoBragg_par
         Fbg_of = [air_bg[0][1],air_bg[0][1]] + [a[1] for a in air_bg] + [air_bg[-1][1], air_bg[-1][1]]
 
         stols = len(stol_of)
-        stol_of = torch.tensor(stol_of)
-        Fbg_of = torch.tensor(Fbg_of)
+        stol_of = torch.tensor(stol_of, device=device)
+        Fbg_of = torch.tensor(Fbg_of, device=device)
     
         Fmap_pixel = False
         override_source = -1
@@ -419,7 +423,7 @@ def tst_one_pytorch(params, basic_params, Fhkl_mat_vec, add_spots, nanoBragg_par
                                                             close_distance, point_pixel, detector_thick, detector_attnlen,
                                                             source_I, source_X, source_Y, source_Z, source_lambda,
                                                             stol_of, stols, Fbg_of, nopolar, polarization, polar_vector,
-                                                            verbose=True, use_numpy=False,
+                                                            verbose=True, use_numpy=False, device=device,
                                                             )
 
         raw_pixels = raw_pixels + background_pixels_water + background_pixels_air
@@ -482,12 +486,12 @@ if __name__ == "__main__":
 
     if use_background:
         plt.figure(); plt.imshow(raw_pixels.as_numpy_array(), vmax=5.0e2, cmap='Greys');plt.colorbar();plt.savefig("raw_pixels.png")
-        plt.figure(); plt.imshow(raw_pixels_pytorch.numpy(), vmax=5.0e2, cmap='Greys');plt.colorbar();plt.savefig("raw_pixels_torch.png")
+        plt.figure(); plt.imshow(raw_pixels_pytorch.cpu().numpy(), vmax=5.0e2, cmap='Greys');plt.colorbar();plt.savefig("raw_pixels_torch.png")
     else:
         plt.figure(); plt.imshow(raw_pixels.as_numpy_array(), vmax=10e-5, cmap='Greys');plt.colorbar();plt.savefig("raw_pixels.png")
-        plt.figure(); plt.imshow(raw_pixels_pytorch.numpy(), vmax=10e-5, cmap='Greys');plt.colorbar();plt.savefig("raw_pixels_torch.png")
+        plt.figure(); plt.imshow(raw_pixels_pytorch.cpu().numpy(), vmax=10e-5, cmap='Greys');plt.colorbar();plt.savefig("raw_pixels_torch.png")
     
     plt.figure(); plt.imshow(raw_pixels.as_numpy_array(), cmap='Greys');plt.colorbar();plt.savefig("raw_pixels_no_cap.png")
-    plt.figure(); plt.imshow(raw_pixels_pytorch.numpy(), cmap='Greys');plt.colorbar();plt.savefig("raw_pixels_torch_no_cap.png")
+    plt.figure(); plt.imshow(raw_pixels_pytorch.cpu().numpy(), cmap='Greys');plt.colorbar();plt.savefig("raw_pixels_torch_no_cap.png")
 
     

@@ -422,3 +422,16 @@ cd $WORK/output_torchBragg
 > cd $SCRATCH/output_torchBragg
 > salloc --nodes 1 --qos interactive --time 01:00:00 --constraint gpu --gpus 1 --account=m3562
 > . $MODULES/torchBragg/tst_anomalous_optimizer_script.sh
+
+
+# New build
+> source ~/env_feb_2024
+> cd $WORK/output_torchBragg
+> libtbx.python $MODULES/torchBragg/create_fp_fdp_dat_file.py # only run on the first time
+> libtbx.python $MODULES/torchBragg/tst_convert_fdp.py # only run on the first time, run for "Mn2O3_spliced"
+> libtbx.python $MODULES/torchBragg/tst_convert_fdp.py # only run on the first time, run for "MnO2_spliced"
+> salloc --nodes 1 --qos interactive --time 01:00:00 --constraint gpu --gpus 1 --account=m3562
+> . $MODULES/torchBragg/tst_anomalous_optimizer_script.sh
+
+
+> . $MODULES/torchBragg/tst_torchBragg_psii_script.sh

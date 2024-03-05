@@ -199,7 +199,6 @@ def simulation_setup(prefix, spixels, fpixels, oversample, subpixel_size, detect
 
     # construct the scattering vector for each pixel
     # Add sources dimension to diffracted_mat --> diffracted_mat[:,:,:,None,:]
-
     scattering_mat = (diffracted_mat[:,:,:,None,:] - incident_mat[None,None,None,:,:])/source_lambda[None,None,None,:,None]
     # scattering_mat is subpixels_x, subpixels_y, detector_thicksteps, sources, 3
 
