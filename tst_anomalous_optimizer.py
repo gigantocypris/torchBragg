@@ -7,12 +7,19 @@ from tst_anomalous_optimizer_helper import set_all_params, forward_sim
 torch.autograd.set_detect_anomaly(True)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+device = "cpu"
 # Define ground truth fp and fdp for each of the 4 Mn atoms and calculate base structure factors
 params,options = parse_input()
 
-hkl_ranges=(11, -11, 22, -22, 30, -30)
-direct_algo_res_limit=10.0
+# hkl_ranges=(11, -11, 22, -22, 30, -30)
+# direct_algo_res_limit=10.0
+# num_pixels = 512
+
+hkl_ranges=(1, -55, 6, -92, 134, -77)
+direct_algo_res_limit=1.85
+num_pixels = 3840
+
+
 MN_labels=["Mn_oxidized_model","Mn_oxidized_model","Mn_reduced_model","Mn_reduced_model"]
 
 wavelengths, num_wavelengths = get_wavelengths(params)
@@ -31,7 +38,7 @@ except FileNotFoundError:
 sfall_channels = amplitudes_spread_psii(params, direct_algo_res_limit=direct_algo_res_limit)
 add_spots = True
 use_background = True
-num_pixels = 128 # 3840
+
 
 # Forward simulation with the fp and fdp of the 4 Mn atoms set to the ground truth values ("experimental" data)
 Fhkl_mat_vec = construct_structure_factors(fp_vec, fdp_vec, Fhkl_mat_0, Fhkl_mat_vec_all_Mn_diff) # shape is (num_wavelengths, 2*h_max+1, 2*k_max+1, 2*l_max+1)
@@ -41,6 +48,15 @@ all_params = set_all_params(params, sfall_channels, device)
 experimental_data = forward_sim(params, all_params, Fhkl_mat_vec, add_spots, 
                 use_background, hkl_ranges, device, num_pixels)
 
+plt.figure(); plt.imshow(experimental_data.cpu().detach().numpy(), cmap='Greys',vmax=500); plt.colorbar(); plt.savefig('experimental_data.png')
+
+plt.figure()
+plt.imshow(experimental_data.cpu().detach().numpy(), cmap='Greys', vmax=5.0e2)
+plt.title('Experimental data')
+plt.colorbar()
+plt.savefig('experimental_data.png')
+
+breakpoint()
 # Initialize fp_guess and fdp_guess for each of the 4 Mn atoms
 # Initialize to ground state Mn
 fp_vec_ground_state, fdp_vec_ground_state = get_fp_fdp(wavelengths, num_wavelengths,
@@ -52,7 +68,7 @@ fdp_guess = fdp_vec_ground_state.clone().detach().to(device).requires_grad_(True
 Fhkl_mat_0 = Fhkl_mat_0.to(device)
 Fhkl_mat_vec_all_Mn_diff = Fhkl_mat_vec_all_Mn_diff.to(device)
 optimizer = torch.optim.Adam([fp_guess, fdp_guess], lr=0.1) 
-# 
+
 
 # Define the loss function as the distance between the "experimental" data and the forward simulation result
 # Either MSE or negative log-likelihood

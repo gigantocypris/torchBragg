@@ -105,6 +105,7 @@ def add_torchBragg_spots(spixels, fpixels, phisteps, mosaic_domains, oversample,
 
         try:
             # just take nearest-neighbor
+            breakpoint()
             F_cell = Fhkl[stacked_hkl[0], stacked_hkl[1], stacked_hkl[2]]
         except IndexError:
             print("max h:", h0.max(), "max k:", k0.max(), "max l:", l0.max())
