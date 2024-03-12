@@ -160,7 +160,6 @@ def tst_one_CPU(params, basic_params, sfall_channels, add_spots, use_background,
                         SIM.beam_vector, SIM.polar_vector, SIM.close_distance_mm, fluence_vec, 
                         SIM.beam_center_mm, SIM.spot_scale, SIM.curved_detector, SIM.point_pixel,
                         SIM.integral_form, SIM.nopolar)
-    
     # simulated crystal is only 125 unit cells (25 nm wide)
     # amplify spot signal to simulate physical crystal of 4000x larger: 100 um (64e9 x the volume)
     SIM.raw_pixels *= crystal.domains_per_crystal # must calculate the correct scale!

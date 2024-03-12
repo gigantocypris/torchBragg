@@ -7,17 +7,17 @@ from tst_anomalous_optimizer_helper import set_all_params, forward_sim
 torch.autograd.set_detect_anomaly(True)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = "cpu"
+# device = "cpu"
 # Define ground truth fp and fdp for each of the 4 Mn atoms and calculate base structure factors
 params,options = parse_input()
 
-# hkl_ranges=(11, -11, 22, -22, 30, -30)
-# direct_algo_res_limit=10.0
-# num_pixels = 512
+hkl_ranges=(11, -11, 22, -22, 30, -30)
+direct_algo_res_limit=10.0
+num_pixels = 128
 
-hkl_ranges=(1, -55, 6, -92, 134, -77)
-direct_algo_res_limit=1.85
-num_pixels = 3840
+# hkl_ranges=(1, -55, 6, -92, 134, -77)
+# direct_algo_res_limit=1.85
+# num_pixels = 3840
 
 
 MN_labels=["Mn_oxidized_model","Mn_oxidized_model","Mn_reduced_model","Mn_reduced_model"]

@@ -51,8 +51,8 @@ detector {
 output {
   format=h5
 }
-" > trial.phil
+" > optimizer_params.phil
 
 echo "jobstart $(date)";pwd
-libtbx.python $MODULES/torchBragg/tst_anomalous_optimizer.py trial.phil
+libtbx.python $MODULES/torchBragg/tst_anomalous_optimizer.py optimizer_params.phil
 echo "jobend $(date)";pwd

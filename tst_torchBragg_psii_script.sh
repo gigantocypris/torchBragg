@@ -40,7 +40,7 @@ beam {
   #mean_energy=9500.
 }
 spectrum {
-  nchannels=2
+  nchannels=20
   channel_width=1.0
 }
 detector {
@@ -51,12 +51,8 @@ detector {
 output {
   format=h5
 }
-" > trial.phil
+" > psii_params.phil
 
 echo "jobstart $(date)";pwd
-libtbx.python $MODULES/torchBragg/tst_torchBragg_psii.py trial.phil
+libtbx.python $MODULES/torchBragg/tst_torchBragg_psii.py psii_params.phil
 echo "jobend $(date)";pwd
-
-# echo "jobstart $(date)";pwd
-# libtbx.python $MODULES/exafel_project/kpp_utils/LY99_batch.py trial.phil
-# echo "jobend $(date)";pwd

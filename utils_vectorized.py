@@ -3,13 +3,15 @@ import numpy as np
 import torch
 
 def Fhkl_remove(Fhkl, h_max, h_min, k_max, k_min, l_max, l_min):
+    remove_keys = []
     for key in Fhkl.keys():
         h0 = key[0]
         k0 = key[1]
         l0 = key[2]
-
         if not((h0<=h_max) and (h0>=h_min) and (k0<=k_max) and (k0>=k_min) and (l0<=l_max) and (l0>=l_min)):
-            del Fhkl[key]
+            remove_keys.append(key)
+    for key in remove_keys:
+        del Fhkl[key]
     return(Fhkl)
 
 
