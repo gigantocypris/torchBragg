@@ -97,7 +97,7 @@ def set_all_params(params, sfall_channels, device):
 
 
     phisteps = 1
-    pix0_vector_mm = torch.tensor((141.7, 5.72*10, -5.72*10), device=device) # detector origin, change to get different ROI #XXX
+    pix0_vector_mm = torch.tensor((141.7, 5.72, -5.72), device=device) # detector origin, change to get different ROI #XXX
     # pix0_vector_mm = torch.tensor((141.7, 169.04799999999997, -169.04799999999997), device=device) # detector origin, change to get different ROI # original ROI for 3840 pixels
     # pix0_vector_mm = torch.tensor((141.7, 5.72, -5.72), device=device) # detector origin, change to get different ROI # original ROI for 128 pixels
     pix0_vector = pix0_vector_mm/1000

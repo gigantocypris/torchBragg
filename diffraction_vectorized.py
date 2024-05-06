@@ -109,6 +109,7 @@ def add_torchBragg_spots(spixels, fpixels, phisteps, mosaic_domains, oversample,
         except IndexError:
             print("max h:", h0.max(), "max k:", k0.max(), "max l:", l0.max())
             print("min h:", h0.min(), "min k:", k0.min(), "min l:", l0.min())
+            print("note: in hkl ranges, range should end with max + 1")
             raise IndexError("hkl index not found in Fhkl, change hkl ranges when constructing Fhkl matrix.")
             
     # polarization factor

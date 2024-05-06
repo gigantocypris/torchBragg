@@ -40,8 +40,8 @@ beam {
   #mean_energy=9500.
 }
 spectrum {
-  nchannels=2
-  channel_width=1.0
+  nchannels=5
+  channel_width=10.0
 }
 detector {
   tiles=single

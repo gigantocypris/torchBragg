@@ -11,6 +11,14 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Define ground truth fp and fdp for each of the 4 Mn atoms and calculate base structure factors
 params,options = parse_input()
 
+# hkl_ranges=(2, 0, 41, 29, 39, 22)
+# direct_algo_res_limit=10.0
+# num_pixels = 128
+
+# hkl_ranges=(0, -2, 59, 49, -7, -23)
+# direct_algo_res_limit=10.0
+# num_pixels = 128
+
 hkl_ranges=(11, -11, 22, -22, 30, -30)
 direct_algo_res_limit=10.0
 num_pixels = 128
@@ -56,7 +64,6 @@ plt.title('Experimental data')
 plt.colorbar()
 plt.savefig('experimental_data.png')
 
-breakpoint()
 # Initialize fp_guess and fdp_guess for each of the 4 Mn atoms
 # Initialize to ground state Mn
 fp_vec_ground_state, fdp_vec_ground_state = get_fp_fdp(wavelengths, num_wavelengths,
