@@ -1,3 +1,11 @@
+"""
+Converts f" to f' by creating a piecewise polynomial fit to f" from 0 to infinity, 
+then using direct integration to calculate f' at points of interest (evaluation points).
+
+Note that the boundaries of the piecewise polynomial cannot be at the evalution points for f'
+due to the discussion outlined here: https://doi.org/10.1364/OE.22.023628
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from create_fp_fdp_dat_file import full_path, read_dat_file
@@ -5,7 +13,7 @@ from tst_convert_fdp_helper import convert_fdp_to_fp, create_figures
 np.seterr(all='raise')
 
 # Path to Sherrell data: $MODULES/ls49_big_data/data_sherrell
-prefix = "Mn2O3_spliced" # Fe, Mn, MnO2_spliced, Mn2O3_spliced
+prefix = "Mn" # Fe, Mn, MnO2_spliced, Mn2O3_spliced
 Mn_model=full_path("data_sherrell/" + prefix + ".dat")
 relativistic_correction = 0 # 0.042 for Mn and 0.048 for Fe
 bandedge = 6550 # 6550 eV is the bandedge of Mn and 7112 is the bandedge of Fe

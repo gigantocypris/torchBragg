@@ -1,6 +1,9 @@
 """
 libtbx.python $MODULES/torchBragg/create_fp_fdp_dat_file.py
 
+This script reads in the .dat file for an atom and either zeros out or replaces with ones either the f' and f" values.
+It also creates a .dat file with both f' and f" zeroed out.
+
 Terminal output:
 New .dat file 'Mn_fp_0_fdp_-.dat' created.
 New .dat file 'Mn_fp_1_fdp_-.dat' created.
@@ -46,7 +49,7 @@ def create_new_dat(source_filename, output_filename, change_col, new_value):
     print(f"New .dat file '{output_filename}' created.")
 
 if __name__ =="__main__":
-    Mn_oxidized_model = full_path("data_sherrell/MnO2_spliced.dat")
+    Mn_oxidized_model = full_path("data_sherrell/Mn2O3_spliced.dat") # can use either Mn2O3_spliced, MnO2_spliced with same result
 
     output_filename = "Mn_fp_0_fdp_-.dat"
     change_col = 1

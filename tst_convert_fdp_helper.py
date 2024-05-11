@@ -139,11 +139,21 @@ def create_figures(energy_vec, fp_vec, fdp_vec, cs_fdp, energy_vec_bandwidth,
                    popt_2, energy_vec_full, fdp_vec_full, shift_0, constant_0, fp_calculate_bandwidth,
                    energy_vec_bandwidth_final,
                    prefix="Mn"):
-    plt.figure(figsize=(20,10))
-    plt.plot(energy_vec, fp_vec, label="fp")
-    plt.plot(energy_vec, fdp_vec, label="fdp")
+    # plt.figure(figsize=(20,10))
+    plt.figure()
+    plt.plot(energy_vec, fp_vec, 'r', label="fp")
+    plt.plot(energy_vec, fdp_vec, 'b', label="fdp")
     plt.legend()
     plt.savefig(prefix + "_fp_fdp.png")
+
+    plt.figure()
+    plt.plot(energy_vec, fdp_vec, 'b', label="fdp")
+    # plt.xlim([2000,10000])
+    plt.legend()
+    # vertical_line = np.arange(min(fdp_vec),max(fdp_vec))
+    # plt.plot(energy_vec_bandwidth[0]*np.ones_like(vertical_line), vertical_line, 'black')
+    # plt.plot(energy_vec_bandwidth[-1]*np.ones_like(vertical_line), vertical_line, 'black')
+    plt.savefig(prefix + "_fdp.png")
 
     plt.figure(figsize=(20,10))
     plt.plot(energy_vec, fdp_vec, 'r.', label="fdp")
@@ -152,7 +162,8 @@ def create_figures(energy_vec, fp_vec, fdp_vec, cs_fdp, energy_vec_bandwidth,
     plt.savefig(prefix + "_fdp_cs.png")
 
     plt.figure()
-    plt.plot(energy_vec_bandwidth, fdp_vec_bandwidth, 'b.', label="fdp")
+    plt.xlim([energy_vec_bandwidth[0],energy_vec_bandwidth[-1]])
+    plt.plot(energy_vec, fdp_vec, 'b', label="fdp")
     plt.plot(energy_vec_bandwidth, cs_fdp_bandwidth(energy_vec_bandwidth), 'r', label="cs_fdp")
     plt.legend()
     plt.savefig(prefix + "_fdp_cs_bandwidth.png")
