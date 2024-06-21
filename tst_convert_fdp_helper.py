@@ -220,7 +220,7 @@ def convert_fdp_to_fp(energy_vec, fdp_vec, bandedge, relativistic_correction):
     energy_vec_bandwidth = np.arange(interval_1[0], interval_1[1] + step_size, step_size)
     fdp_vec_bandwidth = cs_fdp(energy_vec_bandwidth)
 
-    cs_fdp_bandwidth = CubicSpline(energy_vec_bandwidth, fdp_vec_bandwidth)
+    cs_fdp_bandwidth = CubicSpline(energy_vec_bandwidth, fdp_vec_bandwidth, bc_type='natural')
     coeff_bandwidth = cs_fdp_bandwidth.c
 
 
