@@ -20,10 +20,21 @@ def func_start_end(x, shift, constant, a, b, c, d, e):
     function describing the fdp curve before and after the bandwidth
     shift is the end/start energy value of the curve and constant is the end/start corresponding fdp value
     shift and constant are determined by the bandwidth curve and are not directly optimizable
+    a, b, c, d, e are the optimizable parameters
     """
     return a*(x-shift)**3 + b*(x-shift)**2 + c*(x-shift) + d*(x)**(-1) - d*(shift)**(-1) + e*(x)**(-2) - e*(shift)**(-2) + constant
 
-def func_bandwidth():
+def convert_coeff(shift, constant, a, b, c, d, e):
+    # convert to the form of f*x**(-2) + g*x**(-1) + h*x**0 + i*x**1 + j*x**2 + k*x**3
+    f = e
+    g = d
+    h = -c*shift + b*shift**2 - a*shift**3 - d*(shift)**(-1) - e*(shift)**(-2) + constant
+    i = c - b*2*shift + a*3*shift**2
+    j = b - a*3*shift
+    k = a
+    return np.array([f,g,h,i,j,k])
+    
+def func_bandwidth(x, sampled_pts):
     """
     Cubic splines with natural boundary conditions (i.e. second derivatives at the very beginning and very end are 0)
     """
