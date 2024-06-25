@@ -1,6 +1,24 @@
 import numpy as np
 import torch
 
+import os
+from LS49 import ls49_big_data
+
+def full_path(filename):
+  return os.path.join(ls49_big_data, filename)
+
+def read_dat_file(source_filename):
+    with open(source_filename, 'r') as source_file:
+        # Read data from the source file
+        lines = source_file.readlines()
+
+    # Extract the first column from the source data
+    col_0 = [line.split()[0] for line in lines]
+    col_1 = [line.split()[1] for line in lines]
+    col_2 = [line.split()[2] for line in lines]
+
+    return col_0, col_1, col_2
+    
 def tridiagonal_solve(b, A_upper, A_diagonal, A_lower):
     """Solves a tridiagonal system Ax = b.
 
@@ -116,6 +134,4 @@ if __name__ == "__main__":
     
     a, b, c, d = natural_cubic_spline_coeffs_without_missing_values(energy_vec, fdp_vec)
     coeff_check = torch.stack([d,c,b,a])
-
-    breakpoint()
 
