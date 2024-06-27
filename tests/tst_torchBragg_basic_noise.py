@@ -20,6 +20,7 @@ assert miller
 from diffraction import add_torchBragg_spots
 from utils_vectorized import Fhkl_remove, Fhkl_dict_to_mat
 from add_noise import add_noise
+from torchBragg.forward_simulation.pdb_helper import fcalc_from_pdb
 
 torch.set_default_dtype(torch.float64)
 
@@ -33,26 +34,6 @@ ATOM      5  O   HOH A   5      46.896  37.790  41.629  1.00 20.00           O
 ATOM      6 SED  MSE A   6       1.000   2.000   3.000  1.00 20.00          SE
 END
 """
-
-def fcalc_from_pdb(resolution,algorithm=None,wavelength=0.9):
-  from iotbx import pdb
-  pdb_inp = pdb.input(source_info=None,lines = pdb_lines)
-  xray_structure = pdb_inp.xray_structure_simple()
-  #
-  # take a detour to insist on calculating anomalous contribution of every atom
-  scatterers = xray_structure.scatterers()
-  for sc in scatterers:
-    from cctbx.eltbx import sasaki, henke
-    #expected_sasaki = sasaki.table(sc.element_symbol()).at_angstrom(wavelength)
-    expected_henke = henke.table(sc.element_symbol()).at_angstrom(wavelength)
-    sc.fp = expected_henke.fp()
-    sc.fdp = expected_henke.fdp()
-  # how do we do bulk solvent?
-  primitive_xray_structure = xray_structure.primitive_setting()
-  P1_primitive_xray_structure = primitive_xray_structure.expand_to_p1()
-  fcalc = P1_primitive_xray_structure.structure_factors(
-    d_min=resolution, anomalous_flag=True, algorithm=algorithm).f_calc()
-  return fcalc.amplitudes()
 
 def tst_nanoBragg_basic(spixels, fpixels, add_background_bool, add_noise_bool):
   SIM = nanoBragg(detpixels_slowfast=(spixels,fpixels),pixel_size_mm=0.1,Ncells_abc=(5,5,5),verbose=9)
@@ -74,7 +55,7 @@ def tst_nanoBragg_basic(spixels, fpixels, add_background_bool, add_noise_bool):
   print("seed=",SIM.seed)
   print("calib_seed=",SIM.calib_seed)
   print("missets_deg =", SIM.missets_deg)
-  sfall = fcalc_from_pdb(resolution=1.6,algorithm="direct",wavelength=SIM.wavelength_A)
+  sfall = fcalc_from_pdb(resolution=1.6,pdb_lines=pdb_lines,algorithm="direct",wavelength=SIM.wavelength_A)
   # use crystal structure to initialize Fhkl array
   SIM.Fhkl=sfall
   # fastest option, least realistic

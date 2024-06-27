@@ -1,3 +1,5 @@
+# high remote simulation of thermolysin
+
 export SCRATCH_FOLDER=$WORK/output_torchBragg
 mkdir -p $SCRATCH_FOLDER; cd $SCRATCH_FOLDER
 

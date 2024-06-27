@@ -1,4 +1,5 @@
-# . $MODULES/torchBragg/tst_torchBragg_psii_script.sh
+# Simulation with CCTBX of psii with spread
+
 
 export CUDA_MANAGED_FORCE_DEVICE_ALLOC=1
 export DEVICES_PER_NODE=1

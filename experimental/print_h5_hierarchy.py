@@ -1,3 +1,13 @@
+"""
+Function to print the hierarchy of h5 file.
+
+Usage:
+libtbx.python $MODULES/torchBragg/experimental/print_h5_hierarchy.py
+
+Known issue:
+image_rank_00000.h5 does not exist.
+"""
+
 import h5py
 
 def print_hdf5_hierarchy(name, obj, indent='', last=True):
@@ -9,11 +19,12 @@ def print_hdf5_hierarchy(name, obj, indent='', last=True):
     elif isinstance(obj, h5py.Dataset):
         print(indent + ('└─ ' if last else '├─ ') + name)
 
-# Open the HDF5 file
-file = h5py.File('image_rank_00000.h5', 'r')
+if __name__ == '__main__':
+    # Open the HDF5 file
+    file = h5py.File('image_rank_00000.h5', 'r')
 
-# Start traversing the file from the root
-print_hdf5_hierarchy('/', file)
+    # Start traversing the file from the root
+    print_hdf5_hierarchy('/', file)
 
-# Close the file when you're done
-file.close()
+    # Close the file when you're done
+    file.close()

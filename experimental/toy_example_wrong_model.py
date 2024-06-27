@@ -1,4 +1,6 @@
 """
+What happens when you are solving an inverse problem but the forward model is incorrect?
+
 cd $WORK/output_torchBragg
 libtbx.python $MODULES/torchBragg/toy_example_ldrd.py
 """

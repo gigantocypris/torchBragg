@@ -1,3 +1,5 @@
+# Optimization of fdp and fp with CCTBX
+
 mkdir -p $SLURM_JOB_ID; cd $SLURM_JOB_ID
 
 export CCTBX_NO_UUID=1
