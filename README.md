@@ -17,9 +17,8 @@ source ~/env_feb_2024
 cd $WORK/output_torchBragg 
 libtbx.python $MODULES/torchBragg/kramers_kronig/create_fp_fdp_dat_file.py # only run on the first time 
 
-# XXX add command line parameter to convert_fdp.py
-libtbx.python $MODULES/torchBragg/kramers_kronig/convert_fdp.py # only run on the first time, run for "Mn2O3_spliced" 
-libtbx.python $MODULES/torchBragg/kramers_kronig/convert_fdp.py # only run on the first time, run for "MnO2_spliced" 
+libtbx.python $MODULES/torchBragg/kramers_kronig/convert_fdp.py --prefix Mn2O3_spliced # only need to run on the first time, run for "Mn2O3_spliced" 
+libtbx.python $MODULES/torchBragg/kramers_kronig/convert_fdp.py --prefix MnO2_spliced # only run on the first time, run for "MnO2_spliced" 
 
 For visualizations, open a second VSCode window on Perlmutter and open folder:
 /global/cfs/cdirs/m3562/users/vidyagan/cctbx_install/evaluate/output_torchBragg
