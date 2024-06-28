@@ -1,3 +1,10 @@
+"""
+Functions to get the ground truth structure factors accounting for the anomalous scattering.
+This is modified from amplitudes_spread.py in CCTBX by including a framework to zero out fp and fdp.
+This aids in the optimization of fp and fdp by allowing easy construction of modified structure factors
+without dependency on the non-differentiable forward physics of CCTBX.
+"""
+
 from __future__ import division, print_function
 import os
 
@@ -83,7 +90,7 @@ def amplitudes_spread_psii(params, direct_algo_res_limit=1.85,
   sfall_channels = {}
 
   for x in range(len(wavelengths)):
-    GF.reset_wavelength(wavelengths[x])  # TODO: which to make 3+ and which 4+?
+    GF.reset_wavelength(wavelengths[x])  # XXX TODO: which to make 3+ and which 4+?
     GF.reset_specific_at_wavelength(label_has="MN1",
                                     tables=local_data.get(MN_labels[0]),
                                     newvalue=wavelengths[x])

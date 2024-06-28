@@ -9,7 +9,7 @@ due to the discussion outlined here: https://doi.org/10.1364/OE.22.023628
 import numpy as np
 import matplotlib.pyplot as plt
 from create_fp_fdp_dat_file import full_path, read_dat_file
-from tst_convert_fdp_helper import convert_fdp_to_fp, create_figures
+from convert_fdp_helper import convert_fdp_to_fp, create_figures
 np.seterr(all='raise')
 
 # Path to Sherrell data: $MODULES/ls49_big_data/data_sherrell

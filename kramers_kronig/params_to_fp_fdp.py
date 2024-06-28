@@ -1,11 +1,12 @@
 """
-Write PyTorch function that takes in coefficients (as well as input parameters mean_energy, nchannels, channel_width) and outputs fp and fdp
+PyTorch function that takes in optimizable params
+(as well as input parameters mean_energy, nchannels, channel_width) and outputs fp and fdp.
 
-Usage: libtbx.python $MODULES/torchBragg/SPREAD_integration/coeff_to_fp_fdp.py
+Usage: libtbx.python $MODULES/torchBragg/SPREAD_integration/params_to_fp_fdp.py
 """
 import torch
-from helper import natural_cubic_spline_coeffs_without_missing_values
-from tst_convert_fdp_helper import fdp_fp_integrate
+from cubic_spline_torch import natural_cubic_spline_coeffs_without_missing_values
+from convert_fdp_helper import fdp_fp_integrate
 
 """
 params.spectrum.nchannels

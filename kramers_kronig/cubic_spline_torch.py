@@ -1,23 +1,4 @@
-import numpy as np
 import torch
-
-import os
-from LS49 import ls49_big_data
-
-def full_path(filename):
-  return os.path.join(ls49_big_data, filename)
-
-def read_dat_file(source_filename):
-    with open(source_filename, 'r') as source_file:
-        # Read data from the source file
-        lines = source_file.readlines()
-
-    # Extract the first column from the source data
-    col_0 = [line.split()[0] for line in lines]
-    col_1 = [line.split()[1] for line in lines]
-    col_2 = [line.split()[2] for line in lines]
-
-    return col_0, col_1, col_2
     
 def tridiagonal_solve(b, A_upper, A_diagonal, A_lower):
     """Solves a tridiagonal system Ax = b.
@@ -58,9 +39,9 @@ def tridiagonal_solve(b, A_upper, A_diagonal, A_lower):
 
     channels = b.size(-1)
 
-    new_b = np.empty(channels, dtype=object)
-    new_A_diagonal = np.empty(channels, dtype=object)
-    outs = np.empty(channels, dtype=object)
+    new_b = torch.zeros(channels, dtype=object) # np.empty
+    new_A_diagonal = torch.zeros(channels, dtype=object) # np.empty
+    outs = torch.zeros(channels, dtype=object) # np.empty
 
     new_b[0] = b[..., 0]
     new_A_diagonal[0] = A_diagonal[..., 0]
@@ -122,16 +103,3 @@ def natural_cubic_spline_coeffs_without_missing_values(t, x):
                           + knot_derivatives[..., 1:])) * time_diffs_reciprocal_squared
 
     return a, b, two_c/2, three_d/3
-
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-    energy_vec = torch.linspace(0, 6, 10)
-    fdp_vec = energy_vec.sin()
-
-    from scipy.interpolate import CubicSpline
-    cs_fdp = CubicSpline(energy_vec, fdp_vec, bc_type='natural')
-    coeff_bandwidth = cs_fdp.c
-    
-    a, b, c, d = natural_cubic_spline_coeffs_without_missing_values(energy_vec, fdp_vec)
-    coeff_check = torch.stack([d,c,b,a])
-

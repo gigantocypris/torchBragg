@@ -1,4 +1,4 @@
-from utils import which_package
+from torchBragg.forward_simulation.naive.utils import which_package
 import numpy as np
 import torch
 

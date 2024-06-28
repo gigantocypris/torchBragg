@@ -1,10 +1,40 @@
 # torchBragg
 
-Structure factor refinement integrating Careless and nanoBragg
+Differentiable version of nanoBragg, used for SPREAD optimization with a Kramer's-Kronig constraint.
 
 ## Installation
 
-Follow the [installation instructions](https://github.com/gigantocypris/SPREAD) for SPREAD.
+Follow the [installation instructions](INSTALL.md) to setup CCTBX with PyTorch integration.
+
+## Optimize the anomalous scattering factors
+
+login to Perlmutter
+
+Open folder on sidebar in VSCode:
+/global/cfs/cdirs/m3562/users/vidyagan/cctbx_install/alcc-recipes-2/cctbx/modules/torchBragg
+
+source ~/env_feb_2024 
+cd $WORK/output_torchBragg 
+libtbx.python $MODULES/torchBragg/kramers_kronig/create_fp_fdp_dat_file.py # only run on the first time 
+
+# XXX add command line parameter to convert_fdp.py
+libtbx.python $MODULES/torchBragg/kramers_kronig/convert_fdp.py # only run on the first time, run for "Mn2O3_spliced" 
+libtbx.python $MODULES/torchBragg/kramers_kronig/convert_fdp.py # only run on the first time, run for "MnO2_spliced" 
+
+For visualizations, open a second VSCode window on Perlmutter and open folder:
+/global/cfs/cdirs/m3562/users/vidyagan/cctbx_install/evaluate/output_torchBragg
+
+Back to original VSCode window:
+salloc --nodes 1 --qos interactive --time 01:00:00 --constraint gpu --gpus 1 --account=m3562_g
+
+. $MODULES/torchBragg/tests/tst_torchBragg_psii_script.sh
+
+. $MODULES/torchBragg/scripts/anomalous_optimizer_script.sh 
+
+
+Question to answer:
+Does implementing the Kramer's Kronig restraint improve the SPREAD optimization?
+Compare to the previous constraint (current state-of-art) in Sauter 2020.
 
 ## How to run a forward simulation with nanoBragg
 
@@ -93,3 +123,8 @@ print(SIM.pixel_size)
 The polarization factor is computed in the innermost loop. However, it is applied in the outermost loop. Why is this?
 
 nanoBragg_nks.cpp or nanoBragg.cpp or KOKKOS nanoBragg: what are differences, what should I use?
+
+## Known Issues
+
+- Interpolation?
+- The polarization factor is computed in the innermost loop. However, it is applied in the outermost loop

@@ -9,12 +9,12 @@ from simtbx.nanoBragg import shapetype
 from scitbx.array_family import flex
 import scitbx
 from scitbx.matrix import sqr,col
-from diffraction_vectorized import add_torchBragg_spots
-from add_background_vectorized import add_background
-from add_noise import add_noise
+from torchBragg.forward_simulation.vectorized.diffraction_vectorized import add_torchBragg_spots
+from torchBragg.forward_simulation.vectorized.add_background_vectorized import add_background
+from torchBragg.forward_simulation.vectorized.add_noise import add_noise
 torch.set_default_dtype(torch.float64)
 
-def set_all_params(params, sfall_channels, device):
+def set_all_params(params, sfall_channels, pix0_vector_mm, device):
     spectra = spectra_simulation()
     crystal = microcrystal(Deff_A = params.crystal.Deff_A, length_um = params.crystal.length_um, beam_diameter_um = 1.0) # assume smaller than 10 um crystals
     # random_orientation = legacy_random_orientations(100)[0]
@@ -97,9 +97,6 @@ def set_all_params(params, sfall_channels, device):
 
 
     phisteps = 1
-    pix0_vector_mm = torch.tensor((141.7, 5.72, -5.72), device=device) # detector origin, change to get different ROI #XXX
-    # pix0_vector_mm = torch.tensor((141.7, 169.04799999999997, -169.04799999999997), device=device) # detector origin, change to get different ROI # original ROI for 3840 pixels
-    # pix0_vector_mm = torch.tensor((141.7, 5.72, -5.72), device=device) # detector origin, change to get different ROI # original ROI for 128 pixels
     pix0_vector = pix0_vector_mm/1000
     fdet_vector = torch.tensor((0.0, 0.0, 1.0), device=device)
     sdet_vector = torch.tensor((0.0, -1.0, 0.0), device=device)
