@@ -1,5 +1,6 @@
 import torch
-    
+import numpy as np
+
 def tridiagonal_solve(b, A_upper, A_diagonal, A_lower):
     """Solves a tridiagonal system Ax = b.
 
@@ -39,9 +40,9 @@ def tridiagonal_solve(b, A_upper, A_diagonal, A_lower):
 
     channels = b.size(-1)
 
-    new_b = torch.zeros(channels, dtype=object) # np.empty
-    new_A_diagonal = torch.zeros(channels, dtype=object) # np.empty
-    outs = torch.zeros(channels, dtype=object) # np.empty
+    new_b = np.empty(channels, dtype=object)
+    new_A_diagonal = np.empty(channels, dtype=object)
+    outs = np.empty(channels, dtype=object)
 
     new_b[0] = b[..., 0]
     new_A_diagonal[0] = A_diagonal[..., 0]

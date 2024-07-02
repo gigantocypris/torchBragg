@@ -1,9 +1,13 @@
-from helper import full_path, read_dat_file
+"""
+Usage:
+libtbx.python $MODULES/torchBragg/tests/tst_params_to_fp_fdp.py
+"""
 import numpy as np
 from scipy.interpolate import CubicSpline
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import torch
+from torchBragg.kramers_kronig.create_fp_fdp_dat_file import full_path, read_dat_file
 from torchBragg.kramers_kronig.params_to_fp_fdp import create_energy_vec, func_start_end, evaluate_fdp, calculate_fp
 
 nchannels=5; mean_energy=6550; channel_width=10
