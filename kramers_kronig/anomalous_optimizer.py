@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 import torch
 from exafel_project.kpp_utils.phil import parse_input
-from sf_linearity import get_wavelengths, get_fp_fdp, get_base_structure_factors, construct_structure_factors, get_Fhkl_mat
-from amplitudes_spread_torch_integration import amplitudes_spread_psii
-from anomalous_optimizer_helper import set_all_params, forward_sim
+from torchBragg.kramers_kronig.sf_linearity import get_wavelengths, get_fp_fdp, get_base_structure_factors, construct_structure_factors, get_Fhkl_mat
+from torchBragg.kramers_kronig.amplitudes_spread_torch_integration import amplitudes_spread_psii
+from torchBragg.kramers_kronig.anomalous_optimizer_helper import set_all_params, forward_sim
 torch.autograd.set_detect_anomaly(True)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

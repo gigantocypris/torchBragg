@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from utils import rotate_axis, unitize, dot_product, magnitude, polint, polarization_factor, r_e_sqr, which_package
+from torchBragg.forward_simulation.naive.utils import rotate_axis, unitize, dot_product, magnitude, polint, polarization_factor, r_e_sqr, which_package
 
 def add_background(oversample, 
                    override_source,

@@ -1,4 +1,6 @@
-# . $MODULES/torchBragg/tst_anomalous_optimizer_script.sh
+# Usage:
+# cd $WORK/output_torchBragg
+# . $MODULES/torchBragg/anomalous_optimizer_script.sh
 
 export CUDA_MANAGED_FORCE_DEVICE_ALLOC=1
 export DEVICES_PER_NODE=1
@@ -54,5 +56,5 @@ output {
 " > optimizer_params.phil
 
 echo "jobstart $(date)";pwd
-libtbx.python $MODULES/torchBragg/tst_anomalous_optimizer.py optimizer_params.phil
+libtbx.python $MODULES/torchBragg/kramers_kronig/anomalous_optimizer.py optimizer_params.phil
 echo "jobend $(date)";pwd

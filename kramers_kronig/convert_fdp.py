@@ -4,12 +4,15 @@ then using direct integration to calculate f' at points of interest (evaluation 
 
 Note that the boundaries of the piecewise polynomial cannot be at the evalution points for f'
 due to the discussion outlined here: https://doi.org/10.1364/OE.22.023628
+
+Usage:
+libtbx.python $MODULES/torchBragg/kramers_kronig/convert_fdp.py --prefix [FILENAME PREFIX]
 """
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
-from create_fp_fdp_dat_file import full_path, read_dat_file
-from convert_fdp_helper import convert_fdp_to_fp, create_figures
+from torchBragg.kramers_kronig.create_fp_fdp_dat_file import full_path, read_dat_file
+from torchBragg.kramers_kronig.convert_fdp_helper import convert_fdp_to_fp, create_figures
 np.seterr(all='raise')
 
 parser = argparse.ArgumentParser()

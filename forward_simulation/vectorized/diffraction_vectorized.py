@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torchBragg.forward_simulation.naive.utils import r_e_sqr, which_package
 
-from utils_vectorized import sincg_vectorized, sinc3_vectorized, unitize_vectorized, polarization_factor_vectorized
+from torchBragg.forward_simulation.vectorized.utils_vectorized import sincg_vectorized, sinc3_vectorized, unitize_vectorized, polarization_factor_vectorized
 
 
 

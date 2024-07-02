@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from utils import rotate_axis, rotate_umat, dot_product, sincg, sinc3, \
+from torchBragg.forward_simulation.naive.utils import rotate_axis, rotate_umat, dot_product, sincg, sinc3, \
     cross_product, vector_scale, magnitude, unitize, polarization_factor, \
     detector_position, find_pixel_pos, r_e_sqr, which_package
 

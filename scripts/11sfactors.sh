@@ -1,4 +1,8 @@
-# Optimization of fdp and fp with CCTBX
+# Optimization of fdp and fp with CCTBX, not torchBragg
+# Usage:
+# salloc --nodes 4 --qos interactive --time 01:00:00 --constraint gpu --account=m3562_g --ntasks-per-gpu 1
+# cd $WORK/output_torchBragg
+# . $MODULES/torchBragg/scripts/11sfactors.sh
 
 mkdir -p $SLURM_JOB_ID; cd $SLURM_JOB_ID
 

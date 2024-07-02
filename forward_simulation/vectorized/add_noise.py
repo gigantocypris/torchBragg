@@ -1,7 +1,7 @@
 import torch
 from torch.distributions.normal import Normal
 from torch.distributions.poisson import Poisson
-from apply_psf import apply_psf
+from torchBragg.forward_simulation.vectorized.apply_psf import apply_psf
 
 def add_noise(raw_pixels,
               flicker_noise,

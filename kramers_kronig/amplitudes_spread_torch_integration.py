@@ -13,7 +13,7 @@ from scitbx.array_family import flex
 from LS49.sim.util_fmodel import gen_fmodel
 from exafel_project.kpp_utils.ferredoxin import data
 import exafel_project.kpp_utils.amplitudes_spread_psii as psii_fn
-from create_fp_fdp_dat_file import full_path
+from torchBragg.kramers_kronig.create_fp_fdp_dat_file import full_path
 
 from scipy import constants
 ENERGY_CONV = 1e10*constants.c*constants.h / constants.electron_volt
@@ -69,7 +69,6 @@ def psii_data():
 def amplitudes_spread_psii(params, direct_algo_res_limit=1.85, 
                            MN_labels=["Mn_oxidized_model","Mn_oxidized_model","Mn_reduced_model","Mn_reduced_model"],
                            complex_output=False):
-
   wavelength_A = ENERGY_CONV / params.beam.mean_energy
   # general ballpark X-ray wavelength in Angstroms, does not vary shot-to-shot
   centerline = float(params.spectrum.nchannels-1)/2.0

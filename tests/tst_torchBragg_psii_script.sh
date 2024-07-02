@@ -1,4 +1,6 @@
-# . $MODULES/torchBragg/tst_torchBragg_psii_script.sh
+# Simulates a diffraction image of psii with both CCTBX and torchBragg
+# Usage:
+# . $MODULES/torchBragg/tests/tst_torchBragg_psii_script.sh
 
 export CUDA_MANAGED_FORCE_DEVICE_ALLOC=1
 export DEVICES_PER_NODE=1
@@ -51,8 +53,8 @@ detector {
 output {
   format=h5
 }
-" > psii_params.phil
+" > params_torchBragg_psii.phil
 
 echo "jobstart $(date)";pwd
-libtbx.python $MODULES/torchBragg/tst_torchBragg_psii.py psii_params.phil
+libtbx.python $MODULES/torchBragg/tests/tst_torchBragg_psii.py params_torchBragg_psii.phil
 echo "jobend $(date)";pwd

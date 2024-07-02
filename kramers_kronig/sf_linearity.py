@@ -9,7 +9,7 @@ from LS49.sim.step4_pad import microcrystal
 from LS49 import ls49_big_data, legacy_random_orientations
 from LS49.sim.fdp_plot import george_sherrell
 from exafel_project.kpp_utils.ferredoxin import basic_detector_rayonix
-from torchBragg.amplitudes_spread_torch_integration import amplitudes_spread_psii
+from torchBragg.kramers_kronig.amplitudes_spread_torch_integration import amplitudes_spread_psii
 from simtbx.nanoBragg import nanoBragg
 from simtbx.nanoBragg import shapetype
 from scitbx.array_family import flex
@@ -19,7 +19,7 @@ from torchBragg.forward_simulation.vectorized.diffraction_vectorized import add_
 from torchBragg.forward_simulation.vectorized.add_background_vectorized import add_background
 from torchBragg.forward_simulation.vectorized.utils_vectorized import Fhkl_remove, Fhkl_dict_to_mat
 from torchBragg.forward_simulation.vectorized.add_noise import add_noise
-from create_fp_fdp_dat_file import full_path
+from torchBragg.kramers_kronig.create_fp_fdp_dat_file import full_path
 from scipy import constants
 ENERGY_CONV = 1e10*constants.c*constants.h / constants.electron_volt
 torch.set_default_dtype(torch.float64)

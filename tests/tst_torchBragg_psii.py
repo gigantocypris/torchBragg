@@ -1,3 +1,10 @@
+"""
+Simulates a diffraction image of psii with both CCTBX and torchBragg
+
+Usage:
+. $MODULES/torchBragg/tests/tst_torchBragg_psii_script.sh
+"""
+
 import os
 import math
 import numpy as np
@@ -8,17 +15,17 @@ from LS49.spectra.generate_spectra import spectra_simulation
 from LS49.sim.step4_pad import microcrystal
 from LS49 import ls49_big_data, legacy_random_orientations
 from exafel_project.kpp_utils.ferredoxin import basic_detector_rayonix
-from torchBragg.amplitudes_spread_torchBragg import amplitudes_spread_psii
+from torchBragg.kramers_kronig.amplitudes_spread_torch_integration import amplitudes_spread_psii
 from simtbx.nanoBragg import nanoBragg
 from simtbx.nanoBragg import shapetype
 from scitbx.array_family import flex
 import scitbx
 from scitbx.matrix import sqr,col
-from diffraction_vectorized import add_torchBragg_spots
-from add_background_vectorized import add_background
-from utils_vectorized import Fhkl_remove, Fhkl_dict_to_mat
-from add_noise import add_noise
-from tst_sf_linearity import get_Fhkl_mat
+from torchBragg.forward_simulation.vectorized.diffraction_vectorized import add_torchBragg_spots
+from torchBragg.forward_simulation.vectorized.add_background_vectorized import add_background
+from torchBragg.forward_simulation.vectorized.utils_vectorized import Fhkl_remove, Fhkl_dict_to_mat
+from torchBragg.forward_simulation.vectorized.add_noise import add_noise
+from torchBragg.kramers_kronig.sf_linearity import get_Fhkl_mat
 torch.set_default_dtype(torch.float64)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

@@ -1,8 +1,8 @@
 import torch
 import numpy as np
 from torchBragg.forward_simulation.naive.utils import rotate_axis, unitize, dot_product, magnitude, polint, polarization_factor, r_e_sqr, which_package
-from diffraction_vectorized import simulation_setup
-from utils_vectorized import unitize_vectorized, polarization_factor_vectorized
+from torchBragg.forward_simulation.vectorized.diffraction_vectorized import simulation_setup
+from torchBragg.forward_simulation.vectorized.utils_vectorized import unitize_vectorized, polarization_factor_vectorized
 
 def add_background(oversample, 
                    override_source,

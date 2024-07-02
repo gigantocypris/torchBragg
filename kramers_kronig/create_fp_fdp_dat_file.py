@@ -1,6 +1,4 @@
 """
-libtbx.python $MODULES/torchBragg/create_fp_fdp_dat_file.py
-
 This script reads in the .dat file for an atom and either zeros out or replaces with ones either the f' and f" values.
 It also creates a .dat file with both f' and f" zeroed out.
 
@@ -10,6 +8,9 @@ New .dat file 'Mn_fp_1_fdp_-.dat' created.
 New .dat file 'Mn_fp_-_fdp_0.dat' created.
 New .dat file 'Mn_fp_-_fdp_1.dat' created.
 New .dat file 'Mn_fp_0_fdp_0.dat' created.
+
+Usage:
+libtbx.python $MODULES/torchBragg/create_fp_fdp_dat_file.py
 """
 
 import os
