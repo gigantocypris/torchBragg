@@ -12,7 +12,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from torchBragg.kramers_kronig.create_fp_fdp_dat_file import full_path, read_dat_file
-from torchBragg.kramers_kronig.convert_fdp_helper import convert_fdp_to_fp, create_figures
+from torchBragg.kramers_kronig.convert_fdp_helper import convert_fdp_to_fp, create_figures, create_energy_vec
 np.seterr(all='raise')
 
 parser = argparse.ArgumentParser()
@@ -26,19 +26,23 @@ prefix = args.prefix
 Mn_model=full_path("data_sherrell/" + prefix + ".dat")
 relativistic_correction = 0 # 0.042 for Mn and 0.048 for Fe
 bandedge = 6550 # 6550 eV is the bandedge of Mn and 7112 is the bandedge of Fe
-
+channel_width = 1
+nchannels = 100
 
 energy_vec, fp_vec, fdp_vec = read_dat_file(Mn_model)
 energy_vec = np.array(energy_vec).astype(np.float64)
 fp_vec = np.array(fp_vec).astype(np.float64)
 fdp_vec = np.array(fdp_vec).astype(np.float64)
 
-cs_fdp, energy_vec_bandwidth,\
+# energy_vec_bandwidth cannot have the same values as energy_vec
+energy_vec_bandwidth = create_energy_vec(nchannels+1, bandedge, channel_width, prefix=np)
+
+cs_fdp,\
 fdp_vec_bandwidth, cs_fdp_bandwidth, energy_vec_0, fdp_vec_0,\
 func_fixed_pt_0, popt_0, energy_vec_2, fdp_vec_2, func_fixed_pt_2,\
 popt_2, energy_vec_full, fdp_vec_full, shift_0, constant_0, \
-fp_calculate_bandwidth, energy_vec_bandwidth_final, fdp_calculate_bandwidth \
-      = convert_fdp_to_fp(energy_vec, fdp_vec, bandedge, relativistic_correction)
+fp_calculate_bandwidth, fdp_calculate_bandwidth \
+      = convert_fdp_to_fp(energy_vec, energy_vec_bandwidth, fdp_vec, nchannels, bandedge, channel_width, relativistic_correction)
 
 create_figures(energy_vec, fp_vec, fdp_vec, cs_fdp, energy_vec_bandwidth,
                fdp_vec_bandwidth, cs_fdp_bandwidth, energy_vec_0, fdp_vec_0,
