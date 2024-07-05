@@ -10,9 +10,10 @@ libtbx.python $MODULES/torchBragg/kramers_kronig/convert_fdp.py --prefix [FILENA
 """
 import argparse
 import numpy as np
-import matplotlib.pyplot as plt
 from torchBragg.kramers_kronig.create_fp_fdp_dat_file import full_path, read_dat_file
-from torchBragg.kramers_kronig.convert_fdp_helper import convert_fdp_to_fp, create_figures, create_energy_vec
+from torchBragg.kramers_kronig.convert_fdp_helper import convert_fdp_to_fp, create_energy_vec
+from torchBragg.kramers_kronig.convert_fdp_visualizer import create_figures
+
 np.seterr(all='raise')
 
 parser = argparse.ArgumentParser()
@@ -29,56 +30,21 @@ bandedge = 6550 # 6550 eV is the bandedge of Mn and 7112 is the bandedge of Fe
 channel_width = 1
 nchannels = 100
 
-energy_vec, fp_vec, fdp_vec = read_dat_file(Mn_model)
-energy_vec = np.array(energy_vec).astype(np.float64)
-fp_vec = np.array(fp_vec).astype(np.float64)
-fdp_vec = np.array(fdp_vec).astype(np.float64)
+energy_vec_reference, fp_vec_reference, fdp_vec_reference = read_dat_file(Mn_model)
+energy_vec_reference = np.array(energy_vec_reference).astype(np.float64)
+fp_vec_reference = np.array(fp_vec_reference).astype(np.float64)
+fdp_vec_reference = np.array(fdp_vec_reference).astype(np.float64)
 
-# energy_vec_bandwidth cannot have the same values as energy_vec
-energy_vec_bandwidth = create_energy_vec(nchannels+1, bandedge, channel_width, prefix=np)
+# energy_vec_bandwidth cannot have the same values as energy_vec_reference
+energy_vec_bandwidth = create_energy_vec(nchannels+1, bandedge, channel_width, library=np)
+fdp_full, fp_full = convert_fdp_to_fp(energy_vec_reference, energy_vec_bandwidth, fdp_vec_reference, relativistic_correction)
 
-cs_fdp,\
-fdp_vec_bandwidth, cs_fdp_bandwidth, energy_vec_0, fdp_vec_0,\
-func_fixed_pt_0, popt_0, energy_vec_2, fdp_vec_2, func_fixed_pt_2,\
-popt_2, energy_vec_full, fdp_vec_full, shift_0, constant_0, \
-fp_calculate_bandwidth, fdp_calculate_bandwidth \
-      = convert_fdp_to_fp(energy_vec, energy_vec_bandwidth, fdp_vec, nchannels, bandedge, channel_width, relativistic_correction)
-
-create_figures(energy_vec, fp_vec, fdp_vec, cs_fdp, energy_vec_bandwidth,
-               fdp_vec_bandwidth, cs_fdp_bandwidth, energy_vec_0, fdp_vec_0,
-               func_fixed_pt_0, popt_0, energy_vec_2, fdp_vec_2, func_fixed_pt_2,
-               popt_2, energy_vec_full, fdp_vec_full, shift_0, constant_0, fp_calculate_bandwidth,
-               energy_vec_bandwidth_final,
-               prefix=prefix)
-plt.close()
-
+# plots
+create_figures(energy_vec_reference, energy_vec_bandwidth, fp_vec_reference, fdp_vec_reference, fdp_full, fp_full, prefix="Mn")
 
 # Combine the vectors into a single 2D array
-combined_array = np.column_stack((energy_vec_bandwidth_final, fp_calculate_bandwidth, fdp_calculate_bandwidth))
+combined_array = np.column_stack((energy_vec_reference, fp_full, fdp_full))
 
 # Save the combined array to a .dat file
 np.savetxt(prefix + '.dat', combined_array, delimiter='\t', fmt='%0.7f')
 print("Saved to " + prefix + ".dat")
-
-# back calculate fdp from fp
-cs_fdp_1, energy_vec_bandwidth_1,\
-fdp_vec_bandwidth_1, cs_fdp_bandwidth_1, energy_vec_0_1, fdp_vec_0_1,\
-func_fixed_pt_0_1, popt_0_1, energy_vec_2_1, fdp_vec_2_1, func_fixed_pt_2_1,\
-popt_2_1, energy_vec_full_1, fdp_vec_full_1, shift_0_1, constant_0_1, \
-fp_calculate_bandwidth_1, energy_vec_bandwidth_final_1, fdp_calculate_bandwidth_1 \
-= convert_fdp_to_fp(energy_vec_bandwidth_final, -fp_calculate_bandwidth, bandedge, relativistic_correction)
-
-plt.figure()
-plt.title("Backcalculated fdp")
-plt.plot(energy_vec_bandwidth_final_1, fp_calculate_bandwidth_1)
-plt.plot(energy_vec_bandwidth_final, fdp_calculate_bandwidth, 'r.')
-plt.xlim([energy_vec_bandwidth[0],energy_vec_bandwidth[-1]])
-plt.savefig(prefix + "_fdp_back_calculated.png")
-
-create_figures(energy_vec, fdp_vec, -fp_vec, cs_fdp_1, energy_vec_bandwidth_1,
-               fdp_vec_bandwidth_1, cs_fdp_bandwidth_1, energy_vec_0_1, fdp_vec_0_1,
-               func_fixed_pt_0_1, popt_0_1, energy_vec_2_1, fdp_vec_2_1, func_fixed_pt_2_1,
-               popt_2_1, energy_vec_full_1, fdp_vec_full_1, shift_0_1, constant_0_1, fp_calculate_bandwidth_1,
-               energy_vec_bandwidth_final_1,
-               prefix=prefix+"_backcalculate_fdp")
-plt.close()
