@@ -12,6 +12,7 @@ libtbx.python $MODULES/torchBragg/tests/tst_convert_fdp_simple.py
 
 
 import numpy as np
+import torch
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from torchBragg.kramers_kronig.convert_fdp_helper import fdp_fp_integrate
@@ -47,9 +48,9 @@ plt.savefig("tst_fdp_fit.png")
 
 # Convert fdp to fp
 
-intervals_mat = np.array([[0, energy_max]])
-coeff_mat = np.array([popt_0])
-powers_mat = np.array([powers])
+intervals_mat = torch.tensor([[0, energy_max]])
+coeff_mat = torch.tensor([popt_0])
+powers_mat = torch.tensor([powers])
 
 fp_calculated = []
 for energy in energy_vec:

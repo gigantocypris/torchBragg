@@ -11,7 +11,7 @@ libtbx.python $MODULES/torchBragg/kramers_kronig/convert_fdp.py --prefix [FILENA
 import argparse
 import numpy as np
 from torchBragg.kramers_kronig.create_fp_fdp_dat_file import full_path, read_dat_file
-from torchBragg.kramers_kronig.convert_fdp_helper import convert_fdp_to_fp, create_energy_vec
+from torchBragg.kramers_kronig.convert_fdp_helper import convert_fdp_to_fp, create_energy_vec, check_clashes
 from torchBragg.kramers_kronig.convert_fdp_visualizer import create_figures
 
 np.seterr(all='raise')
@@ -27,23 +27,28 @@ prefix = args.prefix
 Mn_model=full_path("data_sherrell/" + prefix + ".dat")
 relativistic_correction = 0 # 0.042 for Mn and 0.048 for Fe
 bandedge = 6550 # 6550 eV is the bandedge of Mn and 7112 is the bandedge of Fe
-channel_width = 1
-nchannels = 100
+channel_width = 10
+nchannels = 10
 
 energy_vec_reference, fp_vec_reference, fdp_vec_reference = read_dat_file(Mn_model)
 energy_vec_reference = np.array(energy_vec_reference).astype(np.float64)
 fp_vec_reference = np.array(fp_vec_reference).astype(np.float64)
 fdp_vec_reference = np.array(fdp_vec_reference).astype(np.float64)
 
-# energy_vec_bandwidth cannot have the same values as energy_vec_reference
+
 energy_vec_bandwidth = create_energy_vec(nchannels+1, bandedge, channel_width, library=np)
-fdp_full, fp_full = convert_fdp_to_fp(energy_vec_reference, energy_vec_bandwidth, fdp_vec_reference, relativistic_correction)
+
+# energy_vec_bandwidth cannot have the same values as energy_vec_reference
+if check_clashes(energy_vec_bandwidth, energy_vec_reference)>0:
+    raise Exception("Matching values in energy_vec_bandwidth and energy_vec_reference, remove clashes")
+
+energy_vec_final, fdp_final, fp_final = convert_fdp_to_fp(energy_vec_reference, energy_vec_bandwidth, fdp_vec_reference, relativistic_correction)
 
 # plots
-create_figures(energy_vec_reference, energy_vec_bandwidth, fp_vec_reference, fdp_vec_reference, fdp_full, fp_full, prefix="Mn")
+create_figures(energy_vec_reference, energy_vec_bandwidth, fp_vec_reference, fdp_vec_reference, energy_vec_final, fdp_final, fp_final, prefix=prefix)
 
 # Combine the vectors into a single 2D array
-combined_array = np.column_stack((energy_vec_reference, fp_full, fdp_full))
+combined_array = np.column_stack((energy_vec_final, fp_final, fdp_final))
 
 # Save the combined array to a .dat file
 np.savetxt(prefix + '.dat', combined_array, delimiter='\t', fmt='%0.7f')

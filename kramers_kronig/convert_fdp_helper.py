@@ -4,6 +4,12 @@ from scipy.optimize import curve_fit
 import torch
 from torchBragg.kramers_kronig.cubic_spline_torch import natural_cubic_spline_coeffs_without_missing_values
 
+def check_clashes(energy_vec_0, energy_vec_1):
+    """
+    checks if there are any common values in energy_vec_0 and energy_vec_1
+    """
+    
+    return len(set(energy_vec_0).intersection(set(energy_vec_1)))
 
 def create_energy_vec(nchannels=5, mean_energy=6550, channel_width=10, library=torch):
     """
@@ -35,26 +41,42 @@ def convert_coeff(shift, constant, a, b, c, d, e):
     i = c - b*2*shift + a*3*shift**2
     j = b - a*3*shift
     k = a
+    return torch.stack([f,g,h,i,j,k],axis=1)
 
-
-    return torch.tensor([f,g,h,i,j,k])
-
+def get_coeff_bandwidth(energy_vec_bandwidth, fdp_vec_base):
+    constant, c, b, a = natural_cubic_spline_coeffs_without_missing_values(energy_vec_bandwidth, fdp_vec_base)
+    d = torch.zeros_like(constant)
+    e = torch.zeros_like(constant)
+    coeff = torch.stack((energy_vec_bandwidth[:-1], constant, a, b, c, d, e))
+    return coeff
 
 def func_bandwidth(x, interval_inds, energy_vec_bandwidth, fdp_vec_base):
     """
     Cubic splines with natural boundary conditions (i.e. second derivatives at the very beginning and very end are 0)
     energy_vec_bandwidth is offset from the places where we want to interpolate fdp and calculate fp
-    interval is the index of energy_vec_bandwidth that is lower than x, with energy_vec_bandwidth[index+1] being higher than x
+    interval_inds is the index of energy_vec_bandwidth that is lower than x, with energy_vec_bandwidth[index+1] being higher than x
     """
-    constant, c, b, a = natural_cubic_spline_coeffs_without_missing_values(energy_vec_bandwidth, fdp_vec_base)
+    coeff = get_coeff_bandwidth(energy_vec_bandwidth, fdp_vec_base)
+
+    constant = coeff[1]
+    a = coeff[2]
+    b = coeff[3]
+    c = coeff[4]
+    d = coeff[5]
+    e = coeff[6]
 
     shift = energy_vec_bandwidth[interval_inds]
-    d = torch.zeros_like(shift)
-    e = torch.zeros_like(shift)
 
-    coeff = torch.stack((shift, constant, a, b, c, d, e))
-    fdp_values = a[interval_inds]*(x-shift)**3 + b[interval_inds]*(x-shift)**2 + c[interval_inds]*(x-shift) + constant
-    return fdp_values, coeff
+    a = a[interval_inds]
+    b = b[interval_inds]
+    c = c[interval_inds]
+    d = d[interval_inds]
+    e = e[interval_inds]
+
+    constant = constant[interval_inds]
+
+    fdp_values = a*(x-shift)**3 + b*(x-shift)**2 + c*(x-shift) + constant
+    return fdp_values
 
 def fdp_fp_easy_integral(energy, energy_start, energy_end, coeff, powers):
     """
@@ -146,7 +168,6 @@ def get_free_params(energy_vec_reference, fdp_vec_reference, energy_vec_bandwidt
 
     # Params for the beginning of the curve
     energy_vec_0 = energy_vec_reference[energy_vec_reference <= energy_vec_bandwidth[0]]
-    breakpoint()
     fdp_vec_0 = fdp_vec_reference[energy_vec_reference <= energy_vec_bandwidth[0]]
     shift_0 = energy_vec_bandwidth[0]
     constant_0 = params_bandwidth[0]
@@ -190,9 +211,26 @@ def get_free_params(energy_vec_reference, fdp_vec_reference, energy_vec_bandwidt
 #     fdp_fit = func_converted_coeff(energy, power, coeff)
 #     return fdp_fit
 
-def get_physical_params_fdp(energy_vec, energy_vec_bandwidth, params):
+def find_interval_inds(energy_vec_bandwidth, energy_vec):
     """
-    This function gets the fdp physical parameters from params
+    energy_vec_bandwidth are the points the free parameters are calculated at
+    energy_vec are the physical parameters, points where we want to convert fdp to fp
+    we want to find what interval index each value of energy_vec is in, for energy_vec[i],
+    the interval_ind is where energy_vec_bandwidth[interval_ind] < energy_vec[i] < energy_vec_bandwidth[interval_ind+1]
+    Note that there are no equality signs as there can be no clashes in the values of energy_vec_bandwidth and energy_vec
+    """
+    interval_inds = []
+    for i in range(len(energy_vec)):
+        interval_ind = torch.argmin(torch.abs(energy_vec_bandwidth - energy_vec[i]))
+        if energy_vec_bandwidth[interval_ind] < energy_vec[i]:
+            interval_inds.append(interval_ind)
+        else:
+            interval_inds.append(interval_ind-1)
+    return torch.tensor(interval_inds)
+
+def get_physical_params_fdp(energy_vec, energy_vec_bandwidth, free_params):
+    """
+    This function gets the fdp physical parameters from the free params
 
     energy_vec are the energies we want to evaluate at, energy_vec_bandwidth are offset and where the fdp_vec_base values are
     this offset is necessary to evaluate the integral to compute fp_vec at energy_vec energies
@@ -201,9 +239,9 @@ def get_physical_params_fdp(energy_vec, energy_vec_bandwidth, params):
     func_start_end       -- func_bandwith  -- func_start_end
     [a0, b0, c0, d0, e0] -- [fdp_vec_base] -- [a1, b1, c1, d1, e1]
     """
-    a0, b0, c0, d0, e0 = params[0:5]
-    fdp_vec_base = params[5:-5]
-    a1, b1, c1, d1, e1 = params[-5:]
+    a0, b0, c0, d0, e0 = free_params[0:5]
+    fdp_vec_base = free_params[5:-5]
+    a1, b1, c1, d1, e1 = free_params[-5:]
 
     shift0 = energy_vec_bandwidth[0]
     constant0 = fdp_vec_base[0]
@@ -211,19 +249,19 @@ def get_physical_params_fdp(energy_vec, energy_vec_bandwidth, params):
     shift1 = energy_vec_bandwidth[-1]
     constant1 = fdp_vec_base[-1]
 
-    interval_inds = torch.arange(len(energy_vec), dtype=torch.int32)
+    interval_inds = find_interval_inds(energy_vec_bandwidth, energy_vec[(energy_vec >= shift0) & (energy_vec <= shift1)])
+    # interval_inds = torch.arange(len(energy_vec[(energy_vec >= shift0) & (energy_vec <= shift1)]), dtype=torch.int32)
 
     fdp0 = func(energy_vec[energy_vec < shift0], shift0, constant0, a0, b0, c0, d0, e0)
-    fdp_bandwidth, coeff_vec_bandwidth = func_bandwidth(energy_vec, interval_inds, energy_vec_bandwidth, fdp_vec_base)
+    fdp_bandwidth = func_bandwidth(energy_vec[(energy_vec >= shift0) & (energy_vec <= shift1)], interval_inds, energy_vec_bandwidth, fdp_vec_base)
     fdp1 = func(energy_vec[energy_vec > shift1], shift1, constant1, a1, b1, c1, d1, e1)
-    breakpoint()
     fdp_full = torch.concat((fdp0, fdp_bandwidth, fdp1))
 
-    return fdp_full, coeff_vec_bandwidth
+    return fdp_full
 
-def get_physical_params_fp(energy_vec, energy_vec_bandwidth, params, coeff_vec_bandwidth, relativistic_correction):
+def get_physical_params_fp(energy_vec, energy_vec_bandwidth, free_params, coeff_vec_bandwidth, relativistic_correction):
     """
-    This function gets the fp physical parameters from params
+    This function gets the fp physical parameters from free_params
 
     energy_vec are the energies we want to evaluate at, energy_vec_bandwidth are offset and where the fdp_vec_base values are
     this offset is necessary to evaluate the integral to compute fp_vec at energy_vec energies
@@ -232,9 +270,9 @@ def get_physical_params_fp(energy_vec, energy_vec_bandwidth, params, coeff_vec_b
     func_start_end       -- func_bandwith  -- func_start_end
     [a0, b0, c0, d0, e0] -- [fdp_vec_base] -- [a1, b1, c1, d1, e1]
     """
-    a0, b0, c0, d0, e0 = params[0:5]
-    fdp_vec_base = params[5:-5]
-    a1, b1, c1, d1, e1 = params[-5:]
+    a0, b0, c0, d0, e0 = free_params[0:5]
+    fdp_vec_base = free_params[5:-5]
+    a1, b1, c1, d1, e1 = free_params[-5:]
 
     shift0 = energy_vec_bandwidth[0]
     constant0 = fdp_vec_base[0]
@@ -243,58 +281,48 @@ def get_physical_params_fp(energy_vec, energy_vec_bandwidth, params, coeff_vec_b
     constant1 = fdp_vec_base[-1]
 
     # Create intervals_mat, coeff_mat, powers_mat
-    interval_0 = torch.tensor([0, energy_vec_bandwidth[0]])
-    interval_bandwidth = torch.stack((energy_vec_bandwidth[:-1], energy_vec_bandwidth[1:]),axis=0)
-    interval_1 = torch.tensor([energy_vec_bandwidth[-1], 10000])
+    interval_0 = torch.tensor([0, energy_vec_bandwidth[0]])[None]
+    interval_bandwidth = torch.stack((energy_vec_bandwidth[:-1], energy_vec_bandwidth[1:]), axis=1)
+    interval_1 = torch.tensor([energy_vec_bandwidth[-1], 10000])[None]
 
-    # # interval_bandwidth is broken up into intervals depending on step size
-    # interval_bandwidth_starts = energy_vec_bandwidth[:-1]
-    # interval_bandwidth_ends = energy_vec_bandwidth[1:]
-    # interval_bandwidth_all = np.array([interval_bandwidth_starts, interval_bandwidth_ends]).T
-
-    # intervals_mat = np.concatenate([np.expand_dims(interval_0,axis=0), interval_bandwidth_all, np.expand_dims(interval_1, axis=0)],axis=0) # intervals x endpoints
-
-    intervals_mat = torch.concat((interval_0, interval_bandwidth, interval_1)) # intervals x endpoints
+    intervals_mat = torch.concat((interval_0, interval_bandwidth, interval_1), axis=0) # intervals x endpoints
 
     powers_mat = torch.tensor([-2,-1,0,1,2,3])
-    powers_mat = torch.repeat(torch.expand_dims(powers_mat, axis=0), len(intervals_mat), axis=0) # intervals x powers
+    powers_mat = powers_mat.repeat(len(intervals_mat),1) # intervals x powers
 
-    coeff_vec_0 = torch.expand_dims(convert_coeff(shift0, constant0, *params[0:5]), axis=0)
+    free_params_0 = free_params[0:5][:,None]
+    coeff_vec_0 = convert_coeff(shift0[None], constant0[None], *free_params_0)
 
-    coeff_vec_bandwidth = []
-    for i in range(len(interval_bandwidth)):
-        coeff_vec_bandwidth.append(convert_coeff(interval_bandwidth[i,0], *coeff_vec_bandwidth[:,i]))
-    coeff_vec_bandwidth = torch.stack(coeff_vec_bandwidth, axis=0)
+    coeff_vec_bandwidth = convert_coeff(*coeff_vec_bandwidth)
 
-    breakpoint()
-    # coeff_vec_1 = np.expand_dims(convert_coeff(shift1, constant1, *params[-5:]), axis=0)
-    coeff_vec_1 = convert_coeff(shift1, constant1, *params[-5:])[None]
+    free_params_1 = free_params[-5:][:,None]
+    coeff_vec_1 = convert_coeff(shift1[None], constant1, *free_params_1)
 
-    coeff_mat = torch.concat([coeff_vec_0, coeff_vec_bandwidth, coeff_vec_1], axis=0)
-
+    coeff_mat = torch.concat([coeff_vec_0, coeff_vec_bandwidth, coeff_vec_1], axis=0) # intervals x coefficients
 
     # Now convert fdp to fp, account for relativistic correction
 
     fp_full = []
-
     for energy in energy_vec:
+        print(energy)
         fp = fdp_fp_integrate(energy, intervals_mat, coeff_mat, powers_mat, relativistic_correction)
         fp_full.append(fp)
     
     return fp_full
 
-
-
 def convert_fdp_to_fp(energy_vec_reference, energy_vec_bandwidth, fdp_vec_reference, relativistic_correction):
     # energy_vec_bandwidth cannot have any points in energy_vec_reference
 
     popt_0, params_bandwidth, popt_1, shift_0, constant_0, shift_1, constant_1, energy_vec_full, fdp_vec_full = get_free_params(energy_vec_reference, fdp_vec_reference, energy_vec_bandwidth)
-    params = torch.tensor(np.concatenate((popt_0, params_bandwidth, popt_1)))
+    free_params = torch.tensor(np.concatenate((popt_0, params_bandwidth, popt_1)))
 
-    energy_vec_reference = torch.tensor(energy_vec_reference)
+    energy_vec_final = torch.tensor(energy_vec_reference[(energy_vec_reference > energy_vec_bandwidth[0]) & (energy_vec_reference < energy_vec_bandwidth[-1])])
+    energy_vec_final = torch.arange(energy_vec_reference[0],energy_vec_reference[-1], 17)
     energy_vec_bandwidth = torch.tensor(energy_vec_bandwidth)
 
-    fdp_full, coeff_vec_bandwidth = get_physical_params_fdp(energy_vec_reference, energy_vec_bandwidth, params)
-    fp_full = get_physical_params_fp(energy_vec_reference, energy_vec_bandwidth, params, coeff_vec_bandwidth, relativistic_correction)
+    fdp_final = get_physical_params_fdp(energy_vec_final, energy_vec_bandwidth, free_params)
+    fdp_vec_base = free_params[5:-5]
+    coeff_vec_bandwidth = get_coeff_bandwidth(energy_vec_bandwidth, fdp_vec_base)
+    fp_final = get_physical_params_fp(energy_vec_final, energy_vec_bandwidth, free_params, coeff_vec_bandwidth, relativistic_correction)
 
-    return fdp_full, fp_full
+    return energy_vec_final, fdp_final, fp_final

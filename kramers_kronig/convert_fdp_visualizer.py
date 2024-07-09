@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-def create_figures(energy_vec_reference, energy_vec_bandwidth, fp_vec_reference, fdp_vec_reference, fdp_full, fp_full, prefix="Mn"):
+def create_figures(energy_vec_reference, energy_vec_bandwidth, fp_vec_reference, fdp_vec_reference, energy_vec_final, fdp_final, fp_final, prefix="Mn"):
     
     # reference curves
     plt.figure(figsize=(20,10))
@@ -13,28 +13,28 @@ def create_figures(energy_vec_reference, energy_vec_bandwidth, fp_vec_reference,
     # fdp
     plt.figure(figsize=(20,10))
     plt.plot(energy_vec_reference, fdp_vec_reference, 'r', label="fdp reference")
-    plt.plot(energy_vec_reference, fdp_full, 'b', label="fdp calculated")
+    plt.plot(energy_vec_final, fdp_final, 'b', label="fdp calculated")
     plt.legend()
     plt.savefig(prefix + "_fdp.png")
 
     plt.figure(figsize=(20,10))
     plt.plot(energy_vec_reference, fdp_vec_reference, 'r', label="fdp reference")
-    plt.plot(energy_vec_reference, fdp_full, 'b', label="fdp calculated")
+    plt.plot(energy_vec_final, fdp_final, 'b', label="fdp calculated")
     plt.legend()
-    plt.xlim([energy_vec_bandwidth[0],energy_vec_bandwidth[1]])
+    plt.xlim([energy_vec_bandwidth[0],energy_vec_bandwidth[-1]])
     plt.savefig(prefix + "_fdp_bandwidth.png")
 
     # fp
     plt.figure(figsize=(20,10))
     plt.plot(energy_vec_reference, fp_vec_reference, 'r', label="fp reference")
-    plt.plot(energy_vec_reference, fp_full, 'b', label="fp calculated")
+    plt.plot(energy_vec_final, fp_final, 'b', label="fp calculated")
     plt.legend()
     plt.savefig(prefix + "_fp.png")
 
     plt.figure(figsize=(20,10))
     plt.plot(energy_vec_reference, fp_vec_reference, 'r', label="fp reference")
-    plt.plot(energy_vec_reference, fp_full, 'b', label="fp calculated")
+    plt.plot(energy_vec_final, fp_final, 'b', label="fp calculated")
     plt.legend()
-    plt.xlim([energy_vec_bandwidth[0], energy_vec_bandwidth[1]])
+    plt.xlim([energy_vec_bandwidth[0], energy_vec_bandwidth[-1]])
     plt.savefig(prefix + "_fp_bandwidth.png")
 
