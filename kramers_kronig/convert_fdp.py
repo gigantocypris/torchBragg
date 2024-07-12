@@ -39,9 +39,9 @@ fdp_vec_reference = np.array(fdp_vec_reference).astype(np.float64)
 energy_vec_bandwidth = create_energy_vec(nchannels+1, bandedge, channel_width, library=np)
 
 # energy_vec_final = torch.tensor(energy_vec_reference[(energy_vec_reference > energy_vec_bandwidth[0]) & (energy_vec_reference < energy_vec_bandwidth[-1])])
-# energy_vec_final = torch.arange(energy_vec_bandwidth[0]+5,energy_vec_bandwidth[-1]-5, 10)
-# energy_vec_final = torch.tensor([2000.])
-energy_vec_final = torch.tensor(energy_vec_reference)
+# energy_vec_final = torch.arange(energy_vec_bandwidth[0]+.5,energy_vec_bandwidth[-1]-.5, 1)
+# energy_vec_final = torch.tensor(energy_vec_reference)
+energy_vec_final = create_energy_vec(nchannels, bandedge, channel_width, library=torch)
 
 # energy_vec_bandwidth cannot have the same values as energy_vec_reference
 if check_clashes(energy_vec_bandwidth, energy_vec_reference)>0:
