@@ -57,6 +57,7 @@ def get_coeff_bandwidth(energy_vec_bandwidth, fdp_vec_base):
     coeff = torch.stack((energy_vec_bandwidth[:-1], constant, a, b, c, d, e))
     return coeff
 
+
 def fdp_fp_easy_integral(energy, energy_start, energy_end, coeff, powers):
     """
     Get integral at energy for the term with the x+E denominator
@@ -286,7 +287,7 @@ def get_physical_params_fp(energy_vec, energy_vec_bandwidth, free_params, coeff_
     intervals_mat, coeff_mat, powers_mat = reformat_fdp(energy_vec_bandwidth, free_params, coeff_vec_bandwidth)
 
     # Now convert fdp to fp, account for relativistic correction
-
+    breakpoint()
     fp_full = []
     for energy in energy_vec:
         print(energy)
