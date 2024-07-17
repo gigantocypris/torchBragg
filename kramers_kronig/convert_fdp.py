@@ -8,12 +8,14 @@ due to the discussion outlined here: https://doi.org/10.1364/OE.22.023628
 Usage:
 libtbx.python $MODULES/torchBragg/kramers_kronig/convert_fdp.py --prefix [FILENAME PREFIX]
 """
+import time
 import argparse
 import numpy as np
 import torch
 from torchBragg.kramers_kronig.create_fp_fdp_dat_file import full_path, read_dat_file
 from torchBragg.kramers_kronig.convert_fdp_helper import convert_fdp_to_fp, create_energy_vec, check_clashes
 from torchBragg.kramers_kronig.convert_fdp_visualizer import create_figures
+
 torch.set_default_dtype(torch.float64)
 np.seterr(all='raise')
 
@@ -40,15 +42,18 @@ energy_vec_bandwidth = create_energy_vec(nchannels+1, bandedge, channel_width, l
 
 # energy_vec_final = torch.tensor(energy_vec_reference[(energy_vec_reference > energy_vec_bandwidth[0]) & (energy_vec_reference < energy_vec_bandwidth[-1])])
 # energy_vec_final = torch.arange(energy_vec_bandwidth[0]+.5,energy_vec_bandwidth[-1]-.5, 1)
-# energy_vec_final = torch.tensor(energy_vec_reference)
-energy_vec_final = create_energy_vec(nchannels, bandedge, channel_width, library=torch)
+energy_vec_final = torch.tensor(energy_vec_reference)
+# energy_vec_final = create_energy_vec(nchannels, bandedge, channel_width, library=torch)
 
 # energy_vec_bandwidth cannot have the same values as energy_vec_reference
 if check_clashes(energy_vec_bandwidth, energy_vec_reference)>0:
     raise Exception("Matching values in energy_vec_bandwidth and energy_vec_reference, remove clashes")
 
+start_time = time.time()
 fdp_final, fp_final = convert_fdp_to_fp(energy_vec_reference, energy_vec_bandwidth, energy_vec_final, fdp_vec_reference, relativistic_correction)
+end_time = time.time()
 
+print('Total time: ', end_time-start_time)
 # plots
 create_figures(energy_vec_reference, energy_vec_bandwidth, fp_vec_reference, fdp_vec_reference, energy_vec_final, fdp_final, fp_final, prefix=prefix)
 

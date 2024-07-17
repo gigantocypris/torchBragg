@@ -37,72 +37,79 @@ def fdp_fp_integrate(energy_vec, intervals_mat, coeff_mat, powers_mat, relativis
     fp = 1/(np.pi*energy_vec)*fdp_fp_easy_integral(energy_vec, intervals_mat, coeff_mat, powers_mat)
     fp += -1/(np.pi*energy_vec)*fdp_fp_hard_integral(energy_vec, intervals_mat, coeff_mat, powers_mat)
     
-    fp = 0
-    for ind, interval in enumerate(intervals_mat):
-        energy_start = interval[0]
-        energy_end = interval[1]
-        coeff = coeff_mat[ind]
-        powers = powers_mat[ind]
-        fp += 1/(np.pi*energy)*fdp_fp_easy_integral(energy, energy_start, energy_end, coeff, powers)
-        fp += -1/(np.pi*energy)*fdp_fp_hard_integral(energy, energy_start, energy_end, coeff, powers)
     return fp + relativistic_correction
 
 def fdp_fp_easy_integral(energy_vec, intervals_mat, coeff_mat, powers_mat):
     """
-    Get integral at energy for the term with the x+E denominator
+    Get integrals at energy_vec for the term with the x+E denominator
+    variables are converted to the form (energy x interval x power x dummy_k)
     """
-    # variables are in the form is (energy x interval x power x dummy_k)
 
-    integral = torch.zeros([len(energy_vec),intervals_mat.shape[0],coeff_mat.shape[1]])
     energy_vec = energy_vec[:,None,None,None]
     intervals_start = intervals_mat[:,0][None,:,None,None]
     intervals_end = intervals_mat[:,1][None,:,None,None]
     coeff_mat = coeff_mat[None,:,:,None]
     powers_mat = powers_mat[None,:,:,None]
 
-    # STOPPED HERE
-    powers_mat
+    integral = coeff_mat*((-energy_vec)**(powers_mat+1))*torch.log(torch.abs((intervals_end + energy_vec)/(intervals_start + energy_vec))) # partial_integral_1
 
     if torch.max(powers_mat)>=0:
         k = torch.arange(1, torch.max(powers_mat)+2)
-        integral[powers_mat>=0] += coeff_mat[powers_mat>=0]*(((-energy_vec[powers_mat>=0])**(powers_mat[powers_mat>=0]-k+1))/k)*(intervals_end[powers_mat>=0]**k - intervals_start[powers_mat>=0]**k)
+        k_mat = k.repeat(intervals_mat.shape[0],powers_mat.shape[2],1)[None]
 
-    
-    for ind,n in enumerate(powers):
-        coeff_i = coeff[ind]
-        if n >= 0:
-            for k in range(1,n+2):
-                integral += coeff_i*(((-energy)**(n-k+1))/k)*(energy_end**k - energy_start**k)
-        integral += coeff_i*((-energy)**(n+1))*torch.log(torch.abs((energy_end + energy)/(energy_start+energy)))
-        if n <= -2:
-            integral += -coeff_i*((-energy)**(n+1))*torch.log(torch.abs(energy_end/energy_start))
-        if n <= -3:
-            for k in range(n+2,0):
-                integral += coeff_i*(((-energy)**(n-k+1))/(-k))*(energy_end**k - energy_start**k)
-    return integral
+        partial_integral_0 = coeff_mat*(((-energy_vec)**(powers_mat-k_mat+1))/k_mat)*(intervals_end**k_mat - intervals_start**k_mat)
+        partial_integral_0 = partial_integral_0*(powers_mat>=0)*((k_mat - powers_mat)<2)
 
-def fdp_fp_hard_integral(energy, energy_start, energy_end, coeff, powers):
+        integral += torch.sum(partial_integral_0,axis=-1)[:,:,:,None]
+
+    if torch.min(powers_mat)<=-2:
+        partial_integral_2 = -coeff_mat*((-energy_vec)**(powers_mat+1))*torch.log(torch.abs(intervals_end/intervals_start))
+        partial_integral_2 = partial_integral_2*(powers_mat<=-2)
+        integral += partial_integral_2
+
+    if torch.min(powers_mat)<=-3:
+        k = torch.arange(torch.min(powers_mat)+2,0)
+        k_mat = k.repeat(intervals_mat.shape[0],powers_mat.shape[2],1)[None]
+        partial_integral_3 = coeff_mat*(((-energy_vec)**(powers_mat-k_mat+1))/(-k_mat))*(intervals_end**k_mat - intervals_start**k_mat)
+        partial_integral_3 = partial_integral_3*(powers_mat<=-3)*((k_mat - powers_mat)>1)
+        integral += torch.sum(partial_integral_3,axis=-1)[:,:,:,None]
+
+    return torch.sum(integral,axis=[1,2,3])
+
+def fdp_fp_hard_integral(energy_vec, intervals_mat, coeff_mat, powers_mat):
     """
-    Get integral at energy for the term with the x-E denominator
+    Get integrals at energy_vec for the term with the x-E denominator
+    variables are converted to the form (energy x interval x power x dummy_k)
+    Make sure there are no clashes between energy_vec and intervals_mat
     """
 
-    # Check that powers is sorted in ascending order
-    assert all(powers[i] <= powers[i+1] for i in range(len(powers)-1))
+    energy_vec = energy_vec[:,None,None,None]
+    intervals_start = intervals_mat[:,0][None,:,None,None]
+    intervals_end = intervals_mat[:,1][None,:,None,None]
+    coeff_mat = coeff_mat[None,:,:,None]
+    powers_mat = powers_mat[None,:,:,None]
 
-    integral = 0
-    for ind,n in enumerate(powers):
-        coeff_i = coeff[ind]
-        if n >= 0:
-            for k in range(1,n+2):
-                integral += coeff_i*((energy**(n-k+1))/k)*(energy_end**k - energy_start**k)
-        try:
-            integral += coeff_i*(energy**(n+1))*torch.log(torch.abs((energy_end - energy)/(energy_start - energy))) ## Problem term here
-        except FloatingPointError as rw:
-            print("FloatingPointError:", rw)
-            print("Check that energy is not at the endpoints of any interval")
-        if n <= -2:
-            integral += -coeff_i*(energy**(n+1))*torch.log(torch.abs(energy_end/energy_start))
-        if n <= -3:
-            for k in range(n+2,0):
-                integral += coeff_i*((energy**(n-k+1))/(-k))*(energy_end**k - energy_start**k)
-    return integral
+    integral = coeff_mat*(energy_vec**(powers_mat+1))*torch.log(torch.abs((intervals_end - energy_vec)/(intervals_start - energy_vec))) # Problem term
+
+    if torch.max(powers_mat)>=0:
+        k = torch.arange(1, torch.max(powers_mat)+2)
+        k_mat = k.repeat(intervals_mat.shape[0],powers_mat.shape[2],1)[None]
+
+        partial_integral_0 = coeff_mat*((energy_vec**(powers_mat-k_mat+1))/k_mat)*(intervals_end**k_mat - intervals_start**k_mat)
+        partial_integral_0 = partial_integral_0*(powers_mat>=0)*((k_mat - powers_mat)<2)
+
+        integral += torch.sum(partial_integral_0,axis=-1)[:,:,:,None]
+
+    if torch.min(powers_mat)<=-2:
+        partial_integral_2 = -coeff_mat*(energy_vec**(powers_mat+1))*torch.log(torch.abs(intervals_end/intervals_start))
+        partial_integral_2 = partial_integral_2*(powers_mat<=-2)
+        integral += partial_integral_2
+
+    if torch.min(powers_mat)<=-3:
+        k = torch.arange(torch.min(powers_mat)+2,0)
+        k_mat = k.repeat(intervals_mat.shape[0],powers_mat.shape[2],1)[None]
+        partial_integral_3 = coeff_mat*((energy_vec**(powers_mat-k_mat+1))/(-k_mat))*(intervals_end**k_mat - intervals_start**k_mat)
+        partial_integral_3 = partial_integral_3*(powers_mat<=-3)*((k_mat - powers_mat)>1)
+        integral += torch.sum(partial_integral_3,axis=-1)[:,:,:,None]
+
+    return torch.sum(integral,axis=[1,2,3])

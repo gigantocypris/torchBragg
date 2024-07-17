@@ -3,6 +3,7 @@ from scipy.interpolate import CubicSpline
 from scipy.optimize import curve_fit
 import torch
 from torchBragg.kramers_kronig.cubic_spline_torch import natural_cubic_spline_coeffs_without_missing_values
+import torchBragg.kramers_kronig.convert_fdp_helper_vectorize as vector
 
 def check_clashes(energy_vec_0, energy_vec_1):
     """
@@ -287,16 +288,14 @@ def get_physical_params_fp(energy_vec, energy_vec_bandwidth, free_params, coeff_
     intervals_mat, coeff_mat, powers_mat = reformat_fdp(energy_vec_bandwidth, free_params, coeff_vec_bandwidth)
 
     # Now convert fdp to fp, account for relativistic correction
-    breakpoint()
     fp_full = []
     for energy in energy_vec:
-        print(energy)
         fp = fdp_fp_integrate(energy, intervals_mat, coeff_mat, powers_mat, relativistic_correction)
         fp_full.append(fp)
     
     return fp_full
 
-def convert_fdp_to_fp(energy_vec_reference, energy_vec_bandwidth, energy_vec_final, fdp_vec_reference, relativistic_correction):
+def convert_fdp_to_fp(energy_vec_reference, energy_vec_bandwidth, energy_vec_final, fdp_vec_reference, relativistic_correction, vectorize=True):
     """ 
     energy_vec_reference is the x-values for fdp_vec_reference
     energy_vec_bandwidth denotes the x-values of the points we in the bandwidth that define the cubic spline fit there
@@ -313,8 +312,11 @@ def convert_fdp_to_fp(energy_vec_reference, energy_vec_bandwidth, energy_vec_fin
     energy_vec_bandwidth = torch.tensor(energy_vec_bandwidth)
     coeff_vec_bandwidth = get_coeff_bandwidth(energy_vec_bandwidth, torch.tensor(params_bandwidth))
 
-    fdp_final = get_physical_params_fdp(energy_vec_final, energy_vec_bandwidth, free_params, coeff_vec_bandwidth)    
-    fp_final = get_physical_params_fp(energy_vec_final, energy_vec_bandwidth, free_params, coeff_vec_bandwidth, relativistic_correction)
+    fdp_final = get_physical_params_fdp(energy_vec_final, energy_vec_bandwidth, free_params, coeff_vec_bandwidth)  
+    if vectorize:  
+        fp_final = vector.get_physical_params_fp(energy_vec_final, energy_vec_bandwidth, free_params, coeff_vec_bandwidth, relativistic_correction)
+    else:
+        fp_final = get_physical_params_fp(energy_vec_final, energy_vec_bandwidth, free_params, coeff_vec_bandwidth, relativistic_correction)
 
     intervals_mat, coeff_mat, powers_mat = reformat_fdp(energy_vec_bandwidth, free_params, coeff_vec_bandwidth)
     fdp_check = get_reformatted_fdp(energy_vec_final, powers_mat, coeff_mat, intervals_mat)
