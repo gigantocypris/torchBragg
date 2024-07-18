@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from convert_fdp_helper import reformat_fdp
+from torchBragg.kramers_kronig.convert_fdp_helper import reformat_fdp
 
 def get_physical_params_fp(energy_vec, energy_vec_bandwidth, free_params, coeff_vec_bandwidth, relativistic_correction):
     """
