@@ -8,6 +8,7 @@
 # libtbx.python $MODULES/torchBragg/kramers_kronig/convert_fdp.py --prefix MnO2_spliced
 
 # salloc --qos shared_interactive --time 01:00:00 --constraint gpu --gpus 1 --account=m4734_g
+# salloc --nodes 1 --qos interactive --time 01:00:00 --constraint gpu --gpus 4 --account=m4734_g
 # . $MODULES/torchBragg/scipts/anomalous_optimizer_script.sh
 
 export CUDA_MANAGED_FORCE_DEVICE_ALLOC=1
