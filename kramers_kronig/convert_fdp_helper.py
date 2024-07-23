@@ -156,7 +156,7 @@ def get_reformatted_fdp(energy, powers_mat, coeff_mat, intervals_mat):
     fdp = func_reformatted(energy[:,None], power, coeff)
     return fdp
 
-def reformat_fdp(energy_vec_bandwidth, free_params, coeff_vec_bandwidth):
+def reformat_fdp(energy_vec_bandwidth, free_params, coeff_vec_bandwidth, device='cpu'):
     """
     This function reformats the parameters describing the fdp curve in order to later calculate the fp values.
 
@@ -183,9 +183,13 @@ def reformat_fdp(energy_vec_bandwidth, free_params, coeff_vec_bandwidth):
     interval_bandwidth = torch.stack((energy_vec_bandwidth[:-1], energy_vec_bandwidth[1:]), axis=1)
     interval_1 = torch.tensor([energy_vec_bandwidth[-1], 30000])[None]
 
+    interval_0 = interval_0.to(device)
+    interval_bandwidth = interval_bandwidth.to(device)
+    interval_1 = interval_1.to(device)
+
     intervals_mat = torch.concat((interval_0, interval_bandwidth, interval_1), axis=0) # intervals x endpoints
 
-    powers_mat = torch.tensor([-2,-1,0,1,2,3])
+    powers_mat = torch.tensor([-2,-1,0,1,2,3], device=device)
     powers_mat = powers_mat.repeat(len(intervals_mat),1) # intervals x powers
 
     free_params_0 = free_params[0:5][:,None]
@@ -197,7 +201,3 @@ def reformat_fdp(energy_vec_bandwidth, free_params, coeff_vec_bandwidth):
 
     coeff_mat = torch.concat([coeff_vec_0, coeff_vec_bandwidth_converted, coeff_vec_1], axis=0) # intervals x coefficients
     return intervals_mat, coeff_mat, powers_mat
-
-
-
-

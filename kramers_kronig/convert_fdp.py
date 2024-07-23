@@ -34,7 +34,6 @@ def convert_fdp_to_fp(energy_vec_reference, energy_vec_bandwidth, energy_vec_fin
     popt_0, params_bandwidth, popt_1, shift_0, constant_0, shift_1, constant_1, energy_vec_full, fdp_vec_full = \
         get_free_params(energy_vec_reference, fdp_vec_reference, energy_vec_bandwidth)
     
-    
     free_params = torch.tensor(np.concatenate((popt_0, params_bandwidth, popt_1)))
 
     energy_vec_bandwidth = torch.tensor(energy_vec_bandwidth)

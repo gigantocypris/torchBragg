@@ -2,7 +2,7 @@ import torch
 import numpy as np
 from torchBragg.kramers_kronig.convert_fdp_helper import reformat_fdp
 
-def get_physical_params_fp(energy_vec, energy_vec_bandwidth, free_params, coeff_vec_bandwidth, relativistic_correction):
+def get_physical_params_fp(energy_vec, energy_vec_bandwidth, free_params, coeff_vec_bandwidth, relativistic_correction, device="cpu"):
     """
     This function gets the fp physical parameters from free_params
 
@@ -13,14 +13,14 @@ def get_physical_params_fp(energy_vec, energy_vec_bandwidth, free_params, coeff_
     func_start_end       -- func_bandwith  -- func_start_end
     [a0, b0, c0, d0, e0] -- [fdp_vec_base] -- [a1, b1, c1, d1, e1]
     """
-    intervals_mat, coeff_mat, powers_mat = reformat_fdp(energy_vec_bandwidth, free_params, coeff_vec_bandwidth)
+    intervals_mat, coeff_mat, powers_mat = reformat_fdp(energy_vec_bandwidth, free_params, coeff_vec_bandwidth, device=device)
 
     # Now convert fdp to fp, account for relativistic correction
-    fp_full = fdp_fp_integrate(energy_vec, intervals_mat, coeff_mat, powers_mat, relativistic_correction)
+    fp_full = fdp_fp_integrate(energy_vec, intervals_mat, coeff_mat, powers_mat, relativistic_correction, device=device)
     
     return fp_full
 
-def fdp_fp_integrate(energy_vec, intervals_mat, coeff_mat, powers_mat, relativistic_correction):
+def fdp_fp_integrate(energy_vec, intervals_mat, coeff_mat, powers_mat, relativistic_correction, device='cpu'):
     """
     Find fp from fdp using the Kramers-Kronig relation at energy
     energy cannot be at the endpoints of any interval!!
@@ -34,12 +34,12 @@ def fdp_fp_integrate(energy_vec, intervals_mat, coeff_mat, powers_mat, relativis
         jth interval
     """
 
-    fp = 1/(np.pi*energy_vec)*fdp_fp_easy_integral(energy_vec, intervals_mat, coeff_mat, powers_mat)
-    fp += -1/(np.pi*energy_vec)*fdp_fp_hard_integral(energy_vec, intervals_mat, coeff_mat, powers_mat)
+    fp = 1/(np.pi*energy_vec)*fdp_fp_easy_integral(energy_vec, intervals_mat, coeff_mat, powers_mat, device)
+    fp += -1/(np.pi*energy_vec)*fdp_fp_hard_integral(energy_vec, intervals_mat, coeff_mat, powers_mat, device)
     
     return fp + relativistic_correction
 
-def fdp_fp_easy_integral(energy_vec, intervals_mat, coeff_mat, powers_mat):
+def fdp_fp_easy_integral(energy_vec, intervals_mat, coeff_mat, powers_mat, device='cpu'):
     """
     Get integrals at energy_vec for the term with the x+E denominator
     variables are converted to the form (energy x interval x power x dummy_k)
@@ -50,11 +50,10 @@ def fdp_fp_easy_integral(energy_vec, intervals_mat, coeff_mat, powers_mat):
     intervals_end = intervals_mat[:,1][None,:,None,None]
     coeff_mat = coeff_mat[None,:,:,None]
     powers_mat = powers_mat[None,:,:,None]
-
     integral = coeff_mat*((-energy_vec)**(powers_mat+1))*torch.log(torch.abs((intervals_end + energy_vec)/(intervals_start + energy_vec))) # partial_integral_1
 
     if torch.max(powers_mat)>=0:
-        k = torch.arange(1, torch.max(powers_mat)+2)
+        k = torch.arange(1, torch.max(powers_mat)+2).to(device)
         k_mat = k.repeat(intervals_mat.shape[0],powers_mat.shape[2],1)[None]
 
         partial_integral_0 = coeff_mat*(((-energy_vec)**(powers_mat-k_mat+1))/k_mat)*(intervals_end**k_mat - intervals_start**k_mat)
@@ -76,7 +75,7 @@ def fdp_fp_easy_integral(energy_vec, intervals_mat, coeff_mat, powers_mat):
 
     return torch.sum(integral,axis=[1,2,3])
 
-def fdp_fp_hard_integral(energy_vec, intervals_mat, coeff_mat, powers_mat):
+def fdp_fp_hard_integral(energy_vec, intervals_mat, coeff_mat, powers_mat, device='cpu'):
     """
     Get integrals at energy_vec for the term with the x-E denominator
     variables are converted to the form (energy x interval x power x dummy_k)
@@ -92,7 +91,7 @@ def fdp_fp_hard_integral(energy_vec, intervals_mat, coeff_mat, powers_mat):
     integral = coeff_mat*(energy_vec**(powers_mat+1))*torch.log(torch.abs((intervals_end - energy_vec)/(intervals_start - energy_vec))) # Problem term
 
     if torch.max(powers_mat)>=0:
-        k = torch.arange(1, torch.max(powers_mat)+2)
+        k = torch.arange(1, torch.max(powers_mat)+2).to(device)
         k_mat = k.repeat(intervals_mat.shape[0],powers_mat.shape[2],1)[None]
 
         partial_integral_0 = coeff_mat*((energy_vec**(powers_mat-k_mat+1))/k_mat)*(intervals_end**k_mat - intervals_start**k_mat)
