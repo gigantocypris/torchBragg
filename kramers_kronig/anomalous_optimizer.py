@@ -1,3 +1,8 @@
+"""
+Optimization script to determine the anomalous scattering factors (fp and fdp) as a function of energy/wavelength.
+Use scripts/anomalous_optimizer_script.sh to call.
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -15,7 +20,8 @@ torch.autograd.set_detect_anomaly(True)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 params, options = parse_input()
 
-kramkron = 'equality' # type of restraint/constraint on fp and fdp, options are: None, 'equality', 'restraint', 'sauter' # XXX implement options
+# XXX implement options
+kramkron = 'equality' # type of restraint/constraint on fp and fdp, options are: None, 'equality', 'restraint', 'sauter' 
 
 """
 pix0_vector_mm detector origin, change to get different ROI
@@ -28,25 +34,13 @@ direct_algo_res_limit=10.0
 num_pixels_x = 128
 num_pixels_y = 128
 
-# XXX Fix below
-# pix0_vector_mm = torch.tensor((141.7, 169.04799999999997, -169.04799999999997), device=device) # original ROI for 3840 pixels
+# original ROI for 3840 pixels
+# pix0_vector_mm = torch.tensor((141.7, 169.04799999999997, -169.04799999999997), device=device) 
 # hkl_ranges=(1, -55, 6, -92, 134, -77)
 # direct_algo_res_limit=1.85
 # num_pixels_x = 3840
 # num_pixels_y = 3840
 
-# pix0_vector_mm = torch.tensor((141.7, 5.72, -5.72), device=device) # original ROI for 128 pixels
-# hkl_ranges=(2, 0, 41, 29, 39, 22)
-# direct_algo_res_limit=10.0
-# num_pixels_x = 128
-# num_pixels_y = 128
-
-# OR?
-
-# hkl_ranges=(0, -2, 59, 49, -7, -23)
-# direct_algo_res_limit=10.0
-# num_pixels_x = 128
-# num_pixels_y = 128
 
 # Define ground truth fp and fdp for each of the 4 Mn atoms and calculate base structure factors
 MN_labels=["Mn_oxidized_model","Mn_oxidized_model","Mn_reduced_model","Mn_reduced_model"]
@@ -96,7 +90,7 @@ if kramkron is None:
     fp_guess = fp_vec_ground_state.clone().detach().to(device).requires_grad_(True) # shape is (num_Mn_atoms, num_wavelengths)
     fdp_guess = fdp_vec_ground_state.clone().detach().to(device).requires_grad_(True) # shape is (num_Mn_atoms, num_wavelengths)
     optimizer = torch.optim.Adam([fp_guess, fdp_guess], lr=0.1) 
-elif kramkron == 'equality':
+elif kramkron == 'equality' or kramkron == 'restraint':
     # locations of the physical parameters
     energy_vec_reference = create_energy_vec(params.spectrum.nchannels, params.beam.mean_energy, params.spectrum.channel_width, library=torch).to(device)
 
@@ -117,9 +111,12 @@ elif kramkron == 'equality':
     free_params_2 = scale*free_params_0
     scale = scale.to(device)
     free_params_2 = free_params_2.clone().detach().to(device).requires_grad_(True)
-    optimizer = torch.optim.Adam([free_params_2], lr=1e-2) 
-elif kramkron == 'restraint':
-    pass
+    
+    if kramkron == 'equality':
+        optimizer = torch.optim.Adam([free_params_2], lr=1e-2) 
+    elif kramkron == 'restraint':
+        fp_guess = fp_vec_ground_state.clone().detach().to(device).requires_grad_(True) # shape is (num_Mn_atoms, num_wavelengths)
+        optimizer = torch.optim.Adam([free_params_2, fp_guess], lr=1e-2) 
 elif kramkron == 'sauter':
     pass
 else:
@@ -129,10 +126,9 @@ Fhkl_mat_0 = Fhkl_mat_0.to(device)
 Fhkl_mat_vec_all_Mn_diff = Fhkl_mat_vec_all_Mn_diff.to(device)
 
 
-
 # Define the loss function as the distance between the "experimental" data and the forward simulation result
 # Either MSE or negative log-likelihood
-num_iter = 100
+num_iter = 10
 loss_vec = []
 for i in range(num_iter):
     # Zero out gradients
@@ -141,16 +137,19 @@ for i in range(num_iter):
     # Forward simulation with the saved parameters and fp_guess, fdp_guess, resulting in probability distribution
     if kramkron is None:
         pass
-    elif kramkron == 'equality':
+    elif kramkron == 'equality' or kramkron == 'restraint':
         free_params = free_params_2/scale
         coeff_vec_bandwidth = [get_coeff_bandwidth(energy_vec_bandwidth, free_params[i,5:-5]) for i in range(len(MN_labels))]
+
         fdp_guess = [get_physical_params_fdp(energy_vec_reference, energy_vec_bandwidth, free_params[i], coeff_vec_bandwidth[i]) for i in range(len(MN_labels))]
-        fp_guess = [get_physical_params_fp(energy_vec_reference, energy_vec_bandwidth, free_params[i], coeff_vec_bandwidth[i], relativistic_correction, device) for i in range(len(MN_labels))]
-        
         fdp_guess = torch.stack(fdp_guess, axis=0)[:,:,None,None,None]
-        fp_guess = torch.stack(fp_guess, axis=0)[:,:,None,None,None]
-    elif kramkron == 'restraint':
-        pass
+
+        fp_guess_constrained = [get_physical_params_fp(energy_vec_reference, energy_vec_bandwidth, free_params[i], coeff_vec_bandwidth[i], relativistic_correction, device) for i in range(len(MN_labels))]
+
+        if kramkron == 'equality':
+            fp_guess = torch.stack(fp_guess_constrained, axis=0)[:,:,None,None,None]
+        elif kramkron == 'restraint':
+            fp_restraint = torch.stack(fp_guess_constrained, axis=0)[:,:,None,None,None]
     elif kramkron == 'sauter':
         pass
     else:
@@ -163,8 +162,14 @@ for i in range(num_iter):
                                         fluence_background, hkl_ranges, device, num_pixels_x, num_pixels_y, use_background=use_background)
 
     # Calculate loss # XXX modify to be a log likelihood loss
-    loss = torch.sum((simulated_data - experimental_data)**2)
-
+    if kramkron == 'equality':
+        loss = torch.sum((simulated_data - experimental_data)**2)
+    elif kramkron == 'restraint':
+        loss = torch.sum((simulated_data - experimental_data)**2) + 0.01*torch.sum((fp_restraint - fp_guess)**2)
+    elif kramkron == 'sauter':
+        pass
+    else:
+        raise Exception("This Kramer's Kronig constraint/restraint is not implemented.")
 
     # XXX Add a term to the loss for restraint options
 
@@ -193,15 +198,19 @@ plt.savefig('loss.png')
 
 for mn in range(len(MN_labels)):
     plt.figure()
-    plt.plot(torch.squeeze(fp_vec[mn]).cpu().detach().numpy(), label='ground truth')
-    plt.plot(torch.squeeze(fp_guess[mn]).cpu().detach().numpy(), label='predicted')
+    plt.plot(torch.squeeze(fp_vec[mn]).cpu().detach().numpy(), 'b', label='ground truth')
+    plt.plot(torch.squeeze(fp_vec_ground_state[mn]).cpu().detach().numpy(), 'r.', label='initial')
+    plt.plot(torch.squeeze(fp_guess[mn]).cpu().detach().numpy(), 'r', label='final')
+    plt.ylim([-9, -4.5])
     plt.legend()
     plt.title('fp ' + str(mn))
     plt.savefig('fp_optimized' + str(mn) + '.png')
 
     plt.figure()
-    plt.plot(torch.squeeze(fdp_vec[mn]).cpu().detach().numpy(), label='ground truth')
-    plt.plot(torch.squeeze(fdp_guess[mn]).cpu().detach().numpy(), label='predicted')
+    plt.plot(torch.squeeze(fdp_vec[mn]).cpu().detach().numpy(), 'b', label='ground truth')
+    plt.plot(torch.squeeze(fdp_vec_ground_state[mn]).cpu().detach().numpy(), 'r.', label='initial')
+    plt.plot(torch.squeeze(fdp_guess[mn]).cpu().detach().numpy(), 'r', label='final')
+    plt.ylim([0, 4.5])
     plt.legend()
     plt.title('fdp')
     plt.savefig('fdp_optimized' + str(mn) + '.png')

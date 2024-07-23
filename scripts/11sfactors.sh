@@ -24,8 +24,8 @@ export DWORK=/global/cfs/cdirs/m3562/users/dtchon/p20231/common/ensemble1/SPREAD
 echo "
 dispatch.step_list = input arrange annulus
 input.path=$WERK/22374020_e0.05Nabc16/out_P212121
-input.experiments_suffix=000000.expt  # testing on 10% of data
-input.reflections_suffix=000000.refl  # testing on 10% of data
+input.experiments_suffix=000000.expt  # *1.expt # testing on 10% of data
+input.reflections_suffix=000000.refl  # *1.refl # testing on 10% of data
 input.keep_imagesets=True
 input.read_image_headers=False
 input.persistent_refl_cols=shoebox
