@@ -99,7 +99,7 @@ elif kramkron == 'equality' or kramkron == 'restraint':
 
     # XXX more realistic initial conditions
     Mn_initial_model=full_path("data_sherrell/Mn.dat")
-    relativistic_correction = torch.tensor(0).to(device) # 0.042 for Mn and 0.048 for Fe
+    relativistic_correction = torch.tensor(0.042).to(device).requires_grad_(True) # 0.042 for Mn and 0.048 for Fe
     energy_vec_full, fp_vec_full, fdp_vec_full = read_dat_file(Mn_initial_model)
     energy_vec_full = np.array(energy_vec_full).astype(np.float64)
     fdp_vec_full = np.array(fdp_vec_full).astype(np.float64)
@@ -113,10 +113,10 @@ elif kramkron == 'equality' or kramkron == 'restraint':
     free_params_2 = free_params_2.clone().detach().to(device).requires_grad_(True)
     
     if kramkron == 'equality':
-        optimizer = torch.optim.Adam([free_params_2], lr=1e-2) 
+        optimizer = torch.optim.Adam([free_params_2, relativistic_correction], lr=1e-2) 
     elif kramkron == 'restraint':
         fp_guess = fp_vec_ground_state.clone().detach().to(device).requires_grad_(True) # shape is (num_Mn_atoms, num_wavelengths)
-        optimizer = torch.optim.Adam([free_params_2, fp_guess], lr=1e-2) 
+        optimizer = torch.optim.Adam([free_params_2, fp_guess, relativistic_correction], lr=1e-2) 
 elif kramkron == 'sauter':
     pass
 else:
@@ -232,4 +232,5 @@ plt.title('Simulated data')
 plt.colorbar()
 plt.savefig('experimental_simulated.png')
 
+print(relativistic_correction)
 breakpoint()
