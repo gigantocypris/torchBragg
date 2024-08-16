@@ -6,7 +6,7 @@
 
 mkdir -p $SLURM_JOB_ID; cd $SLURM_JOB_ID
 
-export LOG_BY_RANK=1 # Set to 1 to use Aaron's rank logger
+export LOG_BY_RANK=0 # Set to 1 to use Aaron's rank logger
 export CCTBX_NO_UUID=1
 export DIFFBRAGG_USE_CUDA=1
 export CUDA_LAUNCH_BLOCKING=1
@@ -57,7 +57,7 @@ statistics.annulus.d_max=5.0  # consider annulus thinner than original 5.0-3.2 f
 statistics.annulus.d_min=3.2  # consider annulus thinner than original 5.0-3.2 for tests?
 spread_roi.enable=True
 # spread_roi.strong=1.0 # only use for initial annulus definition, not subsequent
-output.log_level=0 # 0 = stdout stderr, 1 = terminal
+output.log_level=1 # 0 = stdout stderr, 1 = terminal
 output.output_dir=out
 output.prefix=trial8_scenario3A
 output.save_experiments_and_reflections=True
@@ -109,5 +109,6 @@ sauter20.LLG_evaluator.restraints.kramers_kronig.weighting_factor=1000.0
 sauter20.LLG_evaluator.max_calls=2 # 30
 " > refine.phil
 echo "jobstart $(date)";pwd
-srun --ntasks 4 --cpus-per-task 128 --ntasks-per-gpu=1 cctbx.xfel.merge refine.phil
+# srun --ntasks 4 --cpus-per-task 128 --ntasks-per-gpu=1 cctbx.xfel.merge refine.phil
+cctbx.xfel.merge refine.phil
 echo "jobend $(date)";pwd
