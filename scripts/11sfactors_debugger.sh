@@ -102,6 +102,7 @@ sauter20.LLG_evaluator.restraints.fp.sigma=None
 sauter20.LLG_evaluator.restraints.fdp.mean=None
 sauter20.LLG_evaluator.restraints.fdp.sigma=None
 # sauter20.LLG_evaluator.restraints.kramers_kronig.algorithm=original1
+sauter20.LLG_evaluator.restraints.kramers_kronig.algorithm=kramkron
 sauter20.LLG_evaluator.restraints.kramers_kronig.use=False
 sauter20.LLG_evaluator.restraints.kramers_kronig.pad=100
 sauter20.LLG_evaluator.restraints.kramers_kronig.trim=0

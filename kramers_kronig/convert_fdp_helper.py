@@ -136,7 +136,9 @@ def get_physical_params_fdp(energy_vec, energy_vec_bandwidth, free_params, coeff
 
     interval_inds = find_interval_inds(energy_vec_bandwidth, energy_vec[(energy_vec >= shift0) & (energy_vec <= shift1)])
     fdp0 = func(energy_vec[energy_vec < shift0], shift0, constant0, a0, b0, c0, d0, e0)
+
     fdp_bandwidth = func(energy_vec[(energy_vec >= shift0) & (energy_vec <= shift1)], *coeff_vec_bandwidth[:,interval_inds])
+
     fdp1 = func(energy_vec[energy_vec > shift1], shift1, constant1, a1, b1, c1, d1, e1)
     fdp_full = torch.concat((fdp0, fdp_bandwidth, fdp1))
     
