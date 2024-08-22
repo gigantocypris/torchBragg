@@ -6,140 +6,64 @@ Differentiable version of nanoBragg, used for SPREAD optimization with a Kramer'
 
 Follow the [installation instructions](INSTALL.md) to setup CCTBX with PyTorch integration.
 
-## Optimize the anomalous scattering factors
+## Getting Started
 
-login to Perlmutter
-
-Open folder on sidebar in VSCode:
-/global/cfs/cdirs/m3562/users/vidyagan/cctbx_install/alcc-recipes-2/cctbx/modules/torchBragg
-
-source ~/env_feb_2024 
-cd $WORK/output_torchBragg 
-libtbx.python $MODULES/torchBragg/kramers_kronig/create_fp_fdp_dat_file.py # only run on the first time 
-
-libtbx.python $MODULES/torchBragg/kramers_kronig/convert_fdp.py --prefix Mn2O3_spliced # only need to run on the first time, run for "Mn2O3_spliced" 
-libtbx.python $MODULES/torchBragg/kramers_kronig/convert_fdp.py --prefix MnO2_spliced # only run on the first time, run for "MnO2_spliced" 
-
-For visualizations, open a second VSCode window on Perlmutter and open folder:
-/global/cfs/cdirs/m3562/users/vidyagan/cctbx_install/evaluate/output_torchBragg
-
-Back to original VSCode window:
-salloc --nodes 1 --qos interactive --time 01:00:00 --constraint gpu --gpus 1 --account=m3562_g
-
-. $MODULES/torchBragg/tests/tst_torchBragg_psii_script.sh
-
-. $MODULES/torchBragg/scripts/anomalous_optimizer_script.sh 
-
-
-Question to answer:
-Does implementing the Kramer's Kronig restraint improve the SPREAD optimization?
-Compare to the previous constraint (current state-of-art) in Sauter 2020.
-
-# Running notes
-
-To start up in a new Perlmutter terminal:
+Open a Perlmutter terminal and start an interactive session:
 ```
 source ~/env_torchBragg
+export PYTHONPATH=
 cd $WORK/output_torchBragg
 ```
 
-Created $MODULES/torchBragg/SPREAD_integration/11sfactors.sh (cut down .expt and .refl to just 1 file each)
+## Optimize the Anomalous Scattering Factors
 
-salloc --nodes 4 --qos interactive --time 01:00:00 --constraint gpu --account=m3562_g --ntasks-per-gpu 1
+### Modification to `psii_spread`
 
-cd $WORK/output_torchBragg
+The forward model in `psii_spread` is not automatically differentiable, except the portion implementing the Kramer's Kronig constraint with PyTorch. To run the optimization of the anomalous scattering factors f' and f":
+
+```
+salloc --nodes 4 --qos interactive --time 01:00:00 --constraint gpu --account=${PROJECT_ID}_g --ntasks-per-gpu 1
 . $MODULES/torchBragg/SPREAD_integration/11sfactors.sh
-
-
-## How to run a forward simulation with nanoBragg
-
-Login to Perlmutter, source your environment, and clone this repository.
-```
-source ~\env_p20231_2
-cd $MODULES
-cd ../
-. activate.sh
-cd $MODULES
-git clone https://github.com/gigantocypris/torchBragg.git
 ```
 
-Switch branches on the [exafel_project](https://github.com/ExaFEL/exafel_project) repository.
+### Fully Differentiable Model
+To optimize the anomalous scattering factors with a automatically differentiable model implemented in PyTorch, first run the following once (only needs to be run the first time using these instructions):
 ```
-cd $MODULES/exafel_project
-git checkout experimental_high_remote
-```
-
-Create a simulated image:
-```
-mkdir $WORK/output_torchBragg
-cd $WORK/output_torchBragg
-. $MODULES/torchBragg/single_img_sim.sh
+libtbx.python $MODULES/torchBragg/kramers_kronig/create_fp_fdp_dat_file.py 
+libtbx.python $MODULES/torchBragg/kramers_kronig/convert_fdp.py --prefix Mn2O3_spliced 
+libtbx.python $MODULES/torchBragg/kramers_kronig/convert_fdp.py --prefix MnO2_spliced 
 ```
 
-To view the image:
+Start an interactive session and run the script:
 ```
-dials.image_viewer image_rank_00000.h5 
+salloc --qos shared_interactive --time 01:00:00 --constraint gpu --gpus 1 --account=${PROJECT_ID}_g
+. $MODULES/torchBragg/scripts/anomalous_optimizer_script.sh 
 ```
-Change brightness to ~100.
 
-## Running nanoBragg unit tests
+## Unit Tests
+
+```
+. $MODULES/torchBragg/tests/tst_torchBragg_psii_script.sh
+```
 
 ```
 cd $WORK/output_torchBragg
 libtbx.python $MODULES/cctbx_project/simtbx/nanoBragg/tst_nanoBragg_minimal.py
 ```
 
-Can set a breakpoint in the above unit test and look at the raw_pixels attribute:
-```
-SIM.raw_pixels.as_numpy_array()
-```
 
-Other unit tests:
 ```
 cd $WORK/output_torchBragg
 libtbx.python $MODULES/cctbx_project/simtbx/nanoBragg/tst_nanoBragg_mosaic.py
 ```
 
-## Port to PyTorch
-
-References:
-
-cctbx_project/simtbx/nanoBragg/nanoBragg.cpp --> add_nanoBragg_spots
-cctbx_project/simtbx/nanoBragg/tst_nanoBragg_minimal.py
-
-diffBragg tests are in:
-simtbx/diffBragg/tests
-
-Get this unit test to work:
-
-> cd $WORK/output_torchBragg
-> libtbx.python $MODULES/cctbx_project/simtbx/nanoBragg/tst_nanoBragg_minimal.py
-
 diffBragg unit test:
-> cd $WORK/output_torchBragg
-> libtbx.python $MODULES/cctbx_project/simtbx/diffBragg/tests/tst_diffBragg_Fcell_deriv.py
-
-Run main.py
-> cd $WORK/output_torchBragg
-> libtbx.python $MODULES/torchBragg/main.py
-
-
-## Questions on nanoBragg.cpp
-
-Why is there interpolation starting on line 2779? Isn't the correct thing to do is take all the neighboring HKL spots, loop over these spots, getting the contribution of that spot to the pixel of interest?
-
-Some variables in add_nanoBragg_spots are not accessible in the nanoBragg() object, such as pixel_size:
-That is, this code snippet prints `None`.
 ```
-SIM = nanoBragg()
-print(SIM.pixel_size)
+cd $WORK/output_torchBragg
+libtbx.python $MODULES/cctbx_project/simtbx/diffBragg/tests/tst_diffBragg_Fcell_deriv.py
 ```
 
-The polarization factor is computed in the innermost loop. However, it is applied in the outermost loop. Why is this?
+## Questions
 
-nanoBragg_nks.cpp or nanoBragg.cpp or KOKKOS nanoBragg: what are differences, what should I use?
-
-## Known Issues
-
-- Interpolation?
-- The polarization factor is computed in the innermost loop. However, it is applied in the outermost loop
+- Interpolation: Why is there interpolation in nanoBragg? Isn't the correct thing to do is take all the neighboring HKL spots, loop over these spots, getting the contribution of that spot to the pixel of interest?
+- Polarization factor: The polarization factor is computed in the innermost loop. However, it is applied in the outermost loop.
