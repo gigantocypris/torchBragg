@@ -35,6 +35,22 @@ Question to answer:
 Does implementing the Kramer's Kronig restraint improve the SPREAD optimization?
 Compare to the previous constraint (current state-of-art) in Sauter 2020.
 
+# Running notes
+
+To start up in a new Perlmutter terminal:
+```
+source ~/env_torchBragg
+cd $WORK/output_torchBragg
+```
+
+Created $MODULES/torchBragg/SPREAD_integration/11sfactors.sh (cut down .expt and .refl to just 1 file each)
+
+salloc --nodes 4 --qos interactive --time 01:00:00 --constraint gpu --account=m3562_g --ntasks-per-gpu 1
+
+cd $WORK/output_torchBragg
+. $MODULES/torchBragg/SPREAD_integration/11sfactors.sh
+
+
 ## How to run a forward simulation with nanoBragg
 
 Login to Perlmutter, source your environment, and clone this repository.

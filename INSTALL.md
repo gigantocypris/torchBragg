@@ -1,13 +1,24 @@
-## These are February 2024 install instructions. See the end for modifications in June 2024
+# Installation Instructions
 
+These instructions are for installing `torchBragg` and the Computational Crystallography Toolbox `cctbx` on the Perlmutter supercomputer at (NERSC)[https://www.nersc.gov/].
+
+Start by opening a terminal on a login node on Perlmutter and run the following:
+```
+export USERNAME={your_nersc_username}
+export PROJECT_ID={mXXX}
 module load PrgEnv-gnu cpe-cuda cudatoolkit
-cd /global/cfs/cdirs/m3562/users/vidyagan/cctbx_install
-git clone https://github.com/JBlaschke/alcc-recipes.git alcc-recipes-2
-cd alcc-recipes-2/cctbx/
+mkdir -d /global/cfs/cdirs/${PROJECT_ID}/users/vidyagan/cctbx_install
+git clone https://github.com/JBlaschke/alcc-recipes.git alcc-recipes-torchBragg
+cd alcc-recipes-torchBragg/cctbx/
+```
 
+Open `setup_perlmutter.sh`:
+```
 vi setup_perlmutter.sh
+```
 
-Apply the following patch to dissociate the existing version of the libssh library:
+Apply the following patch to dissociate the existing version of the `libssh` library:
+```
 a/cctbx/setup_perlmutter.sh b/cctbx/setup_perlmutter.sh
 index 3600cf8..56b8d44 100755
 --- a/cctbx/setup_perlmutter.sh
@@ -18,29 +29,34 @@ index 3600cf8..56b8d44 100755
 +rm ./opt/mamba/envs/psana_env/lib/libssh.so.4
  mk-cctbx cuda build hot update
  patch-dispatcher nersc
+```
 
-Following takes about an hour to complete:
+The following takes about an hour to complete, recommended to run on a NoMachine instance:
+```
+./setup_perlmutter.sh > >(tee -a ../../alcc-recipes-torchBragg.log) 2> >(tee -a ../../alcc-recipes-torchBragg.err >&2)
+```
 
-./setup_perlmutter.sh > >(tee -a ../../alcc-recipes-2.log) 2> >(tee -a ../../alcc-recipes-2.err >&2)
-
-STOPPED HERE (11:44 am, the above command is running on NoMachine)
-
+Create a file in `$HOME` to source the environment:
+``` 
 cd
-vi env_feb_2024
+vi env_torchBragg
+```
 
-###
-export CFSW=$CFS/m3562/users/vidyagan/cctbx_install
+Copy in the following:
+```
+export USERNAME={your_nersc_username}
+export PROJECT_ID={mXXX}
+export CFSW=$CFS/${PROJECT_ID}/users/${USERNAME}/cctbx_install
 export WORK=$CFSW/evaluate
 cd $WORK
-source $CFSW/alcc-recipes-2/cctbx/utilities.sh
-source $CFSW/alcc-recipes-2/cctbx/opt/site/nersc_perlmutter.sh
+source $CFSW/alcc-recipes-torchBragg/cctbx/utilities.sh
+source $CFSW/alcc-recipes-torchBragg/cctbx/opt/site/nersc_perlmutter.sh
 module load evp-patch
 load-sysenv
 activate
 
-export MODULES=$CFSW/alcc-recipes-2/cctbx/modules
-export BUILD=$CFSW/alcc-recipes-2/cctbx/build
-export SCRATCH=/pscratch/sd/v/vidyagan
+export MODULES=$CFSW/alcc-recipes-torchBragg/cctbx/modules
+export BUILD=$CFSW/alcc-recipes-torchBragg/cctbx/build
 
 export OMP_PLACES=threads
 export OMP_PROC_BIND=spread
@@ -51,12 +67,16 @@ export SIT_DATA=${OVERWRITE_SIT_DATA:-$NERSC_SIT_DATA}:$SIT_DATA
 export SIT_PSDM_DATA=${OVERWRITE_SIT_PSDM_DATA:-$NERSC_SIT_PSDM_DATA}
 export MPI4PY_RC_RECV_MPROBE='False'
 export SIT_ROOT=/reg/g/psdm
+```
 
-###
-
-source ~/env_feb_2024
+Source your new file:
+```
+source ~/env_torchBragg
 cd $MODULES
+```
 
+Clone the following repos, including `torchBragg`:
+```
 git clone https://github.com/nksauter/LS49 && \
 git clone https://gitlab.com/cctbx/ls49_big_data && \
 git clone https://gitlab.com/cctbx/uc_metrics && \
@@ -67,50 +87,32 @@ git clone https://gitlab.com/cctbx/xfel_regression.git && \
 git clone https://github.com/ExaFEL/exafel_project.git && \
 git clone https://github.com/dermen/cxid9114.git && \
 git clone https://github.com/gigantocypris/torchBragg.git
+```
 
+Run the following:
+```
 libtbx.configure LS49 ls49_big_data uc_metrics lunus sim_erice xfel_regression
 cd $BUILD
-mk-cctbx cuda build (not make!!)
+mk-cctbx cuda build # not make!!
 
 cd $MODULES
 libtbx.configure LS49 ls49_big_data uc_metrics lunus sim_erice xfel_regression
 libtbx.refresh
 
-Note: pytorch still not using GPU, but at least back to where I started? Can make a separate optimized script/environment for GPU and PyTorch. Assume that end user won't be using the full CCTBX stack. Can have instructions for setting up the full stack and getting the initial values/matrices and saving, and then separate for PyTorch optimization
-UPDATE: PyTorch using GPU after Felix's modification
+libtbx.python -m pip install natsort
+mkdir -d $WORK/output_torchBragg
+```
 
-FYI for starting VSCode:
-> echo $MODULES
-/global/cfs/cdirs/m3562/users/vidyagan/cctbx_install/alcc-recipes-2/cctbx/modules
-
-#### starting from scratch
-source ~/env_feb_2024
-mkdir $WORK
-mkdir $WORK/output_torchBragg
-cd $WORK/output_torchBragg
-. $MODULES/torchBragg/tst_anomalous_optimizer_script.sh
-
+Test your PyTorch install:
+```
 libtbx.python
 import torch
 torch.cuda.is_available()
+```
 
 
-After install:
-
-libtbx.python -m pip install natsort
-
-
-## June 2024 modifications
-
-Resources:
-Daniel's SPREAD reprocessing journal: https://docs.google.com/document/d/1Cscemlh67JZjyaY82-sLmnv_bjdJOh44JzxtRe-nWN0/edit
-See entry on June 13, 2024, page 119
-
-SPREAD code map: https://docs.google.com/presentation/d/1MfcAD4GOzHFgpsnH4xoRgHETgw90ULTO2hfAisVDWNc/edit#slide=id.p
-
-Important code: https://gitlab.com/cctbx/psii_spread/-/blob/main/merging/application/annulus/new_global_fdp_refinery.py#L153
-
-source ~/env_feb_2024 
+As of June 2024 the followind branches are needed:
+```
 cd $MODULES/cctbx_project
 git pull
 git checkout memory_policy
@@ -119,7 +121,10 @@ git checkout memory_policy
 cd $MODULES/cctbx_project
 git pull
 git checkout dsp_oldstriping
+```
 
+These packages may need to be pulled as well to update an old install:
+```
 cd $MODULES/exafel_project
 git pull
 
@@ -134,37 +139,38 @@ git pull
 
 cd $MODULES/uc_metrics
 git pull
+```
 
-
+Anytime C++ code is re-pulled, run the following:
+```
+cd $MODULES
 libtbx.configure LS49 ls49_big_data uc_metrics lunus sim_erice xfel_regression
 cd $BUILD
-mk-cctbx cuda build (not make!!)
+mk-cctbx cuda build # not make!!
 
 cd $MODULES
 libtbx.configure LS49 ls49_big_data uc_metrics lunus sim_erice xfel_regression
 libtbx.refresh
+```
 
-Implement this fix: https://gitlab.com/cctbx/psii_spread/-/blob/main/pipeline/simulated/cctbx.diff?ref_type=heads
-
-Reference file: /global/cfs/cdirs/m3562/users/dtchon/p20231/common/ensemble1/SPREAD/SIM/arrange_tests/10sorted.sh
-
-Created $MODULES/torchBragg/SPREAD_integration/11sfactors.sh (cut down .expt and .refl to just 1 file each)
-
-salloc --nodes 4 --qos interactive --time 01:00:00 --constraint gpu --account=m3562_g --ntasks-per-gpu 1
-
-cd $WORK/output_torchBragg
-. $MODULES/torchBragg/SPREAD_integration/11sfactors.sh
-
-
-
-Setup after install:
-Open in VSCode file explorer: /global/cfs/cdirs/m3562/users/vidyagan/cctbx_install/alcc-recipes-2/cctbx/modules
-source ~/env_feb_2024 
-cd $WORK/output_torchBragg
-
-VSCode to visualize output: /global/cfs/cdirs/m3562/users/vidyagan/cctbx_install/evaluate/output_torchBragg
-
-File in progress:
-$MODULES/torchBragg/SPREAD_integration/coeff_to_fp_fdp.py
-
-libtbx.python $MODULES/torchBragg/SPREAD_integration/helper.py
+To run some code, the following patch is needed in `cctbx_project`:
+```
+--- a/xfel/merging/command_line/merge.py
++++ b/xfel/merging/command_line/merge.py
+@@ -44,6 +44,7 @@ class Script(object):
+   def __init__(self):
+     self.mpi_helper = mpi_helper()
+     self.mpi_logger = mpi_logger()
++    self.common_store = dict(foo="hello") # always volatile, no serialization, no particular dict keys guaranteed
+ 
+   def __del__(self):
+     self.mpi_helper.finalize()
+@@ -163,6 +164,7 @@ class Script(object):
+     # Perform phil validation up front
+     for worker in workers:
+       worker.validate()
++      worker.__dict__["common_store"] = self.common_store
+     self.mpi_logger.log_step_time("CREATE_WORKERS", True)
+ 
+     # Do the work
+```
