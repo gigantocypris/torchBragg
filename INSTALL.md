@@ -1,6 +1,6 @@
 # Installation Instructions
 
-These instructions are for installing `torchBragg` and the Computational Crystallography Toolbox `cctbx` on the Perlmutter supercomputer at (NERSC)[https://www.nersc.gov/].
+These instructions are for installing `torchBragg` and the Computational Crystallography Toolbox `cctbx` on the Perlmutter supercomputer at [NERSC](https://www.nersc.gov/).
 
 Start by opening a terminal on a login node on Perlmutter and run the following:
 ```
