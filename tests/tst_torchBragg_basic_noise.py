@@ -132,6 +132,8 @@ def tst_nanoBragg_basic(spixels, fpixels, add_background_bool, add_noise_bool):
   print("interpolate=",SIM.interpolate)
   print("integral_form=",SIM.integral_form)
   # now actually burn up some CPU
+  SIM.show_params()
+#   SIM.add_nanoBragg_spots_cuda()
   SIM.add_nanoBragg_spots()
 
   params = (SIM.phisteps, SIM.mosaic_domains, SIM.oversample, SIM.pixel_size_mm, SIM.detector_thicksteps,
@@ -415,8 +417,8 @@ if __name__=="__main__":
   fpixels = 1024
   use_numpy = False
   vectorize = True
-  add_background_bool = True
-  add_noise_bool = True
+  add_background_bool = False
+  add_noise_bool = False
 
   if add_noise_bool:
     use_numpy = False
