@@ -2,8 +2,8 @@ from __future__ import absolute_import, division, print_function
 # absolute bare-minimum diffraction image simulation
 
 from simtbx.nanoBragg import nanoBragg
-from diffraction import add_torchBragg_spots
-from utils import which_package
+from torchBragg.forward_simulation.vectorized.diffraction_vectorized import add_torchBragg_spots
+from torchBragg.foward_simulation.naive.utils import which_package
 import numpy as np
 import torch
 import matplotlib.pyplot as plt

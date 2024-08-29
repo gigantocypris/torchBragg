@@ -42,26 +42,27 @@ salloc --qos shared_interactive --time 01:00:00 --constraint gpu --gpus 1 --acco
 
 ## Unit Tests
 
-TODO 
+```
+libtbx.python $MODULES/torchBragg/tests/tst_torchBragg_basic_noise.py
+```
+
+```
+libtbx.python $MODULES/cctbx_project/simtbx/nanoBragg/tst_nanoBragg_minimal.py
+```
 
 ```
 . $MODULES/torchBragg/tests/tst_torchBragg_psii_script.sh
 ```
 
-```
-cd $WORK/output_torchBragg
-libtbx.python $MODULES/cctbx_project/simtbx/nanoBragg/tst_nanoBragg_minimal.py
-```
+### Tests to implement in torchBragg
 
-
+From nanoBragg:
 ```
-cd $WORK/output_torchBragg
 libtbx.python $MODULES/cctbx_project/simtbx/nanoBragg/tst_nanoBragg_mosaic.py
 ```
 
-diffBragg unit test:
+From diffBragg:
 ```
-cd $WORK/output_torchBragg
 libtbx.python $MODULES/cctbx_project/simtbx/diffBragg/tests/tst_diffBragg_Fcell_deriv.py
 ```
 
