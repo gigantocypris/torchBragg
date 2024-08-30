@@ -29,8 +29,10 @@ env > env.out
 echo "
 dispatch.step_list = input arrange annulus
 input.path=$SPREAD/SIM/9exa3a/${JOB_ID_EXA3A}_e0.05Nabc16/out_P212121
-input.experiments_suffix=00.expt  # testing on 100% of data
-input.reflections_suffix=00.refl  # testing on 100% of data
+input.experiments_suffix=00.expt  # testing on % of data
+input.reflections_suffix=00.refl  # testing on % of data
+# input.experiments_suffix=exa3a_000635.expt  # testing on % of data
+# input.reflections_suffix=exa3a_000635.refl  # testing on % of data
 input.keep_imagesets=True
 input.read_image_headers=False
 input.persistent_refl_cols=shoebox

@@ -181,9 +181,9 @@ def reformat_fdp(energy_vec_bandwidth, free_params, coeff_vec_bandwidth, device=
     constant1 = fdp_vec_base[-1]
 
     # Create intervals_mat, coeff_mat, powers_mat
-    interval_0 = torch.tensor([800, energy_vec_bandwidth[0]])[None]
+    interval_0 = torch.tensor([1000.0, energy_vec_bandwidth[0]])[None]
     interval_bandwidth = torch.stack((energy_vec_bandwidth[:-1], energy_vec_bandwidth[1:]), axis=1)
-    interval_1 = torch.tensor([energy_vec_bandwidth[-1], 30000])[None]
+    interval_1 = torch.tensor([energy_vec_bandwidth[-1], 24900.0])[None]
 
     interval_0 = interval_0.to(device)
     interval_bandwidth = interval_bandwidth.to(device)

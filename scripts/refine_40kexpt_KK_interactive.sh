@@ -4,6 +4,7 @@
 # . $MODULES/torchBragg/scripts/refine_40kexpt_KK_interactive.sh
 
 export JOB_ID_EXA3A=29833084 
+# export JOB_ID_SFACTORS=29888809
 export JOB_ID_SFACTORS=29952369
 export SPREAD=/global/cfs/cdirs/lcls/sauter/LY99/spread/
 SRUN="srun -n 32 -c 16"
@@ -35,6 +36,8 @@ dispatch.step_list = input arrange annulus
 input.path=$SPREAD/SIM/9exa3a/${JOB_ID_EXA3A}_e0.05Nabc16/out
 input.experiments_suffix=00.expt  # testing on % of data
 input.reflections_suffix=00.refl  # testing on % of data
+# input.experiments_suffix=exa3a_000222.expt  # testing on % of data
+# input.reflections_suffix=exa3a_000222.refl  # testing on % of data
 input.keep_imagesets=True
 input.read_image_headers=False
 input.persistent_refl_cols=shoebox
@@ -66,6 +69,9 @@ output.output_dir=out
 output.prefix=trial8_scenario3A
 output.save_experiments_and_reflections=True
 exafel.scenario=S1
+# exafel.static_fcalcs.path=$WORK/output_torchBragg/psii_static_fcalcs.pickle
+# exafel.static_fcalcs.whole_path=$WORK/output_torchBragg/psii_miller_array.pickle
+# exafel.static_fcalcs.action=write
 exafel.static_fcalcs.path=$SPREAD/SIM/10sfactors/$JOB_ID_SFACTORS/psii_static_fcalcs.pickle
 exafel.static_fcalcs.whole_path=$SPREAD/SIM/10sfactors/$JOB_ID_SFACTORS/psii_miller_array.pickle
 exafel.static_fcalcs.action=read
@@ -103,9 +109,9 @@ sauter20.LLG_evaluator.enable_plot=True
 sauter20.LLG_evaluator.plot.starting_model=False
 sauter20.LLG_evaluator.plot.reference=False
 sauter20.LLG_evaluator.title=tell
-sauter20.LLG_evaluator.restraints.fp.mean=0.0
+sauter20.LLG_evaluator.restraints.fp.mean=None
 sauter20.LLG_evaluator.restraints.fp.sigma=None
-sauter20.LLG_evaluator.restraints.fdp.mean=0.1
+sauter20.LLG_evaluator.restraints.fdp.mean=None
 sauter20.LLG_evaluator.restraints.fdp.sigma=None
 sauter20.LLG_evaluator.restraints.kramers_kronig.algorithm=kramkron
 sauter20.LLG_evaluator.restraints.kramers_kronig.use=False
@@ -116,4 +122,5 @@ sauter20.LLG_evaluator.max_calls=30
 " > refine.phil
 echo "jobstart $(date)";pwd
 $SRUN cctbx.xfel.merge refine.phil
+# cctbx.xfel.merge refine.phil
 echo "jobend $(date)";pwd
