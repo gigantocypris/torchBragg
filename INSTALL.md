@@ -7,7 +7,7 @@ Start by opening a terminal on a login node on Perlmutter and run the following:
 export USERNAME={your_nersc_username}
 export PROJECT_ID={mXXX}
 module load PrgEnv-gnu cpe-cuda cudatoolkit
-mkdir -d /global/cfs/cdirs/${PROJECT_ID}/users/vidyagan/cctbx_install
+mkdir -p /global/cfs/cdirs/${PROJECT_ID}/users/${USERNAME}/cctbx_install
 git clone https://github.com/JBlaschke/alcc-recipes.git alcc-recipes-torchBragg
 cd alcc-recipes-torchBragg/cctbx/
 ```
@@ -77,17 +77,32 @@ cd $MODULES
 
 Clone the following repos, including `torchBragg`:
 ```
-git clone https://github.com/nksauter/LS49 && \
-git clone https://gitlab.com/cctbx/ls49_big_data && \
-git clone https://gitlab.com/cctbx/uc_metrics && \
-git clone https://github.com/lanl/lunus && \            
-git clone https://github.com/dermen/sim_erice && \
-git clone https://gitlab.com/cctbx/psii_spread.git && \	
-git clone https://gitlab.com/cctbx/xfel_regression.git && \
-git clone https://github.com/ExaFEL/exafel_project.git && \
-git clone https://github.com/dermen/cxid9114.git && \
+git clone https://github.com/nksauter/LS49.git
+git clone https://gitlab.com/cctbx/ls49_big_data.git
+git clone https://gitlab.com/cctbx/uc_metrics.git
+git clone https://github.com/lanl/lunus.git        
+git clone https://github.com/dermen/sim_erice.git
+git clone https://gitlab.com/cctbx/psii_spread.git
+git clone https://gitlab.com/cctbx/xfel_regression.git
+git clone https://github.com/ExaFEL/exafel_project.git
+git clone https://github.com/dermen/cxid9114.git
 git clone https://github.com/gigantocypris/torchBragg.git
 ```
+
+Apply the following patch to `diffBragg`:
+```
+--- a/simtbx/diffBragg/src/diffBragg.cpp
++++ b/simtbx/diffBragg/src/diffBragg.cpp
+@@ -1847,6 +1847,7 @@ void diffBragg::add_diffBragg_spots(const af::shared<size_t>& panels_fasts_slows
+ 
+     Npix_to_model = panels_fasts_slows.size()/3;
+     SCITBX_ASSERT(Npix_to_model <= Npix_total);
++    raw_pixels_roi = af::flex_double(Npix_to_model); // NKS, only way to correctly size & zero array
+     double * floatimage_roi = raw_pixels_roi.begin();
+ 
+     diffBragg_rot_mats();
+```
+
 
 Run the following:
 ```
@@ -111,16 +126,16 @@ torch.cuda.is_available()
 ```
 
 
-As of June 2024 the followind branches are needed:
+As of June 2024 the following branches are needed:
 ```
 cd $MODULES/cctbx_project
 git pull
 git checkout memory_policy
 
 
-cd $MODULES/cctbx_project
+cd $MODULES/dials # this only matters for indexing
 git pull
-git checkout dsp_oldstriping
+git checkout dsp_oldstriping_mcd_stills
 ```
 
 These packages may need to be pulled as well to update an old install:
@@ -136,6 +151,7 @@ git pull
 
 cd $MODULES/psii_spread
 git pull
+git checkout kramkron #
 
 cd $MODULES/uc_metrics
 git pull
