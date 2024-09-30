@@ -136,7 +136,6 @@ def get_physical_params_fdp(energy_vec, energy_vec_bandwidth, free_params, coeff
 
     interval_inds = find_interval_inds(energy_vec_bandwidth, energy_vec[(energy_vec >= shift0) & (energy_vec <= shift1)])
     fdp0 = func(energy_vec[energy_vec < shift0], shift0, constant0, a0, b0, c0, d0, e0)
-
     fdp_bandwidth = func(energy_vec[(energy_vec >= shift0) & (energy_vec <= shift1)], *coeff_vec_bandwidth[:,interval_inds])
 
     fdp1 = func(energy_vec[energy_vec > shift1], shift1, constant1, a1, b1, c1, d1, e1)
@@ -152,7 +151,6 @@ def get_reformatted_fdp(energy, powers_mat, coeff_mat, intervals_mat):
     # find what interval energy is in
     intervals = torch.concat((intervals_mat[:,0],intervals_mat[:,1][-1][None])) # must be monotonically increasing
     interval_ind = find_interval_inds(intervals, energy)
-
     power = powers_mat[interval_ind]
     coeff = coeff_mat[interval_ind]
     fdp = func_reformatted(energy[:,None], power, coeff)

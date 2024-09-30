@@ -23,27 +23,27 @@ from torchBragg.kramers_kronig.convert_fdp_visualizer import create_figures
 torch.set_default_dtype(torch.float64)
 np.seterr(all='raise')
 
-def convert_fdp_to_fp(energy_vec_reference, energy_vec_bandwidth, energy_vec_final, fdp_vec_reference, relativistic_correction):
+
+def convert_fdp_to_fp(energy_vec_reference, energy_vec_free, energy_vec_physical, fdp_vec_reference, relativistic_correction):
     """ 
     energy_vec_reference is the x-values for fdp_vec_reference
-    energy_vec_bandwidth denotes the x-values of the points we in the bandwidth that define the cubic spline fit there
-    energy_vec_final are the x-values for the physical parameters fdp and fp 
+    energy_vec_free denotes the x-values of the points we in the bandwidth that define the cubic spline fit there
+    energy_vec_physical are the x-values for the physical parameters fdp and fp 
     
-    energy_vec_bandwidth cannot have any points in energy_vec_reference
+    energy_vec_free cannot have any points in energy_vec_reference
     """
-    popt_0, params_bandwidth, popt_1, shift_0, constant_0, shift_1, constant_1, energy_vec_full, fdp_vec_full = \
-        get_free_params(energy_vec_reference, fdp_vec_reference, energy_vec_bandwidth)
+    params_free_cubic_spline = get_free_params(energy_vec_reference, fdp_vec_reference, energy_vec_free)
     
-    free_params = torch.tensor(np.concatenate((popt_0, params_bandwidth, popt_1)))
+    free_params = torch.tensor(params_free_cubic_spline)
 
-    energy_vec_bandwidth = torch.tensor(energy_vec_bandwidth)
-    coeff_vec_bandwidth = get_coeff_bandwidth(energy_vec_bandwidth, torch.tensor(params_bandwidth))
+    energy_vec_free = torch.tensor(energy_vec_free)
+    coeff_vec_bandwidth = get_coeff_bandwidth(energy_vec_free, torch.tensor(params_bandwidth))
 
-    fdp_final = get_physical_params_fdp(energy_vec_final, energy_vec_bandwidth, free_params, coeff_vec_bandwidth)  
-    fp_final = get_physical_params_fp(energy_vec_final, energy_vec_bandwidth, free_params, coeff_vec_bandwidth, relativistic_correction)
+    fdp_final = get_physical_params_fdp(energy_vec_physical, energy_vec_free, free_params, coeff_vec_bandwidth)  
+    fp_final = get_physical_params_fp(energy_vec_physical, energy_vec_free, free_params, coeff_vec_bandwidth, relativistic_correction)
 
-    intervals_mat, coeff_mat, powers_mat = reformat_fdp(energy_vec_bandwidth, free_params, coeff_vec_bandwidth)
-    fdp_check = get_reformatted_fdp(energy_vec_final, powers_mat, coeff_mat, intervals_mat)
+    intervals_mat, coeff_mat, powers_mat = reformat_fdp(energy_vec_free, free_params, coeff_vec_bandwidth)
+    fdp_check = get_reformatted_fdp(energy_vec_physical, powers_mat, coeff_mat, intervals_mat)
     print('Numerical check of reformatted coefficients:', torch.allclose(fdp_final, fdp_check, rtol=1e-05, atol=1e-08, equal_nan=False))
 
     return fdp_final, fp_final, fdp_check
@@ -70,29 +70,23 @@ if __name__ == '__main__':
 
     # points where the FREE PARAMETERS are located
     energy_vec_bandwidth = create_energy_vec(nchannels+1, bandedge, channel_width, library=np)
+    energy_vec_free = np.concatenate((np.array([1000.]), energy_vec_bandwidth, np.array([20000.])))
 
     # points where the PHYSICAL PARAMETERS are located (cannot be the same as free parameter locations)
-    energy_vec_final = torch.tensor(energy_vec_reference)
-    # energy_vec_final = create_energy_vec(nchannels, bandedge, channel_width, library=torch) # smaller vector for optimization
+    energy_vec_physical = create_energy_vec(nchannels, bandedge, channel_width, library=torch)
 
     # energy_vec_bandwidth cannot have the same values as energy_vec_final
-    if check_clashes(energy_vec_bandwidth, energy_vec_final.numpy())>0:
+    if check_clashes(energy_vec_free, energy_vec_physical.numpy())>0:
         raise Exception("Matching values in energy_vec_bandwidth and energy_vec_final, remove clashes")
 
     start_time = time.time()
-    fdp_final, fp_final, fdp_check = convert_fdp_to_fp(energy_vec_reference, energy_vec_bandwidth, energy_vec_final, 
+    fdp_final, fp_final, fdp_check = convert_fdp_to_fp(energy_vec_reference, energy_vec_free, energy_vec_physical, 
                                             fdp_vec_reference, relativistic_correction)
     end_time = time.time()
 
     print('Total time: ', end_time-start_time)
     
+    breakpoint()
     # plots
     create_figures(energy_vec_reference, energy_vec_bandwidth, fp_vec_reference, fdp_vec_reference, energy_vec_final, \
                    fdp_final, fp_final, fdp_check, prefix=prefix + 'test2')
-
-    # Combine the vectors into a single 2D array
-    combined_array = np.column_stack((energy_vec_final, fp_final, fdp_final))
-
-    # Save the combined array to a .dat file
-    np.savetxt(prefix + '.dat', combined_array, delimiter='\t', fmt='%0.7f')
-    print("Saved to " + prefix + ".dat")
