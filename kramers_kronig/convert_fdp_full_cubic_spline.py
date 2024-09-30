@@ -15,16 +15,17 @@ import argparse
 import numpy as np
 import torch
 from torchBragg.kramers_kronig.create_fp_fdp_dat_file import full_path, read_dat_file
-from torchBragg.kramers_kronig.convert_fdp_helper import create_energy_vec, check_clashes, get_free_params, get_coeff_bandwidth, \
-    get_physical_params_fdp, reformat_fdp, get_reformatted_fdp
-from torchBragg.kramers_kronig.convert_fdp_helper_vectorize import get_physical_params_fp
-from torchBragg.kramers_kronig.convert_fdp_visualizer import create_figures
+from torchBragg.kramers_kronig.convert_fdp_full_cubic_spline_helper import get_free_params, get_coeff_cubic_spline, \
+    reformat_fdp, get_physical_params_fdp
+from torchBragg.kramers_kronig.convert_fdp_helper import create_energy_vec, check_clashes
+from torchBragg.kramers_kronig.convert_fdp_helper_vectorize import fdp_fp_integrate
+from torchBragg.kramers_kronig.convert_fdp_visualizer import create_figures_full_cubic_spline
 
 torch.set_default_dtype(torch.float64)
 np.seterr(all='raise')
 
 
-def convert_fdp_to_fp(energy_vec_reference, energy_vec_free, energy_vec_physical, fdp_vec_reference, relativistic_correction):
+def convert_fdp_to_fp(energy_vec_reference, energy_vec_free, energy_vec_physical, fdp_vec_reference, relativistic_correction, device='cpu'):
     """ 
     energy_vec_reference is the x-values for fdp_vec_reference
     energy_vec_free denotes the x-values of the points we in the bandwidth that define the cubic spline fit there
@@ -32,21 +33,18 @@ def convert_fdp_to_fp(energy_vec_reference, energy_vec_free, energy_vec_physical
     
     energy_vec_free cannot have any points in energy_vec_reference
     """
-    params_free_cubic_spline = get_free_params(energy_vec_reference, fdp_vec_reference, energy_vec_free)
+    fdp_vec_free = get_free_params(energy_vec_reference, fdp_vec_reference, energy_vec_free)
     
-    free_params = torch.tensor(params_free_cubic_spline)
+    fdp_vec_free = torch.tensor(fdp_vec_free).to(device)
 
-    energy_vec_free = torch.tensor(energy_vec_free)
-    coeff_vec_bandwidth = get_coeff_bandwidth(energy_vec_free, torch.tensor(params_bandwidth))
+    energy_vec_free = torch.tensor(energy_vec_free).to(device)
+    params_free_cubic_spline = get_coeff_cubic_spline(energy_vec_free, fdp_vec_free)
+    fdp_vec_physical = get_physical_params_fdp(energy_vec_physical, energy_vec_free, params_free_cubic_spline)
 
-    fdp_final = get_physical_params_fdp(energy_vec_physical, energy_vec_free, free_params, coeff_vec_bandwidth)  
-    fp_final = get_physical_params_fp(energy_vec_physical, energy_vec_free, free_params, coeff_vec_bandwidth, relativistic_correction)
+    intervals_mat, coeff_mat, powers_mat = reformat_fdp(energy_vec_free, params_free_cubic_spline, device=device)
+    fp_vec_physical = fdp_fp_integrate(energy_vec_physical, intervals_mat, coeff_mat, powers_mat, relativistic_correction, device=device)
 
-    intervals_mat, coeff_mat, powers_mat = reformat_fdp(energy_vec_free, free_params, coeff_vec_bandwidth)
-    fdp_check = get_reformatted_fdp(energy_vec_physical, powers_mat, coeff_mat, intervals_mat)
-    print('Numerical check of reformatted coefficients:', torch.allclose(fdp_final, fdp_check, rtol=1e-05, atol=1e-08, equal_nan=False))
-
-    return fdp_final, fp_final, fdp_check
+    return fp_vec_physical, fdp_vec_physical
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -54,6 +52,8 @@ if __name__ == '__main__':
                         help='filename prefix for the fp and fdp curves to load',
                         choices=['Fe', 'Mn', 'MnO2_spliced', 'Mn2O3_spliced'])
     args = parser.parse_args()
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Path to Sherrell data: $MODULES/ls49_big_data/data_sherrell
     prefix = args.prefix
@@ -73,20 +73,18 @@ if __name__ == '__main__':
     energy_vec_free = np.concatenate((np.array([1000.]), energy_vec_bandwidth, np.array([20000.])))
 
     # points where the PHYSICAL PARAMETERS are located (cannot be the same as free parameter locations)
-    energy_vec_physical = create_energy_vec(nchannels, bandedge, channel_width, library=torch)
+    energy_vec_physical = create_energy_vec(nchannels, bandedge, channel_width, library=torch).to(device)
 
     # energy_vec_bandwidth cannot have the same values as energy_vec_final
-    if check_clashes(energy_vec_free, energy_vec_physical.numpy())>0:
+    if check_clashes(energy_vec_free, energy_vec_physical.cpu().numpy())>0:
         raise Exception("Matching values in energy_vec_bandwidth and energy_vec_final, remove clashes")
 
     start_time = time.time()
-    fdp_final, fp_final, fdp_check = convert_fdp_to_fp(energy_vec_reference, energy_vec_free, energy_vec_physical, 
-                                            fdp_vec_reference, relativistic_correction)
+    fp_vec_physical, fdp_vec_physical = convert_fdp_to_fp(energy_vec_reference, energy_vec_free, energy_vec_physical, 
+                                            fdp_vec_reference, relativistic_correction, device=device)
     end_time = time.time()
 
     print('Total time: ', end_time-start_time)
     
-    breakpoint()
     # plots
-    create_figures(energy_vec_reference, energy_vec_bandwidth, fp_vec_reference, fdp_vec_reference, energy_vec_final, \
-                   fdp_final, fp_final, fdp_check, prefix=prefix + 'test2')
+    create_figures_full_cubic_spline(energy_vec_reference, fp_vec_reference, fdp_vec_reference, energy_vec_physical.cpu().numpy(), fp_vec_physical.cpu().numpy(), fdp_vec_physical.cpu().numpy(), bandedge, prefix=prefix + '_full_cubic')

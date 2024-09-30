@@ -44,7 +44,6 @@ def fdp_fp_easy_integral(energy_vec, intervals_mat, coeff_mat, powers_mat, devic
     Get integrals at energy_vec for the term with the x+E denominator
     variables are converted to the form (energy x interval x power x dummy_k)
     """
-
     energy_vec = energy_vec[:,None,None,None]
     intervals_start = intervals_mat[:,0][None,:,None,None]
     intervals_end = intervals_mat[:,1][None,:,None,None]
