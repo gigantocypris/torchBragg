@@ -5,6 +5,21 @@ import torch
 from torchBragg.kramers_kronig.cubic_spline_torch import natural_cubic_spline_coeffs_without_missing_values
 from torchBragg.kramers_kronig.convert_fdp_helper import find_interval_inds
 
+def create_energy_vec_free(energies, start_energy_free=1000.0, end_energy_free=24900.0, subsample=1):
+    # points where the FREE PARAMETERS are located
+    d_energy = np.array(energies[1:]) - np.array(energies[:-1])
+    energy_vec_bandwidth = np.zeros(len(energies)+1)
+    energy_vec_bandwidth[1:-1] = energies[:-1] + d_energy/2
+    energy_vec_bandwidth[-1] = energies[-1] + d_energy[-1]/2
+    energy_vec_bandwidth[0] = energies[0] - d_energy[0]/2
+    energy_vec_bandwidth_subsample = energy_vec_bandwidth[1:-1][::subsample]
+    energy_start = np.arange(start_energy_free, energy_vec_bandwidth[0],100)
+    energy_end = np.arange(energy_vec_bandwidth[-1], end_energy_free, 100)
+    energy_vec_free = np.concatenate((energy_start, energy_vec_bandwidth_subsample, energy_end))
+    mask = np.concatenate((np.zeros(len(energy_start)+2), np.hanning(len(energy_vec_bandwidth_subsample)-4), np.zeros(len(energy_end)+2)))
+    return energy_vec_free, mask
+
+
 def get_free_params(energy_vec_reference, fdp_vec_reference, energy_vec_free):
     """
     This function is used to get the initial conditions for the free parameters from published curves.

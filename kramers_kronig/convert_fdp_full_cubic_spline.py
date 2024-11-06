@@ -16,7 +16,7 @@ import numpy as np
 import torch
 from torchBragg.kramers_kronig.create_fp_fdp_dat_file import full_path, read_dat_file
 from torchBragg.kramers_kronig.convert_fdp_full_cubic_spline_helper import get_free_params, get_coeff_cubic_spline, \
-    reformat_fdp, get_physical_params_fdp
+    reformat_fdp, get_physical_params_fdp, create_energy_vec_free
 from torchBragg.kramers_kronig.convert_fdp_helper import create_energy_vec, check_clashes
 from torchBragg.kramers_kronig.convert_fdp_helper_vectorize import fdp_fp_integrate
 from torchBragg.kramers_kronig.convert_fdp_visualizer import create_figures_full_cubic_spline
@@ -34,9 +34,10 @@ def convert_fdp_to_fp(energy_vec_reference, energy_vec_free, energy_vec_physical
     energy_vec_free cannot have any points in energy_vec_reference
     """
     fdp_vec_free = get_free_params(energy_vec_reference, fdp_vec_reference, energy_vec_free)
-    
+    fdp_vec_free[0] = fdp_vec_free[0]
+    fdp_vec_free[55:] = fdp_vec_free[55:] + 100
     fdp_vec_free = torch.tensor(fdp_vec_free).to(device)
-
+    
     energy_vec_free = torch.tensor(energy_vec_free).to(device)
     params_free_cubic_spline = get_coeff_cubic_spline(energy_vec_free, fdp_vec_free)
     fdp_vec_physical = get_physical_params_fdp(energy_vec_physical, energy_vec_free, params_free_cubic_spline)
@@ -60,8 +61,9 @@ if __name__ == '__main__':
     Mn_model=full_path("data_sherrell/" + prefix + ".dat")
     relativistic_correction = 0 # 0.042 for Mn and 0.048 for Fe
     bandedge = 6550 # 6550 eV is the bandedge of Mn and 7112 is the bandedge of Fe
-    channel_width = 1
-    nchannels = 100
+    bandstart = bandedge - 49
+    channel_width = 2
+    nchannels = 50
 
     energy_vec_reference, fp_vec_reference, fdp_vec_reference = read_dat_file(Mn_model)
     energy_vec_reference = np.array(energy_vec_reference).astype(np.float64)
@@ -69,8 +71,10 @@ if __name__ == '__main__':
     fdp_vec_reference = np.array(fdp_vec_reference).astype(np.float64)
 
     # points where the FREE PARAMETERS are located
-    energy_vec_bandwidth = create_energy_vec(nchannels+1, bandedge, channel_width, library=np)
-    energy_vec_free = np.concatenate((np.array([1000.]), energy_vec_bandwidth, np.array([20000.])))
+    energy_vec_bandwidth = create_energy_vec(nchannels, bandedge, channel_width, library=np)
+    # energy_vec_bandwidth = np.arange(bandstart, bandstart+nchannels*channel_width, channel_width)
+    energy_vec_free, _ = create_energy_vec_free(energy_vec_bandwidth, start_energy_free=1000.0, end_energy_free=24900.0, subsample=1)
+    # energy_vec_free = np.concatenate((np.array([1000.]), energy_vec_bandwidth, np.array([20000.])))
 
     # points where the PHYSICAL PARAMETERS are located (cannot be the same as free parameter locations)
     energy_vec_physical = create_energy_vec(nchannels, bandedge, channel_width, library=torch).to(device)
@@ -78,7 +82,6 @@ if __name__ == '__main__':
     # energy_vec_bandwidth cannot have the same values as energy_vec_final
     if check_clashes(energy_vec_free, energy_vec_physical.cpu().numpy())>0:
         raise Exception("Matching values in energy_vec_bandwidth and energy_vec_final, remove clashes")
-
     start_time = time.time()
     fp_vec_physical, fdp_vec_physical = convert_fdp_to_fp(energy_vec_reference, energy_vec_free, energy_vec_physical, 
                                             fdp_vec_reference, relativistic_correction, device=device)
