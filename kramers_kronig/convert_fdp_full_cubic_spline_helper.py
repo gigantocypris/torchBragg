@@ -6,7 +6,11 @@ from torchBragg.kramers_kronig.cubic_spline_torch import natural_cubic_spline_co
 from torchBragg.kramers_kronig.convert_fdp_helper import find_interval_inds
 
 def create_energy_vec_free(energies, start_energy_free=1000.0, end_energy_free=24900.0, subsample=1):
-    # points where the FREE PARAMETERS are located
+    # creates energy_vec_free, points where the FREE PARAMETERS are located
+    # energies are where PHYSICAL PARAMETERS are located
+    # energy_vec_free must be different at all points to energies
+    # energies = np.array(energies)
+    # energies = energies[np.array([0,10,15,20, 21, 22, 23, 24, 25, 26, 27, 28, 29,39,44, 49])]
     d_energy = np.array(energies[1:]) - np.array(energies[:-1])
     energy_vec_bandwidth = np.zeros(len(energies)+1)
     energy_vec_bandwidth[1:-1] = energies[:-1] + d_energy/2
